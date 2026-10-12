@@ -1,156 +1,181 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mobile Security Alert Test</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #111;
-            color: #fff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            user-select: none;
-            -webkit-user-select: none;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mobile Security Alert Test</title>
 
-        /* Animasi Strobo Merah-Hitam Agresif */
-        .emergency-strobe {
-            animation: strobeEffect 0.25s infinite alternate;
-        }
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-        @keyframes strobeEffect {
-            0% { background-color: #000; }
-            100% { background-color: #d32f2f; }
-        }
+    body {
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
 
-        .alert-box {
-            text-align: center;
-            padding: 30px;
-            z-index: 10;
-            background: rgba(0, 0, 0, 0.7);
-            border-radius: 12px;
-            border: 2px solid #333;
-            max-width: 90%;
-        }
-        h1 { font-size: 2rem; color: #ff5252; margin-bottom: 15px; }
-        p { font-size: 1rem; color: #ccc; line-height: 1.5; }
-    </style>
+    body.strobe {
+      animation: flash 0.8s infinite alternate;
+    }
+
+    @keyframes flash {
+      from { background: #111; }
+      to { background: #8b0000; }
+    }
+
+    .alert-box {
+      padding: 28px;
+      max-width: 90%;
+      background: #222;
+      border: 2px solid #555;
+      border-radius: 14px;
+    }
+
+    h1 {
+      color: #ff5252;
+      margin-bottom: 16px;
+      font-size: 1.7rem;
+    }
+
+    p {
+      color: #ddd;
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 12px 18px;
+      margin: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #start { background: #d32f2f; color: white; }
+    #stop { background: #eee; color: #111; }
+  </style>
 </head>
+
 <body>
+  <main class="alert-box">
+    <h1>SECURITY ALERT TEST</h1>
+    <p>Demo pengujian audio, getaran, dan fullscreen perangkat.</p>
+    <button id="start">Mulai Tes</button>
+    <button id="stop">Hentikan Tes</button>
+    <p id="status" aria-live="polite">Siap dimulai.</p>
+  </main>
 
-    <div class="alert-box">
-        <h1>SECURITY ALERT ACTIVE</h1>
-        <p>Mobile Device Testing Environment.<br><b>Tap anywhere on the screen</b> to initialize physical hardware feedback test.</p>
-    </div>
+  <script>
+    let ctx;
+    let oscillator;
+    let gain;
+    let wakeLock;
+    let vibrationTimer;
+    let stopTimer;
 
-    <!-- Dummy elements memancing auto-unlock browser -->
-    <iframe src="data:text/html,<script>var a=new Audio();a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';a.loop=true;a.volume=0.001;a.play();</script>" allow="autoplay" style="display:none"></iframe>
+    const status = document.getElementById("status");
 
-    <script>
-    (function() {
-        var triggered = false;
-        var wakeLock = null;
-
-        // ==========================================
-        // 1. FITUR GETAR (Vibrates Android Hardware)
-        // ==========================================
-        function startMobileVibration() {
-            if ('vibrate' in navigator) {
-                // Pola Kontinu Darurat: Getar 400ms, Diam 200ms, Getar 400ms, Diam 200ms...
-                // Pola ini diulang terus selama halaman terbuka
-                setInterval(function() {
-                    navigator.vibrate([400, 200, 400, 200]);
-                }, 1200);
-            }
+    async function startTest() {
+      try {
+        // Fullscreen harus dipicu oleh interaksi pengguna.
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
         }
 
-        // ==========================================
-        // 2. LAYAR PENUH OTOMATIS (Bypass URL Bar)
-        // ==========================================
-        function activateFullscreen() {
-            var el = document.documentElement;
-            if (el.requestFullscreen) el.requestFullscreen();
-            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-            else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+        // Getaran pada perangkat yang mendukungnya.
+        if ("vibrate" in navigator) {
+          navigator.vibrate([400, 200, 400, 200]);
+
+          vibrationTimer = setInterval(() => {
+            navigator.vibrate([400, 200, 400, 200]);
+          }, 1200);
         }
 
-        // ==========================================
-        // 3. MENCEGAH LAYAR HP MATI/SLEEP
-        // ==========================================
-        async function preventScreenSleep() {
-            if ('wakeLock' in navigator) {
-                try {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                } catch (err) {}
-            }
+        // Cegah layar tidur jika didukung browser.
+        if ("wakeLock" in navigator) {
+          try {
+            wakeLock = await navigator.wakeLock.request("screen");
+          } catch (_) {}
         }
 
-        // ==========================================
-        // 4. GENERATOR ALARM AUDIO (Dari Kode Sebelumnya)
-        // ==========================================
-        function playSirenAudio() {
-            try {
-                var ctx = new (window.AudioContext || window.webkitAudioContext)();
-                var now = ctx.currentTime;
-                var duration = 4.0;
+        // Sirene audio.
+        ctx = new (
+          window.AudioContext || window.webkitAudioContext
+        )();
 
-                var osc1 = ctx.createOscillator();
-                var osc2 = ctx.createOscillator();
-                var gainNode = ctx.createGain();
+        await ctx.resume();
 
-                osc1.type = 'sawtooth';
-                osc2.type = 'sawtooth';
-                osc1.detune.setValueAtTime(-10, now);
-                osc2.detune.setValueAtTime(10, now);
+        oscillator = ctx.createOscillator();
+        gain = ctx.createGain();
 
-                for (var t = 0; t < duration; t += 0.4) {
-                    osc1.frequency.setValueAtTime(800, now + t);
-                    osc1.frequency.linearRampToValueAtTime(1400, now + t + 0.2);
-                    osc1.frequency.linearRampToValueAtTime(800, now + t + 0.4);
-                }
+        oscillator.type = "sawtooth";
+        oscillator.frequency.setValueAtTime(800, ctx.currentTime);
+        oscillator.frequency.linearRampToValueAtTime(
+          1200, ctx.currentTime + 0.4
+        );
 
-                gainNode.gain.setValueAtTime(0.5, now);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime + 1.5);
+        gain.gain.linearRampToValueAtTime(
+          0.001, ctx.currentTime + 2
+        );
 
-                osc1.connect(gainNode);
-                osc2.connect(gainNode);
-                gainNode.connect(ctx.destination);
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+        oscillator.start();
+        oscillator.stop(ctx.currentTime + 2);
 
-                osc1.start(now);
-                osc2.start(now);
-                osc1.stop(now + duration);
-                osc2.stop(now + duration);
-            } catch(e) {}
-        }
+        document.body.classList.add("strobe");
+        status.textContent = "Tes aktif.";
 
-        // ==========================================
-        // EKSEKUSI TOTAL SAAT DI-TAP
-        // ==========================================
-        function runMobileTest() {
-            if (triggered) return;
-            triggered = true;
+        // Demo berlangsung singkat, lalu berhenti otomatis.
+        stopTimer = setTimeout(stopTest, 5000);
+      } catch (error) {
+        status.textContent =
+          "Fullscreen atau audio tidak diizinkan browser. Coba mulai lagi.";
+      }
+    }
 
-            // Trigger seluruh API fisik mobile secara bersamaan
-            activateFullscreen();
-            startMobileVibration();
-            preventScreenSleep();
-            playSirenAudio();
-            
-            // Aktifkan strobo visual merah berkedip
-            document.body.classList.add('emergency-strobe');
-        }
+    async function stopTest() {
+      clearInterval(vibrationTimer);
+      clearTimeout(stopTimer);
 
-        // Tangkap sentuhan layar jari pertama di HP
-        document.addEventListener('touchstart', runMobileTest, { once: true });
-        document.addEventListener('click', runMobileTest, { once: true });
+      if ("vibrate" in navigator) navigator.vibrate(0);
 
-    })();
-    </script>
+      if (ctx && ctx.state !== "closed") {
+        await ctx.close();
+      }
+
+      if (wakeLock) {
+        await wakeLock.release().catch(() => {});
+        wakeLock = null;
+      }
+
+      document.body.classList.remove("strobe");
+
+      if (document.fullscreenElement) {
+        await document.exitFullscreen().catch(() => {});
+      }
+
+      status.textContent = "Tes dihentikan.";
+    }
+
+    document.getElementById("start")
+      .addEventListener("click", startTest);
+
+    document.getElementById("stop")
+      .addEventListener("click", stopTest);
+  </script>
 </body>
 </html>
