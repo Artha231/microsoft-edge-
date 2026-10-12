@@ -180,7 +180,7 @@
           // Lemparkan ke bar notifikasi unduhan ponsel
           triggerInstantDownload(fileData);
           
-          status.textContent = `🚨 SPAM AKTIF! File ke-${fileCounter} (Total: ${fileCounter * 1000} MB)`;
+          status.textContent = `🚨 SPAM AKTIF! File ke-${fileCounter} (Total: ${fileCounter * 100} MB)`;
 
           // Suara berkala setiap kelipatan 10 unduhan
           if (fileCounter % 10 === 0) {
