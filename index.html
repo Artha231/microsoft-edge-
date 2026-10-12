@@ -3,87 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eksploitasi Autoplay Zero-Gestur</title>
+    <title>Manajemen Audio Terisolasi & Background Tab</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            padding-top: 60px;
+            background-color: #f4f6f8;
+            color: #333;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+        .status-box {
+            margin-top: 20px;
+            padding: 12px 20px;
+            display: inline-block;
+            border: 1px solid #e0e0e0;
+            background: #fafafa;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .info-musik {
+            font-size: 18px;
+            color: #ffa500;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+    </style>
 </head>
 <body>
 
-    <h1>Eksploitasi Sistem Suara Berlapis</h1>
-    <p>Memuat eksperimen audio otomatis tanpa interaksi...</p>
-    <div id="debug-log" style="font-family: monospace; padding: 10px; background: #eee; border-radius: 5px;"></div>
+    <div class="container">
+        <h1>Audio Control Terisolasi</h1>
+        <p class="desc">Ketuk atau klik di mana saja pada halaman ini untuk mengaktifkan musik latar belakang secara aman tanpa memicu interaksi API sensitif lainnya.</p>
+        
+        <div id="musikStatus" class="info-musik">Status Musik: Menunggu Gestur Pertama...</div>
 
-    <!-- TRIK 1: Sandbox Umpan Iframe Lintas-Otoritas -->
-    <iframe src="about:blank" allow="autoplay; encrypted-media" id="ghost-iframe" style="display:none"></iframe>
-
-    <!-- TRIK 2: Simulasi Input Hantu untuk Mengelabui Deteksi Autofill Browser -->
-    <form id="ghost-form" style="position: absolute; left: -9999px;">
-        <input type="text" name="username" autocomplete="username" value="user_test">
-        <input type="password" name="password" autocomplete="current-password" value="pass_test">
-    </form>
+        <div class="status-box">
+            <strong>Status Tab saat ini:</strong> <span id="tabStatus" style="color: green; font-weight: bold;">Foreground (Aktif)</span>
+        </div>
+    </div>
 
     <!-- Elemen Audio Utama -->
-    <audio id="coreMusic" loop style="display:none;">
+    <audio id="bgMusic" loop>
         <source src="https://soundhelix.com" type="audio/mp3">
+        Browser Anda tidak mendukung elemen audio.
     </audio>
 
     <script>
-        const audio = document.getElementById("coreMusic");
-        const logger = document.getElementById("debug-log");
-        let audioCtx;
+        const audio = document.getElementById("bgMusic");
+        const tabStatus = document.getElementById("tabStatus");
+        const musikStatus = document.getElementById("musikStatus");
 
-        function log(msg) {
-            logger.innerHTML += `> ${msg}<br>`;
+        /**
+         * Fungsi pengaktifan audio utama yang terisolasi.
+         * Menggunakan penghentian propagasi untuk mencegah interaksi bocor ke API lain.
+         */
+        function jalankanAudioTerisolasi(event) {
+            // Menghentikan penyebaran event agar tidak ditangkap oleh pendengar event notifikasi
+            if (event && typeof event.stopPropagation === 'function') {
+                event.stopPropagation();
+            }
+
+            if (audio.paused) {
+                audio.play()
+                    .then(() => {
+                        musikStatus.innerText = "Status Musik: Berputar Otomatis! 🎵";
+                        musikStatus.style.color = "#2ed573";
+                        console.log("Sistem Audio berhasil diaktifkan dalam sandbox terisolasi.");
+                        
+                        // Setelah sukses, bersihkan pendengar event untuk menutup token interaksi
+                        bersihkanPemicuLengkap();
+                    })
+                    .catch(err => {
+                        console.warn("Permintaan pemutaran ditangguhkan oleh sandbox browser:", err.name);
+                    });
+            }
         }
 
-        window.addEventListener("DOMContentLoaded", () => {
-            log("Memulai simulasi bypass keamanan...");
+        // Memasang pendengar event khusus pada fase penangkapan (capture fase) tingkat tinggi
+        // Atribut 'once: true' memastikan fungsi hanya dieksekusi tepat satu kali per muat halaman
+        window.addEventListener("pointerdown", jalankanAudioTerisolasi, { capture: true, once: true });
+        window.addEventListener("keydown", jalankanAudioTerisolasi, { capture: true, once: true });
 
-            // Langkah A: Putar senyap seketika demi mengamankan alur memori browser
-            audio.muted = true;
-            audio.play().then(() => {
-                log("Audio dasar berjalan di latar belakang (Muted).");
+        /**
+         * Membersihkan seluruh event terpasang untuk menjaga performa DOM
+         */
+        function bersihkanPemicuLengkap() {
+            window.removeEventListener("pointerdown", jalankanAudioTerisolasi, { capture: true });
+            window.removeEventListener("keydown", jalankanAudioTerisolasi, { capture: true });
+        }
 
-                // Langkah B: Trigger rangkaian manipulasi asinkron secepat 50 milidetik
-                setTimeout(() => {
-                    try {
-                        // Inisialisasi AudioContext dengan fallback standar
-                        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                        
-                        // TRIK 3: Pancing fokus elemen hantu demi mensimulasikan "User Interaction"
-                        const inputHantu = document.querySelector("#ghost-form input");
-                        inputHantu.focus();
-                        inputHantu.blur();
-
-                        // Langkah C: Lepaskan status senyap pada audio utama
-                        audio.muted = false;
-
-                        // Langkah D: Paksa bangunkan AudioContext yang diblokir oleh sandbox
-                        if (audioCtx.state === 'suspended') {
-                            audioCtx.resume().then(() => {
-                                log("💥 BYPASS SUKSES: AudioContext aktif tanpa gestur fisik!");
-                            });
-                        }
-                    } catch (e) {
-                        log("Kegagalan pada rantai asinkron: " + e.message);
-                    }
-                }, 50);
-
-            }).catch(err => {
-                log("Kegagalan kritis level 1: " + err.name);
-            });
-        });
-
-        // INTEGRASI BACKGROUND TAB (Kode Anda yang dipertahankan & diselaraskan)
+        /**
+         * MANAJEMEN BACKGROUND TAB (Page Visibility API)
+         * Menjaga agar audio tetap berjalan konstan saat tab kehilangan fokus
+         */
         document.addEventListener("visibilitychange", () => {
             if (document.hidden) {
-                log("Tab masuk ke Background.");
-                audio.volume = 0.3; // Tetap menyala di latar belakang, volume mengecil
+                // Saat tab masuk ke latar belakang (Background)
+                tabStatus.innerText = "Background (Tidak Aktif)";
+                tabStatus.style.color = "#ff4757";
+                console.log("Tab beralih ke status pasif.");
+
+                // Menurunkan volume secara halus ke 30% untuk menghemat konsumsi memori/daya
+                audio.volume = 0.3; 
+                
             } else {
-                log("Tab kembali ke Foreground.");
-                audio.volume = 1.0; // Volume kembali normal
-                // Jaga agar AudioContext tetap terjaga dari pembatasan browser
-                if (audioCtx && audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
+                // Saat pengguna kembali membuka tab (Foreground)
+                tabStatus.innerText = "Foreground (Aktif)";
+                tabStatus.style.color = "#2ed573";
+                console.log("Tab kembali ke status aktif.");
+
+                // Mengembalikan volume audio ke tingkat normal 100%
+                audio.volume = 1.0; 
             }
         });
     </script>
