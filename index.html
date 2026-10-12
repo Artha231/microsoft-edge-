@@ -1,153 +1,53 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Auto Fullscreen & Race Multi-Download (30 Files)</title>
-
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      color: #222;
-      padding: 20px;
-    }
-    .panel {
-      background: #fff;
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
-      max-width: 650px;
-      margin: 40px auto;
-    }
-    /* Memastikan tampilan penuh saat masuk mode fullscreen di Android */
-    :fullscreen {
-      background: #ffffff !important;
-      padding: 20px !important;
-      overflow-y: auto !important;
-      width: 100vw !important;
-      height: 100vh !important;
-    }
-    :-webkit-full-screen {
-      background: #ffffff !important;
-      padding: 20px !important;
-      overflow-y: auto !important;
-    }
-    button {
-      width: 100%;
-      padding: 16px;
-      cursor: pointer;
-      border: 0;
-      border-radius: 6px;
-      background: #007bff;
-      color: #fff;
-      font-weight: bold;
-      font-size: 16px;
-      -webkit-tap-highlight-color: transparent;
-    }
-    #status { 
-      margin-top: 16px; 
-      font-weight: bold; 
-      color: #1565c0; 
-      padding: 10px;
-      background: #e3f2fd;
-      border-radius: 4px;
-      display: inline-block;
-      width: 100%;
-      text-align: center;
-    }
-    #downloads {
-      margin-top: 20px;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 10px;
-    }
-    #downloads a { 
-      display: block; 
-      padding: 8px;
-      background: #e8f5e9;
-      color: #2e7d32;
-      text-decoration: none;
-      border-radius: 4px;
-      font-size: 13px;
-      text-align: center;
-      border: 1px solid #c8e6c9;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One Click Fullscreen</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        #fullscreen-btn {
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+    </style>
 </head>
-
 <body>
-  <div class="panel" id="main-panel">
-    <h2>Mobile Auto-Fullscreen & 30 Files Download</h2>
-    <p style="margin-bottom: 15px;">Ketuk tombol di bawah. Halaman akan otomatis masuk layar penuh pada Android dan menembak 30 file secara race condition.</p>
 
-    <p>
-      <button id="start" type="button">Masuk Fullscreen & Unduh 30 File</button>
-    </p>
+    <button id="fullscreen-btn">Aktifkan Layar Penuh</button>
 
-    <p id="status" role="status">Siap menjalankan pengujian.</p>
-    <div id="downloads"></div>
-  </div>
+    <script>
+        const btn = document.getElementById('fullscreen-btn');
 
-  <script>
-    const start = document.getElementById("start");
-    const status = document.getElementById("status");
-    const downloads = document.getElementById("downloads");
+        btn.addEventListener('click', () => {
+            const docElm = document.documentElement;
 
-    let objectUrls = [];
+            // Memeriksa dan menjalankan fungsi fullscreen sesuai kecocokan browser
+            if (docElm.requestFullscreen) {
+                docElm.requestFullscreen();
+            } else if (docElm.mozRequestFullScreen) { /* Firefox */
+                docElm.mozRequestFullScreen();
+            } else if (docElm.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+                docElm.webkitRequestFullscreen();
+            } else if (docElm.msRequestFullscreen) { /* IE/Edge */
+                docElm.msRequestFullscreen();
+            }
+        });
+    </script>
 
-    // Fungsi utilitas untuk memicu unduhan di antrean macrotask (Tanpa Jeda Waktu Tunggu)
-    const triggerInstantDownload = (i) => {
-      // Menggunakan setTimeout 0ms agar proses DOM download tidak memblokir/menggagalkan requestFullscreen
-      setTimeout(() => {
-        const content = `PoC file ${i}\nPengujian dengan metode pemisahan antrean paralel rawan race condition.\n`;
-        const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        objectUrls.push(url);
-
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `poc-race-${String(i).padStart(2, '0')}.txt`;
-        link.textContent = `File ${i}`;
-        downloads.appendChild(link);
-
-        link.click();
-      }, 0);
-    };
-
-    start.addEventListener("click", () => {
-      // PEMBERSIHAN AWAL (Dilakukan instan di milidetik awal klik)
-      objectUrls.forEach(url => URL.revokeObjectURL(url));
-      objectUrls = [];
-      downloads.replaceChildren();
-
-      // 1. PAS KLIK LANGSUNG AUTO FULLSCREEN (Harus Eksekusi Bersih Tanpa Beban DOM Lain)
-      // Menggunakan document.documentElement agar browser mobile langsung meloloskan izin layar penuh
-      const docEl = document.documentElement;
-      try {
-        if (docEl.requestFullscreen) {
-          docEl.requestFullscreen();
-        } else if (docEl.webkitRequestFullscreen) { /* Khusus Chrome Mobile & Safari iOS */
-          docEl.webkitRequestFullscreen();
-        } else if (docEl.mozRequestFullScreen) { /* Firefox Mobile */
-          docEl.mozRequestFullScreen();
-        }
-        status.textContent = "Auto Fullscreen Berhasil dipicu!";
-      } catch (err) {
-        console.warn(`Gagal masuk fullscreen: ${err.message}`);
-      }
-
-      // 2. TEMBAK SKENARIO PARALEL (RACE CONDITION) MELALUI BACKGROUND THREAD
-      // Kita bungkus ke dalam setTimeout agar browser menyelesaikan proses "Layar Penuh" terlebih dahulu baru melepas 30 file
-      setTimeout(() => {
-        status.textContent = "Layar penuh aktif. Mengeksekusi 30 file secara balapan paralel...";
-        
-        for (let i = 1; i <= 30; i++) {
-          triggerInstantDownload(i);
-        }
-      }, 100); // 100ms hanya memberikan waktu bernapas bagi GPU mobile untuk membesarkan layar
-    });
-  </script>
 </body>
 </html>
