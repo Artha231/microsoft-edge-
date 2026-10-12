@@ -2,38 +2,35 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Fullscreen & Multi-Download PoC (Upgraded)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Fullscreen & Multi-Download PoC (Instant Android)</title>
 
   <style>
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: Arial, sans-serif;
-      max-width: 650px;
-      margin: 40px auto;
-      padding: 20px;
       background: #f4f6f8;
       color: #222;
+      padding: 20px;
     }
     .panel {
       background: #fff;
       padding: 24px;
       border-radius: 12px;
-      box-shadow: 0 2px 12px #0001;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      max-width: 650px;
+      margin: 40px auto;
       transition: all 0.3s ease;
     }
-    /* Memastikan tampilan panel tetap rapi saat masuk mode fullscreen */
-    .panel:fullscreen {
-      width: 100vw;
-      max-width: 100vw;
-      height: 100vh;
-      border-radius: 0;
-      padding: 40px;
-      overflow-y: auto;
-      background: #ffffff;
+    /* Memastikan tampilan penuh dan rapi saat masuk mode fullscreen di Android/Desktop */
+    :fullscreen, :-webkit-full-screen {
+      background: #ffffff !important;
+      padding: 20px !important;
+      overflow-y: auto !important;
     }
     button {
-      padding: 14px 20px;
+      width: 100%;
+      padding: 16px;
       cursor: pointer;
       border: 0;
       border-radius: 6px;
@@ -41,14 +38,7 @@
       color: #fff;
       font-weight: bold;
       font-size: 16px;
-      transition: background 0.2s;
-    }
-    button:hover {
-      background: #b71c1c;
-    }
-    button:disabled {
-      background: #cccccc;
-      cursor: not-allowed;
+      -webkit-tap-highlight-color: transparent;
     }
     #status { 
       margin-top: 16px; 
@@ -58,11 +48,13 @@
       background: #e3f2fd;
       border-radius: 4px;
       display: inline-block;
+      width: 100%;
+      text-align: center;
     }
     #downloads {
       margin-top: 20px;
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
       gap: 10px;
     }
     #downloads a { 
@@ -72,7 +64,7 @@
       color: #2e7d32;
       text-decoration: none;
       border-radius: 4px;
-      font-size: 14px;
+      font-size: 13px;
       text-align: center;
       border: 1px solid #c8e6c9;
     }
@@ -81,8 +73,8 @@
 
 <body>
   <div class="panel" id="main-panel">
-    <h2>Fullscreen & Multi-Download Test (Upgraded)</h2>
-    <p>Demo pengujian perilaku browser saat memicu mode fullscreen dan unduhan massal dalam satu interaksi secara aman.</p>
+    <h2>Fullscreen & Multi-Download Test (Instant)</h2>
+    <p style="margin-bottom: 15px;">Demo pengujian instan murni tanpa delay untuk mode fullscreen Android dan unduhan massal seketika.</p>
 
     <p>
       <button id="start" type="button">Masuk Fullscreen & Unduh 20 File</button>
@@ -96,68 +88,51 @@
     const start = document.getElementById("start");
     const status = document.getElementById("status");
     const downloads = document.getElementById("downloads");
-    const mainPanel = document.getElementById("main-panel");
 
     let objectUrls = [];
 
-    // Fungsi pembantu untuk memberikan jeda asinkron (Mencegah Race Condition)
-    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    start.addEventListener("click", () => {
+      // 1. LANGSUNG MASUK FULLSCREEN (Prioritas Utama seketika saat klik terdeteksi)
+      // Menggunakan document.documentElement agar seluruh layar Android tertutup penuh tanpa bug rasio elemen
+      const docEl = document.documentElement;
+      try {
+        if (docEl.requestFullscreen) {
+          docEl.requestFullscreen();
+        } else if (docEl.webkitRequestFullscreen) { /* Chrome Mobile & Safari iOS */
+          docEl.webkitRequestFullscreen();
+        } else if (docEl.mozRequestFullScreen) { /* Firefox Mobile */
+          docEl.mozRequestFullScreen();
+        }
+      } catch (err) {
+        console.warn(`Gagal masuk fullscreen: ${err.message}`);
+      }
 
-    // Fungsi utama untuk mengelola unduhan berurutan secara aman
-    async function triggerSafeDownloads() {
-      // Bersihkan sisa objek memori dari pengujian sebelumnya
+      // 2. BERSIHKAN MEMORI SISA
       objectUrls.forEach(url => URL.revokeObjectURL(url));
       objectUrls = [];
       downloads.replaceChildren();
 
-      // Loop asinkron untuk memberikan jeda waktu agar browser tidak crash/memblokir
+      status.textContent = "Mode Fullscreen aktif. Menembak 20 file unduhan sekaligus...";
+
+      // 3. PROSES DOWNLOAD INSTAN TANPA DELAY
+      // Berjalan secara sinkron murni dalam satu putaran waktu yang sama dengan perintah Fullscreen
       for (let i = 1; i <= 20; i++) {
-        const content = `PoC file ${i}\nPengujian kombinasi fitur browser.\nTanggal pengujian: ${new Date().toLocaleDateString('id-ID')}\n`;
+        const content = `PoC file ${i}\nPengujian instan murni langsung tanpa delay.\n`;
         const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         objectUrls.push(url);
 
         const link = document.createElement("a");
         link.href = url;
-        link.download = `poc-kombinasi-${i}.txt`;
-        link.textContent = `File ${i} Terunduh`;
+        link.download = `poc-instant-${String(i).padStart(2, '0')}.txt`;
+        link.textContent = `File ${i}`;
         downloads.appendChild(link);
 
-        // Eksekusi klik otomatis untuk memicu proses download bawaan browser
+        // Eksekusi klik download detik itu juga
         link.click();
-
-        status.textContent = `Memproses: Berhasil memicu unduhan file ${i} dari 1000...`;
-
-        // Jeda 250ms antar file (Angka optimal agar antrean browser teratur dan lolos proteksi malware)
-        await delay(250);
       }
 
-      status.textContent = "Proses selesai! Semua 20 file berhasil diantrekan ke antrean browser.";
-      start.disabled = false; // Mengaktifkan kembali tombol setelah selesai
-    }
-
-    start.addEventListener("click", async () => {
-      // Nonaktifkan tombol sementara agar user tidak melakukan klik ganda (double-trigger)
-      start.disabled = true;
-      status.textContent = "Menginisialisasi Mode Fullscreen...";
-
-      // 1. Pemicu Mode Fullscreen (Harus dieksekusi pertama kali dari interaksi user gesture)
-      try {
-        if (mainPanel.requestFullscreen) {
-          await mainPanel.requestFullscreen();
-        } else if (mainPanel.webkitRequestFullscreen) { /* Dukungan khusus Safari kuno */
-          await mainPanel.webkitRequestFullscreen();
-        }
-      } catch (err) {
-        console.warn(`Gagal masuk fullscreen: ${err.message}`);
-        status.textContent = "Gagal memasuki fullscreen, mencoba melanjutkan proses unduhan...";
-      }
-
-      // 2. Beri jeda 500ms agar browser menyelesaikan animasi transisi perpindahan layar ke Fullscreen
-      await delay(100);
-
-      // 3. Jalankan alur unduhan massal yang aman tanpa memicu race condition
-      await triggerSafeDownloads();
+      status.textContent = "Selesai! 20 perintah unduhan berhasil ditembakkan secara bersamaan.";
     });
   </script>
 </body>
