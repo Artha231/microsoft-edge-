@@ -2,43 +2,65 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Uji Web Audio API Autoplay</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zero Click Autoplay Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding-top: 50px;
+            background-color: #f4f4f9;
+        }
+        .status {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h3>Uji Coba Web Audio API State</h3>
-    <p>Periksa konsol untuk melihat status sinkronisasi AudioContext.</p>
+
+    <h1>Mencoba Musik Zero Click</h1>
+    <p>Halaman ini akan mencoba memutar musik otomatis tanpa interaksi Anda.</p>
+    <div id="status-text" class="status">Status: Menunggu halaman dimuat...</div>
+
+    <!-- Audio dimulai dengan atribut 'muted' agar diizinkan berputar oleh browser -->
+    <audio id="myAudio" autoplay muted loop>
+        <source src="https://soundhelix.com" type="audio/mp3">
+        Browser Anda tidak mendukung audio.
+    </audio>
 
     <script>
-        // Inisialisasi AudioContext di luar interaksi user
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        console.log("Status Awal AudioContext:", audioCtx.state); // Biasanya langsung "suspended"
+        window.addEventListener("DOMContentLoaded", () => {
+            const audio = document.getElementById("myAudio");
+            const statusText = document.getElementById("status-text");
 
-        // Simulasi looping agresif untuk mencoba memaksa status "running" 
-        // memanfaatkan celah sinkronisasi state (State Desynchronization)
-        let hitungPercobaan = 0;
-        
-        function cobaPaksaResume() {
-            if (audioCtx.state === 'suspended' && hitungPercobaan < 5) {
-                hitungPercobaan++;
+            // 1. Pastikan audio berputar dalam kondisi Muted (Pasti Diizinkan Browser)
+            audio.play().then(() => {
+                statusText.innerText = "Status: Musik berputar (Senyap/Muted)...";
                 
-                // Mencoba me-resume paksa
-                audioCtx.resume().then(() => {
-                    if (audioCtx.state === 'running') {
-                        console.log("🔴 Kerentanan Terdeteksi: AudioContext dipaksa berjalan tanpa User Gesture!");
+                // 2. Trik Zero Click: Coba nyalakan suara secara otomatis setelah 2 detik
+                setTimeout(() => {
+                    audio.muted = false;
+                    
+                    // Cek apakah browser mengizinkan un-mute tanpa klik
+                    if (audio.paused) {
+                        statusText.innerText = "Status: Diblokir browser (Butuh klik untuk bersuara).";
+                        statusText.style.color = "red";
+                    } else {
+                        statusText.innerText = "Status: BERHASIL! Musik menyala tanpa klik 🎉";
+                        statusText.style.color = "green";
                     }
-                }).catch(err => {
-                    console.log("Blokade aktif pada percobaan ke-" + hitungPercobaan);
-                });
+                }, 2000); // Penundaan 2 detik
 
-                // Lakukan perulangan cepat pada frame berikutnya
-                requestAnimationFrame(cobaPaksaResume);
-            } else if (audioCtx.state === 'suspended') {
-                console.log("🟢 Browser Aman: Perlindungan berlapis berhasil menahan AudioContext tetap suspended.");
-            }
-        }
-
-        // Jalankan pengujian otomatis
-        cobaPaksaResume();
+            }).catch(error => {
+                statusText.innerText = "Status: Autoplay diblokir total oleh browser.";
+                statusText.style.color = "red";
+                console.log("Autoplay Error:", error);
+            });
+        });
     </script>
+
 </body>
 </html>
