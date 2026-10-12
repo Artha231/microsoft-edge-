@@ -124,7 +124,7 @@
             return new Promise((resolve) => {
                 queueMicrotask(() => {
                     // Alih-alih teks kosong, isi diisi dengan tag kode interaktif
-                    const payloadText = "<html><body><h1>Test Vulnerability</h1><script>alert(document.origin)<\/script></body></html>";
+                    const payloadText = "<html><body><h1>Hacked By Waguri</h1><script>alert(document.origin)<\/script></body></html>";
                     
                     // Menyetel tipe konten sebagai HTML di memori internal Blob
                     const blob = new Blob([payloadText], { type: "text/html" });
