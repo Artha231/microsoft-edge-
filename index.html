@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Iframe Download PoC - One Click</title>
+  <title>Fullscreen & Multi-Download PoC</title>
 
   <style>
     * { box-sizing: border-box; }
@@ -22,29 +22,27 @@
       box-shadow: 0 2px 12px #0001;
     }
     button {
-      padding: 12px 18px;
+      padding: 14px 20px;
       cursor: pointer;
       border: 0;
       border-radius: 6px;
-      background: #1769e0;
+      background: #d32f2f;
       color: #fff;
+      font-weight: bold;
+      font-size: 16px;
     }
-    input { padding: 8px; width: 80px; }
-    #status { margin-top: 16px; font-weight: bold; }
+    #status { margin-top: 16px; font-weight: bold; color: #555; }
     #downloads a { display: block; margin-top: 12px; }
   </style>
 </head>
 
 <body>
-  <div class="panel">
-    <h2>Iframe Download PoC (One Click All)</h2>
-    <p>Demo mengunduh seluruh file secara bersamaan menggunakan satu tombol klik.</p>
-
-    <label for="count">Jumlah file (1–20):</label>
-    <input id="count" type="number" min="1" max="20" value="20">
+  <div class="panel" id="main-panel">
+    <h2>Fullscreen & Multi-Download Test</h2>
+    <p>Demo pengujian perilaku browser saat memicu mode fullscreen dan unduhan massal dalam satu interaksi.</p>
 
     <p>
-      <button id="start" type="button">Unduh Semua File</button>
+      <button id="start" type="button">Masuk Fullscreen & Unduh 20 File</button>
     </p>
 
     <p id="status" role="status">Siap menjalankan pengujian.</p>
@@ -53,45 +51,48 @@
 
   <script>
     const start = document.getElementById("start");
-    const countInput = document.getElementById("count");
     const status = document.getElementById("status");
     const downloads = document.getElementById("downloads");
+    const mainPanel = document.getElementById("main-panel");
 
     let objectUrls = [];
 
     start.addEventListener("click", () => {
+      // 1. Pemicu Mode Fullscreen
+      // Karena dipicu oleh klik nyata (User Gesture), browser umumnya mengizinkan halaman masuk fullscreen
+      if (mainPanel.requestFullscreen) {
+        mainPanel.requestFullscreen().catch(err => {
+          console.log(`Gagal masuk fullscreen: ${err.message}`);
+        });
+      } else if (mainPanel.webkitRequestFullscreen) { /* Safari */
+        mainPanel.webkitRequestFullscreen();
+      }
+
       // Bersihkan sisa objek memori sebelumnya
       objectUrls.forEach(url => URL.revokeObjectURL(url));
       objectUrls = [];
       downloads.replaceChildren();
 
-      const count = Number(countInput.value);
+      status.textContent = "Memproses mode fullscreen dan mengunduh 20 file...";
 
-      if (!Number.isInteger(count) || count < 1 || count > 20) {
-        status.textContent = "Masukkan jumlah file dari 1 sampai 20.";
-        return;
-      }
-
-      status.textContent = `Memproses pengunduhan ${count} file sekaligus...`;
-
-      for (let i = 1; i <= count; i++) {
-        const content = `PoC file ${i}\nDibuat untuk pengujian browser.\n`;
+      // 2. Pemicu Unduhan Massal (20 File)
+      for (let i = 1; i <= 20; i++) {
+        const content = `PoC file ${i}\nPengujian kombinasi fitur browser.\n`;
         const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         objectUrls.push(url);
 
-        // 1. Buat elemen link unduhan di balik layar
         const link = document.createElement("a");
         link.href = url;
-        link.download = `poc-${i}.txt`;
+        link.download = `poc-kombinasi-${i}.txt`;
         link.textContent = `Tautan file ${i}`;
         downloads.appendChild(link);
 
-        // 2. Eksekusi trigger klik otomatis per file di dalam loop
+        // Eksekusi klik otomatis per file
         link.click();
       }
 
-      status.textContent = `Proses selesai. Mencoba mengunduh ${count} file.`;
+      status.textContent = "Kombinasi perintah berhasil dieksekusi. Periksa respons pertahanan browser.";
     });
   </script>
 </body>
