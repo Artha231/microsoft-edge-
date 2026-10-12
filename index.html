@@ -2,99 +2,69 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manajemen Audio Background Tab</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding-top: 50px;
-            background-color: #f7f9fa;
-        }
-        .btn-play {
-            padding: 15px 40px;
-            font-size: 18px;
-            background-color: #2ed573;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .status-box {
-            margin-top: 30px;
-            padding: 15px;
-            display: inline-block;
-            border: 1px solid #ccc;
-            background: #fff;
-            border-radius: 5px;
-        }
-    </style>
+    <title>Bypass Autoplay Policy</title>
 </head>
 <body>
 
-    <h1>Background Tab Audio Control</h1>
-    <p>Aktifkan audio terlebih dahulu, lalu coba pindah ke tab lain atau minimalkan browser.</p>
-    
-    <button class="btn-play" id="playBtn">Putar Musik</button>
+    <h1>Uji Coba Web Audio API State</h1>
+    <p>Periksa konsol untuk melihat status sinkronisasi AudioContext.</p>
 
-    <br>
-    <div class="status-box">
-        <strong>Status Tab saat ini:</strong> <span id="tabStatus">Foreground (Aktif)</span>
-    </div>
+    <!-- 1. TRIK UTAMA: Iframe umpan kosong dengan izin khusus autoplay -->
+    <iframe src="about:blank" allow="autoplay" id="audio-bypass" style="display:none"></iframe>
 
-    <!-- Elemen Audio -->
-    <audio id="bgMusic" loop>
-        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mp3">
-        Browser Anda tidak mendukung elemen audio.
+    <!-- 2. Elemen Audio Asli -->
+    <audio id="myAudio" autoplay loop style="display:none;">
+        <source src="https://soundhelix.com" type="audio/mp3">
     </audio>
 
     <script>
-        const audio = document.getElementById("bgMusic");
-        const playBtn = document.getElementById("playBtn");
-        const tabStatus = document.getElementById("tabStatus");
+        // Global AudioContext
+        let audioCtx;
 
-        // 1. Trigger audio pertama kali dengan interaksi user (Wajib hukumnya)
-        playBtn.addEventListener("click", () => {
-            if (audio.paused) {
-                audio.play()
-                    .then(() => {
-                        playBtn.innerText = "Pause Musik";
-                        playBtn.style.backgroundColor = "#ff4757";
-                        console.log("Audio berhasil dijalankan di foreground.");
-                    })
-                    .catch(err => console.log("Gagal memutar audio:", err));
-            } else {
-                audio.pause();
-                playBtn.innerText = "Putar Musik";
-                playBtn.style.backgroundColor = "#2ed573";
-            }
+        window.addEventListener("DOMContentLoaded", () => {
+            const audio = document.getElementById("myAudio");
+
+            // Langkah A: Putar audio dalam keadaan senyap (muted) agar browser tidak curiga
+            audio.muted = true;
+            audio.play().then(() => {
+                console.log("Status Awal: Audio berjalan di latar belakang (Muted)...");
+
+                // Langkah B: Pemicu instan tanpa menunggu interaksi fisik berat
+                setTimeout(() => {
+                    try {
+                        // Inisialisasi AudioContext menggunakan fallback browser lama/baru
+                        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                        
+                        // Langkah C: Lepaskan status muted audio asli
+                        audio.muted = false;
+
+                        // Langkah D: Paksa bangunkan AudioContext yang tersuspensi
+                        if (audioCtx.state === 'suspended') {
+                            audioCtx.resume().then(() => {
+                                console.log("Bypass Sukses: AudioContext berhasil diaktifkan!");
+                            });
+                        }
+                    } catch (e) {
+                        console.error("Metode gagal dieksekusi:", e);
+                    }
+                }, 100); // Eksekusi super cepat 0.1 detik setelah muat
+            }).catch(err => {
+                console.log("Autoplay ditolak mentah-mentah:", err);
+            });
         });
 
-        // 2. Menerapkan Page Visibility API untuk mendeteksi perubahan Tab
-        document.addEventListener("visibilitychange", () => {
-            if (document.hidden) {
-                // EFEK SAAT TAB MASUK BACKGROUND
-                tabStatus.innerText = "Background (Tidak Aktif)";
-                tabStatus.style.color = "red";
-                console.log("Tab dipindahkan ke background.");
-
-                /* 
-                  Catatan Aturan Browser:
-                  - Secara default, elemen <audio> yang sudah 'play' AKAN TETAP MENYALA di background tab.
-                  - Jika Anda sengaja ingin MENURUNKAN VOLUME saat di background agar tidak mengganggu:
-                */
-                audio.volume = 0.3; // Turunkan volume ke 30% secara otomatis
-                
-            } else {
-                // EFEK SAAT TAB KEMBALI KE FOREGROUND (AKTIF)
-                tabStatus.innerText = "Foreground (Aktif)";
-                tabStatus.style.color = "green";
-                console.log("Tab kembali aktif.");
-
-                audio.volume = 1.0; // Kembalikan volume ke 100%
+        // PENGAMAN CADANGAN: Tangkap sentuhan/geser layar jika taktik iframe dibatasi browser versi terbaru
+        const triggerBypass = () => {
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+                document.getElementById("myAudio").muted = false;
             }
-        });
+            // Bersihkan event agar performa tetap ringan
+            window.removeEventListener('pointerdown', triggerBypass);
+            window.removeEventListener('scroll', triggerBypass);
+        };
+        window.addEventListener('pointerdown', triggerBypass);
+        window.addEventListener('scroll', triggerBypass);
     </script>
 </body>
 </html>
