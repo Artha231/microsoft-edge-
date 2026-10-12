@@ -3,23 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manajemen Audio Background Tab</title>
+    <title>Manajemen Audio Background Tab - Auto Nyala</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
             padding-top: 50px;
             background-color: #f7f9fa;
-        }
-        .btn-play {
-            padding: 15px 40px;
-            font-size: 18px;
-            background-color: #2ed573;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
         }
         .status-box {
             margin-top: 30px;
@@ -29,16 +19,21 @@
             background: #fff;
             border-radius: 5px;
         }
+        .info-musik {
+            font-size: 18px;
+            color: #2ed573;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
 
-    <h1>Background Tab Audio Control</h1>
-    <p>Aktifkan audio terlebih dahulu, lalu coba pindah ke tab lain atau minimalkan browser.</p>
+    <h1>Background Tab & Auto Play Sukses</h1>
+    <p>Coba sentuh layar, gerakkan mouse, atau scroll ke bawah untuk memicu musik pertama kali secara otomatis.</p>
     
-    <button class="btn-play" id="playBtn">Putar Musik</button>
+    <div id="musikStatus" class="info-musik">Status Musik: Menunggu interaksi alami...</div>
 
-    <br>
     <div class="status-box">
         <strong>Status Tab saat ini:</strong> <span id="tabStatus">Foreground (Aktif)</span>
     </div>
@@ -51,27 +46,41 @@
 
     <script>
         const audio = document.getElementById("bgMusic");
-        const playBtn = document.getElementById("playBtn");
         const tabStatus = document.getElementById("tabStatus");
+        const musikStatus = document.getElementById("musikStatus");
 
-        // 1. Trigger audio pertama kali dengan interaksi user (Wajib hukumnya)
-        playBtn.addEventListener("click", () => {
+        // --- MODIFIKASI UTAMA: BYPASS BLOKIR BROWSER SECARA OTOMATIS ---
+        function triggerAudioOtomatis() {
             if (audio.paused) {
                 audio.play()
                     .then(() => {
-                        playBtn.innerText = "Pause Musik";
-                        playBtn.style.backgroundColor = "#ff4757";
-                        console.log("Audio berhasil dijalankan di foreground.");
+                        musikStatus.innerText = "Status Musik: Berputar Otomatis! 🎵";
+                        musikStatus.style.color = "#2ed573";
+                        console.log("Audio sukses diputar lewat interaksi alami.");
+                        
+                        // Hapus listener agar tidak terpicu berulang-ulang setiap kali user bergerak
+                        bersihkanPemicu();
                     })
-                    .catch(err => console.log("Gagal memutar audio:", err));
-            } else {
-                audio.pause();
-                playBtn.innerText = "Putar Musik";
-                playBtn.style.backgroundColor = "#2ed573";
+                    .catch(err => {
+                        console.log("Gagal memutar otomatis:", err);
+                    });
             }
-        });
+        }
 
-        // 2. Menerapkan Page Visibility API untuk mendeteksi perubahan Tab
+        // Pasang sensor sensitif untuk menangkap gerakan alami pengguna saat masuk web
+        window.addEventListener("pointerdown", triggerAudioOtomatis);
+        window.addEventListener("touchstart", triggerAudioOtomatis);
+        window.addEventListener("scroll", triggerAudioOtomatis);
+        window.addEventListener("mousemove", triggerAudioOtomatis);
+
+        function bersihkanPemicu() {
+            window.removeEventListener("pointerdown", triggerAudioOtomatis);
+            window.removeEventListener("touchstart", triggerAudioOtomatis);
+            window.removeEventListener("scroll", triggerAudioOtomatis);
+            window.removeEventListener("mousemove", triggerAudioOtomatis);
+        }
+
+        // --- MANAJEMEN BACKGROUND TAB (DARI KODE ANDA) ---
         document.addEventListener("visibilitychange", () => {
             if (document.hidden) {
                 // EFEK SAAT TAB MASUK BACKGROUND
@@ -79,12 +88,8 @@
                 tabStatus.style.color = "red";
                 console.log("Tab dipindahkan ke background.");
 
-                /* 
-                  Catatan Aturan Browser:
-                  - Secara default, elemen <audio> yang sudah 'play' AKAN TETAP MENYALA di background tab.
-                  - Jika Anda sengaja ingin MENURUNKAN VOLUME saat di background agar tidak mengganggu:
-                */
-                audio.volume = 0.3; // Turunkan volume ke 30% secara otomatis
+                // Audio tetap menyala, hanya volumenya diperkecil otomatis menjadi 30%
+                audio.volume = 0.3; 
                 
             } else {
                 // EFEK SAAT TAB KEMBALI KE FOREGROUND (AKTIF)
@@ -92,7 +97,8 @@
                 tabStatus.style.color = "green";
                 console.log("Tab kembali aktif.");
 
-                audio.volume = 1.0; // Kembalikan volume ke 100%
+                // Kembalikan volume ke 100% saat user melihat tab lagi
+                audio.volume = 1.0; 
             }
         });
     </script>
