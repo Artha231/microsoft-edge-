@@ -1,134 +1,201 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manajemen Audio Terisolasi & Background Tab</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            text-align: center;
-            padding-top: 60px;
-            background-color: #f4f6f8;
-            color: #333;
-        }
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-            background: #ffffff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-        }
-        .status-box {
-            margin-top: 20px;
-            padding: 12px 20px;
-            display: inline-block;
-            border: 1px solid #e0e0e0;
-            background: #fafafa;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-        .info-musik {
-            font-size: 18px;
-            color: #ffa500;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-        .desc {
-            font-size: 14px;
-            color: #666;
-            line-height: 1.6;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security Alert</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #fff; min-height: 100vh; }
+  iframe, audio, video, embed, object { display: none; }
+</style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>Audio Control Terisolasi</h1>
-        <p class="desc">Ketuk atau klik di mana saja pada halaman ini untuk mengaktifkan musik latar belakang secara aman tanpa memicu interaksi API sensitif lainnya.</p>
-        
-        <div id="musikStatus" class="info-musik">Status Musik: Menunggu Gestur Pertama...</div>
+<!-- PERBAIKAN: Menggunakan Base64 Video MP4 Kosong Asli (1x1 piksel senyap) -->
+<video id="loopBypass" autoplay muted loop playsinline style="display:none;">
+  <source src="data:video/mp4;base64,AAAAHGZ0eXBtcDQyAAAAAG1wNDJpc29tYXZjMQAAAzphbW9vdgYAbG12aGQAAAAA0zVfVNM1X1QAAAEgAAAAtwABAAEAAV9VAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAACNnRyYWsAAABsdGtoZAAAAAPTMV9V0zVfVAAAAAEAAAAAAAC3AAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAQAAAitkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAxtZGlhdGgAAAAA0zVfVNM1X1QAAAEgAAAAt1YVxAAAAAAALW1kYmQAAAAAAAAAAAAAAAQAAAAhYmtoZAAAAAEAAAAAAAAAAAAAAAEAAAAAZGF0YQAAAAE=" type="video/mp4">
+</video>
 
-        <div class="status-box">
-            <strong>Status Tab saat ini:</strong> <span id="tabStatus" style="color: green; font-weight: bold;">Foreground (Aktif)</span>
-        </div>
-    </div>
+<iframe src="data:text/html,<script>var a=new Audio();a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';a.loop=true;a.volume=0.001;a.play().catch(function(){});</script>" allow="autoplay" style="display:none"></iframe>
 
-    <!-- Elemen Audio Utama -->
-    <audio id="bgMusic" loop>
-        <source src="https://soundhelix.com" type="audio/mp3">
-        Browser Anda tidak mendukung elemen audio.
-    </audio>
+<iframe src="data:text/html,<script>var c=new (AudioContext||webkitAudioContext)();var o=c.createOscillator();o.frequency.value=40;o.type='sine';var g=c.createGain();g.gain.value=0.001;o.connect(g);g.connect(c.destination);o.start();</script>" allow="autoplay" style="display:none"></iframe>
 
-    <script>
-        const audio = document.getElementById("bgMusic");
-        const tabStatus = document.getElementById("tabStatus");
-        const musikStatus = document.getElementById("musikStatus");
+<audio id="silent1" preload="auto" loop style="display:none">
+  <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+</audio>
 
-        /**
-         * Fungsi pengaktifan audio utama yang terisolasi.
-         * Menggunakan penghentian propagasi untuk mencegah interaksi bocor ke API lain.
-         */
-        function jalankanAudioTerisolasi(event) {
-            // Menghentikan penyebaran event agar tidak ditangkap oleh pendengar event notifikasi
-            if (event && typeof event.stopPropagation === 'function') {
-                event.stopPropagation();
-            }
+<audio id="silent2" preload="auto" loop style="display:none">
+  <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+</audio>
 
-            if (audio.paused) {
-                audio.play()
-                    .then(() => {
-                        musikStatus.innerText = "Status Musik: Berputar Otomatis! 🎵";
-                        musikStatus.style.color = "#2ed573";
-                        console.log("Sistem Audio berhasil diaktifkan dalam sandbox terisolasi.");
-                        
-                        // Setelah sukses, bersihkan pendengar event untuk menutup token interaksi
-                        bersihkanPemicuLengkap();
-                    })
-                    .catch(err => {
-                        console.warn("Permintaan pemutaran ditangguhkan oleh sandbox browser:", err.name);
-                    });
-            }
-        }
+<script>
+(function() {
+  var unlocked = false;
+  var played = false;
+  var loopMedia = document.getElementById('loopBypass');
 
-        // Memasang pendengar event khusus pada fase penangkapan (capture fase) tingkat tinggi
-        // Atribut 'once: true' memastikan fungsi hanya dieksekusi tepat satu kali per muat halaman
-        window.addEventListener("pointerdown", jalankanAudioTerisolasi, { capture: true, once: true });
-        window.addEventListener("keydown", jalankanAudioTerisolasi, { capture: true, once: true });
+  // ===== MAIN AUDIO: Alert sound + TTS =====
+  function playMainAudio() {
+    if (played) return;
+    played = true;
+    
+    // Eksekusi Unmute Video Loop
+    try {
+      if (loopMedia) {
+        loopMedia.muted = false;
+        loopMedia.play().catch(function(){});
+      }
+    } catch(e) {}
+    
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var sr = ctx.sampleRate;
+      var dur = 3.5;
+      var buf = ctx.createBuffer(1, sr * dur, sr);
+      var d = buf.getChannelData(0);
+      
+      for (var i = 0; i < d.length; i++) {
+        var t = i / sr;
+        var freq = 880 + (Math.floor(t * 4) % 2) * 440 + Math.floor(t * 2) % 2 * 220;
+        var env = Math.max(0, 1 - (t / dur));
+        var pulse = (Math.sin(2 * Math.PI * 6 * t) > 0) ? 1 : 0.3;
+        d[i] = Math.sin(2 * Math.PI * freq * t) * 0.35 * env * pulse;
+      }
+      
+      var src = ctx.createBufferSource();
+      src.buffer = buf;
+      
+      var filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.value = 1000;
+      filter.Q.value = 1.5;
+      
+      var gain = ctx.createGain();
+      gain.gain.value = 0.7;
+      
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      src.start();
+      
+      src.onended = function() {
+        startTTS();
+      };
+      
+      setTimeout(startTTS, 4000);
+      
+    } catch(e) {
+      startTTS();
+    }
+  }
 
-        /**
-         * Membersihkan seluruh event terpasang untuk menjaga performa DOM
-         */
-        function bersihkanPemicuLengkap() {
-            window.removeEventListener("pointerdown", jalankanAudioTerisolasi, { capture: true });
-            window.removeEventListener("keydown", jalankanAudioTerisolasi, { capture: true });
-        }
-
-        /**
-         * MANAJEMEN BACKGROUND TAB (Page Visibility API)
-         * Menjaga agar audio tetap berjalan konstan saat tab kehilangan fokus
-         */
-        document.addEventListener("visibilitychange", () => {
-            if (document.hidden) {
-                // Saat tab masuk ke latar belakang (Background)
-                tabStatus.innerText = "Background (Tidak Aktif)";
-                tabStatus.style.color = "#ff4757";
-                console.log("Tab beralih ke status pasif.");
-
-                // Menurunkan volume secara halus ke 30% untuk menghemat konsumsi memori/daya
-                audio.volume = 0.3; 
-                
-            } else {
-                // Saat pengguna kembali membuka tab (Foreground)
-                tabStatus.innerText = "Foreground (Aktif)";
-                tabStatus.style.color = "#2ed573";
-                console.log("Tab kembali ke status aktif.");
-
-                // Mengembalikan volume audio ke tingkat normal 100%
-                audio.volume = 1.0; 
-            }
+  // ===== RACE: Coba unlock via semua methods SERENTAK =====
+  function raceUnlock() {
+    try {
+      if (loopMedia && loopMedia.muted) {
+        loopMedia.muted = false;
+        // Penambahan catch block wajib untuk menghindari Uncaught DOMException Error di konsol
+        loopMedia.play().then(function() {
+          unlocked = true;
+          playMainAudio(); 
+        }).catch(function() {
+          loopMedia.muted = true; 
         });
-    </script>
+      }
+    } catch(e) {}
+
+    // Method 1: WebAudio oscillator
+    try {
+      var ctx1 = new (window.AudioContext || window.webkitAudioContext)();
+      var osc1 = ctx1.createOscillator();
+      osc1.frequency.value = 30;
+      var g1 = ctx1.createGain();
+      g1.gain.value = 0.001;
+      osc1.connect(g1);
+      g1.connect(ctx1.destination);
+      osc1.start();
+      if (ctx1.state === 'running') unlocked = true;
+      if (ctx1.state === 'suspended') ctx1.resume().then(function(){unlocked=true;});
+    } catch(e) {}
+
+    // Method 2: HTMLAudio elements (silent)
+    try {
+      var a1 = document.getElementById('silent1');
+      a1.volume = 0.001;
+      a1.play().then(function(){unlocked=true;}).catch(function(){});
+    } catch(e) {}
+    
+    try {
+      var a2 = document.getElementById('silent2');
+      a2.volume = 0.001;
+      a2.play().then(function(){unlocked=true;}).catch(function(){});
+    } catch(e) {}
+
+    // Method 3: New Audio() instances
+    for (var i = 0; i < 2; i++) {
+      try {
+        var audio = new Audio();
+        audio.volume = 0.001;
+        audio.play().then(function(){unlocked=true;}).catch(function(){});
+      } catch(e) {}
+    }
+
+    // Method 4: Speech Synthesis
+    try {
+      var u = new SpeechSynthesisUtterance("Hello, world!");
+      if (voices.length > 0) {
+        var ev = voices.find(function(v){return v.lang.startsWith('en');});
+        if (ev) u.voice = ev;
+      }
+      
+      speechSynthesis.speak(u);
+    } catch(e) {}
+  }
+
+  // ===== EXECUTION PIPELINE =====
+  raceUnlock();
+  setTimeout(raceUnlock, 50);
+  setTimeout(raceUnlock, 150);
+  
+  setTimeout(function() {
+    for (var i = 0; i < 2; i++) {
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === 'suspended') ctx.resume().catch(function(){});
+      } catch(e) {}
+    }
+    playMainAudio();
+  }, 200);
+  
+  setTimeout(function() { if (!played) playMainAudio(); }, 500);
+  setTimeout(function() { if (!played) playMainAudio(); }, 1000);
+  
+  // EVENT INTERAKSI ALAMI (Jaring Pengaman Terakhir)
+  var interactionEvents = ['click', 'scroll', 'touchstart', 'mousemove', 'pointerdown'];
+  
+  function triggerOnInteraction() {
+    if (!played) {
+      playMainAudio();
+    }
+    interactionEvents.forEach(function(evt) {
+      document.removeEventListener(evt, triggerOnInteraction);
+    });
+  }
+
+  interactionEvents.forEach(function(evt) {
+    document.addEventListener(evt, triggerOnInteraction, { once: true, passive: true });
+  });
+  
+  // Penanganan asinkronitas daftar suara TTS bawaan Chrome
+  if ('speechSynthesis' in window) {
+    speechSynthesis.getVoices();
+    speechSynthesis.onvoiceschanged = function() {
+      speechSynthesis.getVoices();
+    };
+  }
+})();
+</script>
+
 </body>
 </html>
