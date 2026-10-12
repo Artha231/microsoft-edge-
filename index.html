@@ -164,7 +164,7 @@
       // Picu aksi simpan/unduh
       triggerDownload(fileData);
 
-      statusDiv.textContent = `Proses Berjalan: Berkas ke-${counter} (${counter * 100} MB Total Blob)`;
+      statusDiv.textContent = `Proses Berjalan: Berkas ke-${counter} (${counter * 10000} MB Total Blob)`;
 
       if (counter % 10 === 0) {
         speak(`Proses mencapai ${counter} berkas.`);
