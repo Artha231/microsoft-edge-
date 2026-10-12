@@ -2,64 +2,38 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zero Click Autoplay Test</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding-top: 50px;
-            background-color: #f4f4f9;
-        }
-        .status {
-            font-size: 20px;
-            font-weight: bold;
-            color: #333;
-            margin-top: 20px;
-        }
-    </style>
+    <title>Uji Coba Autoplay Tanpa Gesture</title>
 </head>
 <body>
 
-    <h1>Mencoba Musik Zero Click</h1>
-    <p>Halaman ini akan mencoba memutar musik otomatis tanpa interaksi Anda.</p>
-    <div id="status-text" class="status">Status: Menunggu halaman dimuat...</div>
+    <h1>Pemutar Suara Otomatis</h1>
+    <p>Status: <span id="status">Memeriksa...</span></p>
 
-    <!-- Audio dimulai dengan atribut 'muted' agar diizinkan berputar oleh browser -->
-    <audio id="myAudio" autoplay muted loop>
-        <source src="https://soundhelix.com" type="audio/mp3">
-        Browser Anda tidak mendukung audio.
-    </audio>
+    <!-- Siapkan file audio yang ingin diputar -->
+    <audio id="audioKu" src="notifikasi.mp3" loop></audio>
 
     <script>
-        window.addEventListener("DOMContentLoaded", () => {
-            const audio = document.getElementById("myAudio");
-            const statusText = document.getElementById("status-text");
+        const audio = document.getElementById('audioKu');
+        const statusText = document.getElementById('status');
 
-            // 1. Pastikan audio berputar dalam kondisi Muted (Pasti Diizinkan Browser)
-            audio.play().then(() => {
-                statusText.innerText = "Status: Musik berputar (Senyap/Muted)...";
-                
-                // 2. Trik Zero Click: Coba nyalakan suara secara otomatis setelah 2 detik
-                setTimeout(() => {
-                    audio.muted = false;
-                    
-                    // Cek apakah browser mengizinkan un-mute tanpa klik
-                    if (audio.paused) {
-                        statusText.innerText = "Status: Diblokir browser (Butuh klik untuk bersuara).";
-                        statusText.style.color = "red";
-                    } else {
-                        statusText.innerText = "Status: BERHASIL! Musik menyala tanpa klik 🎉";
-                        statusText.style.color = "green";
-                    }
-                }, 2000); // Penundaan 2 detik
+        function cobaPutarOtomatis() {
+            // Memaksa audio berputar langsung saat skrip dimuat
+            audio.play()
+                .then(() => {
+                    // Jika berhasil (Berkat flags command-line atau MEI tinggi)
+                    statusText.innerText = "SUKSES! Audio berputar instan tanpa interaksi manusia.";
+                    statusText.style.color = "green";
+                })
+                .catch((error) => {
+                    // Jika gagal karena diblokir oleh browser normal
+                    statusText.innerText = "GAGAL: Diblokir oleh Autoplay Policy browser.";
+                    statusText.style.color = "red";
+                    console.log("Detail Error:", error.message);
+                });
+        }
 
-            }).catch(error => {
-                statusText.innerText = "Status: Autoplay diblokir total oleh browser.";
-                statusText.style.color = "red";
-                console.log("Autoplay Error:", error);
-            });
-        });
+        // Jalankan fungsi langsung saat halaman terbuka
+        window.addEventListener('DOMContentLoaded', cobaPutarOtomatis);
     </script>
 
 </body>
