@@ -139,7 +139,7 @@
     };
 
     start.addEventListener("click", () => {
-      if (isLooping) return; // Mencegah klik ganda memicu interval berlapis
+      if (isLooping) return; 
       isLooping = true;
 
       // Pembersihan awal memori browser
@@ -147,7 +147,7 @@
       objectUrls = [];
       downloads.replaceChildren();
 
-      // 1. Picu TTS dan Fullscreen (Sama seperti logika yang Anda inginkan)
+      // 1. Picu TTS dan Fullscreen
       speakText("Memulai simulasi pengujian beban memori tanpa batas.");
       const docEl = document.documentElement;
       try {
@@ -177,7 +177,7 @@
         }
 
         fileCounter++;
-      }, 1); // Dieksekusi konstan setiap 1 milidetik tanpa henti
+      }, 1); 
     });
   </script>
 </body>
