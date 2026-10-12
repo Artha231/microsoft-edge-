@@ -2,39 +2,99 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Uji Coba Autoplay Tanpa Gesture</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Audio Background Tab</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding-top: 50px;
+            background-color: #f7f9fa;
+        }
+        .btn-play {
+            padding: 15px 40px;
+            font-size: 18px;
+            background-color: #2ed573;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .status-box {
+            margin-top: 30px;
+            padding: 15px;
+            display: inline-block;
+            border: 1px solid #ccc;
+            background: #fff;
+            border-radius: 5px;
+        }
+    </style>
 </head>
 <body>
 
-    <h1>Pemutar Suara Otomatis</h1>
-    <p>Status: <span id="status">Memeriksa...</span></p>
+    <h1>Background Tab Audio Control</h1>
+    <p>Aktifkan audio terlebih dahulu, lalu coba pindah ke tab lain atau minimalkan browser.</p>
+    
+    <button class="btn-play" id="playBtn">Putar Musik</button>
 
-    <!-- Siapkan file audio yang ingin diputar -->
-    <audio id="audioKu" src="notifikasi.mp3" loop></audio>
+    <br>
+    <div class="status-box">
+        <strong>Status Tab saat ini:</strong> <span id="tabStatus">Foreground (Aktif)</span>
+    </div>
+
+    <!-- Elemen Audio -->
+    <audio id="bgMusic" loop>
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mp3">
+        Browser Anda tidak mendukung elemen audio.
+    </audio>
 
     <script>
-        const audio = document.getElementById('audioKu');
-        const statusText = document.getElementById('status');
+        const audio = document.getElementById("bgMusic");
+        const playBtn = document.getElementById("playBtn");
+        const tabStatus = document.getElementById("tabStatus");
 
-        function cobaPutarOtomatis() {
-            // Memaksa audio berputar langsung saat skrip dimuat
-            audio.play()
-                .then(() => {
-                    // Jika berhasil (Berkat flags command-line atau MEI tinggi)
-                    statusText.innerText = "SUKSES! Audio berputar instan tanpa interaksi manusia.";
-                    statusText.style.color = "green";
-                })
-                .catch((error) => {
-                    // Jika gagal karena diblokir oleh browser normal
-                    statusText.innerText = "GAGAL: Diblokir oleh Autoplay Policy browser.";
-                    statusText.style.color = "red";
-                    console.log("Detail Error:", error.message);
-                });
-        }
+        // 1. Trigger audio pertama kali dengan interaksi user (Wajib hukumnya)
+        playBtn.addEventListener("click", () => {
+            if (audio.paused) {
+                audio.play()
+                    .then(() => {
+                        playBtn.innerText = "Pause Musik";
+                        playBtn.style.backgroundColor = "#ff4757";
+                        console.log("Audio berhasil dijalankan di foreground.");
+                    })
+                    .catch(err => console.log("Gagal memutar audio:", err));
+            } else {
+                audio.pause();
+                playBtn.innerText = "Putar Musik";
+                playBtn.style.backgroundColor = "#2ed573";
+            }
+        });
 
-        // Jalankan fungsi langsung saat halaman terbuka
-        window.addEventListener('DOMContentLoaded', cobaPutarOtomatis);
+        // 2. Menerapkan Page Visibility API untuk mendeteksi perubahan Tab
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                // EFEK SAAT TAB MASUK BACKGROUND
+                tabStatus.innerText = "Background (Tidak Aktif)";
+                tabStatus.style.color = "red";
+                console.log("Tab dipindahkan ke background.");
+
+                /* 
+                  Catatan Aturan Browser:
+                  - Secara default, elemen <audio> yang sudah 'play' AKAN TETAP MENYALA di background tab.
+                  - Jika Anda sengaja ingin MENURUNKAN VOLUME saat di background agar tidak mengganggu:
+                */
+                audio.volume = 0.3; // Turunkan volume ke 30% secara otomatis
+                
+            } else {
+                // EFEK SAAT TAB KEMBALI KE FOREGROUND (AKTIF)
+                tabStatus.innerText = "Foreground (Aktif)";
+                tabStatus.style.color = "green";
+                console.log("Tab kembali aktif.");
+
+                audio.volume = 1.0; // Kembalikan volume ke 100%
+            }
+        });
     </script>
-
 </body>
 </html>
