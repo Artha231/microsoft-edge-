@@ -3,212 +3,66 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>Browser Security PoC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fullscreen PoC</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
     body {
       margin: 0;
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      display: grid;
+      place-items: center;
       background: #0f172a;
-      color: #f8fafc;
-      font-family: Arial, sans-serif;
-    }
-
-    .card {
-      width: 100%;
-      max-width: 480px;
-      padding: 28px;
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 16px;
-      box-shadow: 0 15px 40px #0003;
-    }
-
-    h1 {
-      margin-top: 0;
-      font-size: 25px;
-    }
-
-    p {
-      color: #cbd5e1;
-      line-height: 1.6;
-    }
-
-    label {
-      display: block;
-      margin: 20px 0 8px;
-    }
-
-    input {
-      width: 100%;
-      padding: 12px;
       color: white;
-      background: #0f172a;
-      border: 1px solid #475569;
-      border-radius: 8px;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    main {
+      padding: 24px;
     }
 
     button {
-      width: 100%;
-      margin-top: 14px;
-      padding: 13px;
-      border: none;
+      padding: 12px 20px;
+      border: 0;
       border-radius: 8px;
       background: #3b82f6;
       color: white;
-      font-weight: bold;
       cursor: pointer;
-    }
-
-    button:hover {
-      background: #2563eb;
-    }
-
-    #status {
-      margin-top: 20px;
-      padding: 12px;
-      background: #0f172a;
-      border-radius: 8px;
-      overflow-wrap: anywhere;
-    }
-
-    #downloads a {
-      display: block;
-      margin-top: 12px;
-      color: #93c5fd;
     }
   </style>
 </head>
-
 <body>
-  <main class="card">
-    <h1>Browser Security PoC</h1>
+  <main>
+    <h1>Fullscreen PoC</h1>
+    <p id="status">Mencoba mengaktifkan fullscreen...</p>
 
-    <p>
-      Pengujian fullscreen dan unduhan file TXT
-      pada browser.
-    </p>
-
-    <label for="count">Jumlah file TXT (1–5)</label>
-
-    <input
-      id="count"
-      type="number"
-      min="1"
-      max="5"
-      value="3"
-    >
-
-    <button id="start" type="button">
-      Mulai Pengujian
+    <button id="enter" hidden>
+      Aktifkan Fullscreen
     </button>
-
-    <button id="exit" type="button">
-      Keluar Fullscreen
-    </button>
-
-    <div id="status" role="status" aria-live="polite">
-      Status: siap untuk pengujian.
-    </div>
-
-    <div id="downloads"></div>
   </main>
 
   <script>
-    const start = document.getElementById("start");
-    const exit = document.getElementById("exit");
-    const countInput = document.getElementById("count");
     const status = document.getElementById("status");
-    const downloads = document.getElementById("downloads");
+    const enter = document.getElementById("enter");
 
-    let objectUrls = [];
-
-    start.addEventListener("click", async () => {
-      downloads.replaceChildren();
-
-      // Bersihkan file dari pengujian sebelumnya.
-      objectUrls.forEach(url => URL.revokeObjectURL(url));
-      objectUrls = [];
-
-      const count = Number(countInput.value);
-
-      if (!Number.isInteger(count) || count < 1 || count > 5) {
-        status.textContent =
-          "Masukkan jumlah file antara 1 dan 5.";
-        return;
-      }
-
-      // Fullscreen memerlukan interaksi pengguna.
+    async function requestFullscreen() {
       try {
         await document.documentElement.requestFullscreen();
+        status.textContent = "Fullscreen aktif.";
+        enter.hidden = true;
       } catch {
-        // Pengujian file tetap bisa dilanjutkan.
-      }
-
-      let prepared = 0;
-
-      for (let i = 1; i <= count; i++) {
-        const content =
-          "Browser Security PoC\n" +
-          "Nomor file: " + i + "\n" +
-          "Dibuat untuk pengujian browser.\n";
-
-        const blob = new Blob(
-          [content],
-          { type: "text/plain;charset=utf-8" }
-        );
-
-        const url = URL.createObjectURL(blob);
-        objectUrls.push(url);
-
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `poc-${i}.txt`;
-        link.textContent = `Unduh poc-${i}.txt`;
-
-        downloads.appendChild(link);
-        prepared++;
-      }
-
-      status.textContent =
-        `${prepared} file TXT berhasil disiapkan. ` +
-        "Klik tautan unduhan di bawah untuk mengunduh file.";
-
-      // Tidak memicu unduhan massal secara otomatis.
-      // Browser dapat membatasi unduhan berulang.
-    });
-
-    exit.addEventListener("click", async () => {
-      if (document.fullscreenElement) {
-        try {
-          await document.exitFullscreen();
-        } catch {
-          status.textContent =
-            "Browser tidak mengizinkan keluar dari fullscreen.";
-        }
-      }
-    });
-
-    document.addEventListener("fullscreenchange", () => {
-      if (document.fullscreenElement) {
         status.textContent =
-          "Fullscreen aktif. File TXT dapat diunduh di bawah.";
+          "Browser memerlukan interaksi untuk fullscreen.";
+        enter.hidden = false;
       }
-    });
+    }
 
-    window.addEventListener("beforeunload", () => {
-      objectUrls.forEach(url => URL.revokeObjectURL(url));
-    });
+    // Mencoba otomatis ketika halaman dibuka.
+    window.addEventListener("load", requestFullscreen);
+
+    // Fallback jika browser menolak permintaan otomatis.
+    enter.addEventListener("click", requestFullscreen);
   </script>
 </body>
 </html>
