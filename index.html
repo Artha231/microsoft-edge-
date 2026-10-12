@@ -3,99 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Instant Fullscreen & Direct Download</title>
+  <title>Direct Download Test</title>
   <style>
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body, html {
-      margin: 0; padding: 0;
-      width: 100%; height: 100%;
-      overflow: hidden;
+      margin: 0; padding: 0; width: 100%; height: 100%;
       background: #0f172a; color: #f8fafc;
       font-family: system-ui, -apple-system, sans-serif;
-    }
-    #overlay {
-      position: fixed; top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      display: flex; justify-content: center; align-items: center;
-      background: #0f172a; padding: 1.5rem; text-align: center;
+      display: grid; place-items: center;
     }
     .card {
-      background: #1e293b; padding: 2rem;
-      border-radius: 16px; border: 1px solid #334155;
-      max-width: 380px; width: 100%;
+      background: #1e293b; padding: 2rem; border-radius: 16px;
+      max-width: 380px; width: 90%; text-align: center;
+      border: 1px solid #334155;
     }
-    h2 { margin: 0 0 0.5rem 0; color: #38bdf8; font-size: 1.25rem; }
-    p { margin: 0; font-size: 0.95rem; color: #94a3b8; }
     .status {
-      margin-top: 1rem; padding: 0.6rem;
-      border-radius: 8px; background: #0284c7;
-      color: white; font-weight: bold; font-size: 0.85rem;
+      margin-top: 1rem; padding: 0.8rem; border-radius: 8px;
+      background: #0284c7; font-weight: bold; font-size: 0.9rem;
     }
   </style>
 </head>
 <body>
 
-  <div id="overlay">
-    <div class="card">
-      <h2>Akses Halaman</h2>
-      <p>Ketuk di mana saja pada layar untuk melanjutkan...</p>
-      <div id="status" class="status">Menunggu Sentuhan Layar</div>
-    </div>
+  <div class="card">
+    <h2>Akses Website</h2>
+    <p>Ketuk layar untuk masuk mode layar penuh...</p>
+    <div id="status" class="status">Menunggu Sentuhan...</div>
   </div>
 
   <script>
     const statusEl = document.getElementById("status");
 
-    // 1. Teknik Blob Data untuk Direct Memory Download
-    function instantDownload() {
-      // Membuat isi file langsung di dalam memori browser
-      const content = "Ini adalah file sampel yang diunduh secara langsung dari memori browser.";
-      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-      
-      // Membuat URL Blob internal
-      const blobUrl = URL.createObjectURL(blob);
+    function downloadTanpaIzin() {
+      // Membuat file dokumen teks biasa (bukan APK/ZIP agar tidak dianggap berbahaya oleh Android)
+      const isiFile = "Pengujian download otomatis tanpa interaksi tambahan.";
+      const blob = new Blob([isiFile], { type: "text/plain" });
       
       const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = "file-langsung-tertsimpan.txt"; // Nama file
-      
+      a.href = URL.createObjectURL(blob);
+      a.download = "dokumen-test.txt";
       document.body.appendChild(a);
-      a.click(); // Picu klik download otomatis
+      
+      // Eksekusi klik langsung
+      a.click();
       document.body.removeChild(a);
-
-      // Bersihkan memori Blob
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
     }
 
-    // 2. Fungsi Fullscreen Universal
-    async function triggerFullscreen() {
-      const docEl = document.documentElement;
-      const requestFS = docEl.requestFullscreen || 
-                        docEl.webkitRequestFullscreen || 
-                        docEl.mozRequestFullScreen || 
-                        docEl.msRequestFullscreen;
-
-      if (requestFS) {
-        await requestFS.call(docEl);
-      }
-    }
-
-    // Main Trigger saat layar disentuh
     async function handleTap() {
       try {
-        await triggerFullscreen();
-        instantDownload();
+        // 1. Fullscreen
+        const doc = document.documentElement;
+        const fs = doc.requestFullscreen || doc.webkitRequestFullscreen;
+        if (fs) await fs.call(doc);
 
-        statusEl.textContent = "Fullscreen & File Langsung Tersimpan!";
+        // 2. Direct Download
+        downloadTanpaIzin();
+
+        statusEl.textContent = "Berhasil Masuk & File Tersimpan!";
         statusEl.style.background = "#065f46";
       } catch (err) {
-        statusEl.textContent = "Error: " + err.message;
+        statusEl.textContent = "Terjadi Kendala: " + err.message;
         statusEl.style.background = "#991b1b";
       }
     }
 
-    // Jalankan saat pengguna melakukan ketukan pertama di mana saja pada layar HP
-    ['touchstart', 'pointerdown', 'click'].forEach(evt => {
+    // Tangkap ketukan pertama di layar
+    ['touchstart', 'click'].forEach(evt => {
       window.addEventListener(evt, handleTap, { once: true });
     });
   </script>
