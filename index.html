@@ -2,74 +2,41 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Direct Download Test</title>
+  <title>Pengujian Unduhan Multi-Berkas</title>
   <style>
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body, html {
-      margin: 0; padding: 0; width: 100%; height: 100%;
-      background: #0f172a; color: #f8fafc;
-      font-family: system-ui, -apple-system, sans-serif;
-      display: grid; place-items: center;
-    }
-    .card {
-      background: #1e293b; padding: 2rem; border-radius: 16px;
-      max-width: 380px; width: 90%; text-align: center;
-      border: 1px solid #334155;
-    }
-    .status {
-      margin-top: 1rem; padding: 0.8rem; border-radius: 8px;
-      background: #0284c7; font-weight: bold; font-size: 0.9rem;
-    }
+    body { font-family: sans-serif; display: grid; place-items: center; height: 100vh; background: #0f172a; color: #fff; }
+    .btn { padding: 12px 24px; background: #0284c7; border: none; border-radius: 8px; color: white; cursor: pointer; font-weight: bold; }
   </style>
 </head>
 <body>
 
-  <div class="card">
-    <h2>Akses Website</h2>
-    <p>Ketuk layar untuk masuk mode layar penuh...</p>
-    <div id="status" class="status">Menunggu Sentuhan...</div>
-  </div>
+  <button id="downloadBtn" class="btn">Unduh Semua Berkas (3 File)</button>
 
   <script>
-    const statusEl = document.getElementById("status");
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      // Daftar berkas simulasi yang akan diunduh
+      const daftarBerkas = [
+        { nama: "dokumen_1.txt", isi: "Isi berkas pertama" },
+        { nama: "dokumen_2.txt", isi: "Isi berkas kedua" },
+        { nama: "dokumen_3.txt", isi: "Isi berkas ketiga" }
+      ];
 
-    function downloadTanpaIzin() {
-      // Membuat file dokumen teks biasa (bukan APK/ZIP agar tidak dianggap berbahaya oleh Android)
-      const isiFile = "Pengujian download otomatis tanpa interaksi tambahan.";
-      const blob = new Blob([isiFile], { type: "text/plain" });
-      
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "dokumen-test.txt";
-      document.body.appendChild(a);
-      
-      // Eksekusi klik langsung
-      a.click();
-      document.body.removeChild(a);
-    }
-
-    async function handleTap() {
-      try {
-        // 1. Fullscreen
-        const doc = document.documentElement;
-        const fs = doc.requestFullscreen || doc.webkitRequestFullscreen;
-        if (fs) await fs.call(doc);
-
-        // 2. Direct Download
-        downloadTanpaIzin();
-
-        statusEl.textContent = "Berhasil Masuk & File Tersimpan!";
-        statusEl.style.background = "#065f46";
-      } catch (err) {
-        statusEl.textContent = "Terjadi Kendala: " + err.message;
-        statusEl.style.background = "#991b1b";
-      }
-    }
-
-    // Tangkap ketukan pertama di layar
-    ['touchstart', 'click'].forEach(evt => {
-      window.addEventListener(evt, handleTap, { once: true });
+      daftarBerkas.forEach((berkas, index) => {
+        // Memberikan sedikit jeda waktu (delay) agar antrean proses di peramban lebih stabil
+        setTimeout(() => {
+          const blob = new Blob([berkas.isi], { type: "text/plain" });
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = berkas.nama;
+          
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          
+          // Mengosongkan memori URL Blob setelah digunakan
+          URL.revokeObjectURL(a.href);
+        }, index * 200); // Jeda 200 milidetik antar berkas
+      });
     });
   </script>
 </body>
