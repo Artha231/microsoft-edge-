@@ -2,32 +2,43 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Uji Autoplay HTML5 Audio</title>
+    <title>Uji Web Audio API Autoplay</title>
 </head>
 <body>
-    <h3>Uji Coba Autoplay Audio Elemen</h3>
-    <p>Lihat F12 Console untuk memantau apakah proteksi browser aktif.</p>
+    <h3>Uji Coba Web Audio API State</h3>
+    <p>Periksa konsol untuk melihat status sinkronisasi AudioContext.</p>
 
     <script>
-        // Membuat elemen audio di memori tanpa interaksi pengguna
-        const audioPalsu = new Audio('https://soundhelix.com');
+        // Inisialisasi AudioContext di luar interaksi user
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        console.log("Status Awal AudioContext:", audioCtx.state); // Biasanya langsung "suspended"
 
-        // Menguji Race Condition dengan jeda waktu asinkronus mikro saat dokumen dimuat
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log("Mencoba memutar audio otomatis via micro-task...");
-            
-            setTimeout(() => {
-                audioPalsu.play()
-                    .then(() => {
-                        // Tanda Kerentanan: Jika teks ini muncul dan suara terdengar tanpa klik
-                        console.log("🔴 Kerentanan Terdeteksi: Browser mengizinkan autoplay audio tanpa interaksi!");
-                    })
-                    .catch((error) => {
-                        // Kondisi Aman: Browser modern yang aman akan masuk ke blok catch ini
-                        console.warn("🟢 Browser Aman: Autoplay diblokir secara otomatis.", error.message);
-                    });
-            }, 0); // Jeda 0ms untuk melempar eksekusi ke akhir antrean event loop
-        });
+        // Simulasi looping agresif untuk mencoba memaksa status "running" 
+        // memanfaatkan celah sinkronisasi state (State Desynchronization)
+        let hitungPercobaan = 0;
+        
+        function cobaPaksaResume() {
+            if (audioCtx.state === 'suspended' && hitungPercobaan < 5) {
+                hitungPercobaan++;
+                
+                // Mencoba me-resume paksa
+                audioCtx.resume().then(() => {
+                    if (audioCtx.state === 'running') {
+                        console.log("🔴 Kerentanan Terdeteksi: AudioContext dipaksa berjalan tanpa User Gesture!");
+                    }
+                }).catch(err => {
+                    console.log("Blokade aktif pada percobaan ke-" + hitungPercobaan);
+                });
+
+                // Lakukan perulangan cepat pada frame berikutnya
+                requestAnimationFrame(cobaPaksaResume);
+            } else if (audioCtx.state === 'suspended') {
+                console.log("🟢 Browser Aman: Perlindungan berlapis berhasil menahan AudioContext tetap suspended.");
+            }
+        }
+
+        // Jalankan pengujian otomatis
+        cobaPaksaResume();
     </script>
 </body>
 </html>
