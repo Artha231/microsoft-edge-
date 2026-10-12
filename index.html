@@ -4,8 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Zero-Click Fullscreen PoC</title>
-
+  <title>Zero-Click Fullscreen Test</title>
   <style>
     body {
       margin: 0;
@@ -14,43 +13,30 @@
       place-items: center;
       background: #0f172a;
       color: white;
-      font-family: Arial, sans-serif;
+      font: 16px Arial, sans-serif;
       text-align: center;
-    }
-
-    main {
-      padding: 24px;
-    }
-
-    #status {
-      color: #93c5fd;
     }
   </style>
 </head>
 <body>
   <main>
-    <h1>Fullscreen Security Test</h1>
-    <p id="status">Menguji permintaan fullscreen...</p>
+    <h1>Fullscreen PoC</h1>
+    <p id="status">Mencoba fullscreen otomatis...</p>
   </main>
 
   <script>
-    async function testFullscreen() {
+    window.addEventListener("load", async () => {
       const status = document.getElementById("status");
 
       try {
         await document.documentElement.requestFullscreen();
-
-        status.textContent =
-          "Fullscreen berhasil diaktifkan.";
+        status.textContent = "Fullscreen berhasil.";
       } catch (error) {
         status.textContent =
-          "Fullscreen ditolak browser: " +
-          error.name;
+          `Browser menolak fullscreen otomatis (${error.name}).`;
+        console.info("Fullscreen ditolak:", error);
       }
-    }
-
-    // Percobaan otomatis tanpa klik.
-    window.addEventListener("load", testFullscreen);
+    });
   </script>
 </body>
 </html>
