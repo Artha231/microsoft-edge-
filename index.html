@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Alert System</title>
+    <title>System Critical Alert</title>
     <style>
         * {
             margin: 0;
@@ -11,202 +11,120 @@
             box-sizing: border-box;
         }
         body {
-            background: #fff;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
             min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            user-select: none;
         }
-        iframe, audio, video, embed, object {
-            display: none;
+
+        /* Efek Strobo Visual Merah-Hitam Agresif */
+        .emergency-strobe {
+            animation: strobeEffect 0.3s infinite alternate;
+        }
+
+        @keyframes strobeEffect {
+            0% { background-color: #000; }
+            100% { background-color: #ff0000; }
+        }
+
+        .alert-box {
+            text-align: center;
+            z-index: 10;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
 
-    <!-- Dummy elements untuk bypass kebijakan autoplay -->
-    <iframe src="data:text/html,<script>var a=new Audio();a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';a.loop=true;a.volume=0.001;a.play();</script>" allow="autoplay" style="display:none"></iframe>
-    <iframe src="data:text/html,<script>var c=new (AudioContext||webkitAudioContext)();var o=c.createOscillator();o.frequency.value=40;o.type='sine';var g=c.createGain();g.gain.value=0.001;o.connect(g);g.connect(c.destination);o.start();</script>" allow="autoplay" style="display:none"></iframe>
-    <iframe src="data:text/html,<embed src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=' autostart=true volume=0 loop=true style=display:none>" allow="autoplay" style="display:none"></iframe>
-    
-    <audio id="silent1" preload="auto" loop style="display:none">
-        <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
-    </audio>
-    <audio id="silent2" preload="auto" loop style="display:none">
-        <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
-    </audio>
-    <audio id="silent3" preload="auto" loop style="display:none">
-        <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
-    </audio>
+    <div class="alert-box">
+        <h1>CRITICAL SECURITY ALERT</h1>
+        <p>Interactive Security Testing Protocol Active. Tap anywhere to acknowledge.</p>
+    </div>
 
     <script>
     (function() {
-        var unlocked = false;
-        var played = false;
+        var triggered = false;
+        var wakeLock = null;
 
-        // ===== RACE CONITIONS: Memicu unlock audio secara serentak =====
-        function raceUnlock() {
-            try {
-                var ctx1 = new (window.AudioContext || window.webkitAudioContext)();
-                var osc1 = ctx1.createOscillator();
-                osc1.frequency.value = 30;
-                var g1 = ctx1.createGain();
-                g1.gain.value = 0.001;
-                osc1.connect(g1);
-                g1.connect(ctx1.destination);
-                osc1.start();
-                if (ctx1.state === 'running') unlocked = true;
-                if (ctx1.state === 'suspended') ctx1.resume().then(function(){unlocked=true;});
-            } catch(e) {}
-
-            try {
-                var a1 = document.getElementById('silent1');
-                a1.volume = 0.001;
-                a1.play().then(function(){unlocked=true;}).catch(function(){});
-            } catch(e) {}
-            try {
-                var a2 = document.getElementById('silent2');
-                a2.volume = 0.001;
-                a2.play().then(function(){unlocked=true;}).catch(function(){});
-            } catch(e) {}
-            try {
-                var a3 = document.getElementById('silent3');
-                a3.volume = 0.001;
-                a3.play().then(function(){unlocked=true;}).catch(function(){});
-            } catch(e) {}
-
-            for (var i = 0; i < 5; i++) {
-                try {
-                    var sa = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
-                    sa.volume = 0.001;
-                    sa.play().then(function(){unlocked=true;}).catch(function(){});
-                } catch(e) {}
+        // ===== 1. FITUR GETAR (VIBRATION API) =====
+        function triggerHardwareVibration() {
+            if ('vibrate' in navigator) {
+                // Pola: Getar 500ms, Diam 250ms, Getar 500ms, Diam 250ms (Diulang-ulang)
+                navigator.vibrate([500, 250, 500, 250, 500, 250, 1000, 500]);
             }
         }
 
-        // ===== MAIN AUDIO: Cyber Pulse Radar & Warning Tone =====
-        function playMainAudio() {
-            if (played) return;
-            played = true;
-
+        // ===== 2. FITUR LAYAR PENUH (FULLSCREEN API) =====
+        function requestImmersiveMode() {
+            var docElm = document.documentElement;
             try {
-                var ctx = new (window.AudioContext || window.webkitAudioContext)();
-                var now = ctx.currentTime;
-                var duration = 5.0; // Durasi total alarm cyber (detik)
-
-                // Membuat 2 Oscillator terpisah untuk modulasi biner (suara putus-putus berkecepatan tinggi)
-                var osc1 = ctx.createOscillator();
-                var osc2 = ctx.createOscillator();
-                var masterGain = ctx.createGain();
-
-                // Menggunakan gelombang tipe 'square' (kotak) untuk suara instrumen digital/komputer yang kaku dan menusuk
-                osc1.type = 'square';
-                osc2.type = 'square';
-
-                // Menentukan frekuensi dasar alarm cyber (Pekikan tajam)
-                osc1.frequency.setValueAtTime(987.77, now); // Nada B5
-                osc2.frequency.setValueAtTime(880.00, now); // Nada A5
-
-                // Mengatur ritme volume putus-putus (Strobe Sound Effect) setiap 0.15 detik
-                masterGain.gain.setValueAtTime(0, now);
-                for (var t = 0; t < duration; t += 0.3) {
-                    // Detak pertama (keras)
-                    masterGain.gain.setValueAtTime(0.5, now + t);
-                    masterGain.gain.setValueAtTime(0.001, now + t + 0.12);
-                    
-                    // Detak kedua (sedikit berubah pitch untuk simulasi radar darurat)
-                    masterGain.gain.setValueAtTime(0.4, now + t + 0.15);
-                    masterGain.gain.setValueAtTime(0, now + t + 0.27);
+                if (docElm.requestFullscreen) {
+                    docElm.requestFullscreen();
+                } else if (docElm.mozRequestFullScreen) { /* Firefox */
+                    docElm.mozRequestFullScreen();
+                } else if (docElm.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+                    docElm.webkitRequestFullscreen();
+                } else if (docElm.msRequestFullscreen) { /* IE/Edge */
+                    docElm.msRequestFullscreen();
                 }
+            } catch(e) {}
+        }
 
-                // Filter Peaking untuk memperkuat distorsi frekuensi tinggi
-                var filter = ctx.createBiquadFilter();
-                filter.type = 'peaking';
-                filter.frequency.setValueAtTime(1200, now);
-                filter.Q.setValueAtTime(3.0);
-                filter.gain.setValueAtTime(5, now);
-
-                // Hubungkan sirkuit audio
-                osc1.connect(masterGain);
-                osc2.connect(masterGain);
-                masterGain.connect(filter);
-                filter.connect(ctx.destination);
-
-                // Eksekusi generator suara
-                osc1.start(now);
-                osc2.start(now);
-                osc1.stop(now + duration);
-                osc2.stop(now + duration);
-
-                // Jalankan TTS setelah rentetan alarm digital selesai
-                osc1.onended = function() {
-                    startTTS();
-                };
-
-                setTimeout(startTTS, (duration * 1000) + 100);
-
-            } catch(e) {
-                startTTS();
+        // ===== 3. FITUR WAKE LOCK (MENCEGAH LAYAR MATI) =====
+        async function requestScreenWakeLock() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Screen Wake Lock is active.');
+                } catch (err) {
+                    console.log(`${err.name}, ${err.message}`);
+                }
             }
         }
 
-        // ===== TTS ENGINE =====
-        function startTTS() {
-            if (window.ttsDone) return;
-            window.ttsDone = true;
-
-            if (!('speechSynthesis' in window)) return;
-
-            var text = "Security Alert. Unauthorized access detected on your critical infrastructure. Complete your authentication check immediately to prevent terminal lockout.";
-            
-            speechSynthesis.cancel();
-
-            for (var k = 0; k < 2; k++) {
-                try {
-                    var u = new SpeechSynthesisUtterance(text);
-                    u.lang = 'en-US';
-                    u.rate = 0.9; 
-                    u.pitch = 0.85; // Pitch diturunkan sedikit agar terdengar lebih intimidatif/berat
-                    u.volume = 1.0;
-
-                    var voices = speechSynthesis.getVoices();
-                    var ev = voices.find(function(v) {
-                        return v.lang.startsWith('en') && v.name.includes('Google');
-                    });
-                    if (ev) u.voice = ev;
-
-                    speechSynthesis.speak(u);
-                } catch(e) {}
-            }
+        // ===== 4. FITUR EFEK STROBO VISUAL =====
+        function triggerVisualStrobe() {
+            document.body.classList.add('emergency-strobe');
         }
 
-        // ===== EXECUTION FLOW CONTROL =====
-        raceUnlock();
-        setTimeout(raceUnlock, 50);
-        setTimeout(raceUnlock, 120);
+        // ===== EKSEKUSI GABUNGAN PADA GESTUR PENGGUNA =====
+        function triggerAllFeatures() {
+            if (triggered) return;
+            triggered = true;
 
-        setTimeout(function() {
-            for (var i = 0; i < 3; i++) {
-                try {
-                    var ctx = new (window.AudioContext || window.webkitAudioContext)();
-                    if (ctx.state === 'suspended') ctx.resume();
-                } catch(e) {}
-            }
-            playMainAudio();
-        }, 180);
+            // Jalankan seluruh interaksi fisik dan visual secara serentak
+            requestImmersiveMode();
+            triggerHardwareVibration();
+            triggerVisualStrobe();
+            requestScreenWakeLock();
+        }
 
-        setTimeout(function() { if (!played) playMainAudio(); }, 450);
-        setTimeout(function() { if (!played) playMainAudio(); }, 900);
-
-        // Gesture Capture
-        document.addEventListener('visibilitychange', function() {
-            if (!document.hidden && !played) setTimeout(playMainAudio, 30);
+        // Mencegah interaksi klik kanan
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
         });
-        document.addEventListener('click', function() { if (!played) playMainAudio(); }, { once: true });
-        document.addEventListener('scroll', function() { if (!played) playMainAudio(); }, { once: true });
-        document.addEventListener('touchstart', function() { if (!played) playMainAudio(); }, { once: true });
 
-        if ('speechSynthesis' in window) {
-            speechSynthesis.getVoices();
-            speechSynthesis.onvoiceschanged = function() { speechSynthesis.getVoices(); };
-        }
+        // Tangkap interaksi pertama pengguna untuk mengeksekusi fitur terlindungi
+        document.addEventListener('click', triggerAllFeatures, { once: true });
+        document.addEventListener('touchstart', triggerAllFeatures, { once: true });
+        document.addEventListener('keydown', triggerAllFeatures, { once: true });
+
+        // Backup Wake Lock jika tab berpindah dan kembali aktif
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                await requestScreenWakeLock();
+            }
+        });
+
     })();
     </script>
 </body>
