@@ -2,70 +2,66 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Ekspor Berkas Terkontrol</title>
+    <title>Uji Coba Autoplay Policy (Event Palsu)</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f6f8; }
-        .panel { background: #fff; padding: 24px; border-radius: 8px; max-width: 500px; margin: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        button { width: 100%; padding: 12px; background: #007bff; color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
-        button:disabled { background: #ccc; }
-        #status { margin-top: 15px; font-weight: bold; }
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f2f5;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
 
-<div class="panel">
-    <h2>Sistem Simulasi Ekspor Berkas</h2>
-    <p>Simulasi pengunduhan dokumen massal yang aman bagi performa memori browser.</p>
-    <button id="start-btn">Mulai Unduh Terkontrol (Maks 3 File)</button>
-    <div id="status">Status: Siap.</div>
+<div class="container">
+    <h2>Simulasi Deteksi Keamanan Browser</h2>
+    <p>Buka <b>F12 (Console)</b> untuk melihat log peringatan dari browser.</p>
 </div>
 
 <script>
-const startBtn = document.getElementById("start-btn");
-const statusDiv = document.getElementById("status");
-
-// Batasan agar tidak menyebabkan Denial of Service (DoS) pada memori
-const MAX_FILES = 3; 
-const FILE_SIZE = 5000000; // Ukuran diperkecil ke 5MB untuk simulasi yang aman
-
-const generateAndDownload = (id) => {
-    return new Promise((resolve) => {
-        // Menggunakan setTimeout untuk memberikan jeda antar proses agar UI tetap responsif
-        setTimeout(() => {
-            const buffer = new Uint8Array(FILE_SIZE).fill(65); // Mengisi data dummy
-            const blob = new Blob([buffer], { type: "application/octet-stream" });
-            const blobUrl = URL.createObjectURL(blob);
-
-            const a = document.createElement("a");
-            a.href = blobUrl;
-            a.download = `data-eksport-${id}.dat`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-
-            // KRITIKAL: Revoke URL segera setelah unduhan dipicu untuk membebaskan memori RAM
-            setTimeout(() => {
-                URL.revokeObjectURL(blobUrl);
-            }, 1000);
-
-            statusDiv.textContent = `Status: Berhasil mengunduh berkas ke-${id}`;
-            resolve();
-        }, 1000); // Jeda 1 detik antar berkas agar antrean unduhan browser teratur
+    // 1. MEMBUAT EVENT KLIK PALSU VIA SCRIPT
+    const eventKlikPalsu = new MouseEvent('click', { 
+        view: window, 
+        bubbles: true, 
+        cancelable: true 
     });
-};
 
-startBtn.addEventListener("click", async () => {
-    startBtn.disabled = true;
-    statusDiv.textContent = "Status: Memproses...";
+    // Menargetkan elemen tertentu, dalam hal ini adalah body halaman web
+    const targetElemen = document.body; 
 
-    for (let i = 1; i <= MAX_FILES; i++) {
-        await generateAndDownload(i);
-    }
+    // 2. MEMBUAT EVENT LISTENER
+    targetElemen.addEventListener('click', (event) => { 
+        console.log("--- Event Klik Terpicu ---");
+        console.log("Apakah event ini asli dari manusia (isTrusted)?", event.isTrusted);
 
-    statusDiv.textContent = "Status: Semua unduhan selesai secara aman.";
-    startBtn.disabled = false;
-});
+        // Mencoba menjalankan TTS di dalam event buatan
+        const utterance = new SpeechSynthesisUtterance("Halo, ini mencoba membypass."); 
+        window.speechSynthesis.speak(utterance);
+        
+        // Menangkap error jika TTS diblokir
+        utterance.onerror = (e) => {
+            if (e.error === 'not-allowed') {
+                console.error("⚠️ Hasil: Browser MENOLAK suara karena dipicu oleh kode otomatis (isTrusted = false).");
+            }
+        };
+    }); 
+
+    // 3. MEMICU EVENT SECARA PAKSA LEWAT KODE (Otomatis saat halaman dimuat)
+    // Pada browser modern, fungsi klik di bawah ini akan BERHASIL dieksekusi,
+    // TETAPI browser akan langsung memblokir suara TTS karena event.isTrusted bernilai false.
+    console.log("Menjalankan dispatchEvent otomatis...");
+    targetElemen.dispatchEvent(eventKlikPalsu);
 </script>
 
 </body>
