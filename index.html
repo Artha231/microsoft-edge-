@@ -2,67 +2,32 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Uji Coba Autoplay Policy (Event Palsu)</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f0f2f5;
-            margin: 0;
-        }
-        .container {
-            text-align: center;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-    </style>
+    <title>Uji Autoplay HTML5 Audio</title>
 </head>
 <body>
+    <h3>Uji Coba Autoplay Audio Elemen</h3>
+    <p>Lihat F12 Console untuk memantau apakah proteksi browser aktif.</p>
 
-<div class="container">
-    <h2>Simulasi Deteksi Keamanan Browser</h2>
-    <p>Buka <b>F12 (Console)</b> untuk melihat log peringatan dari browser.</p>
-</div>
+    <script>
+        // Membuat elemen audio di memori tanpa interaksi pengguna
+        const audioPalsu = new Audio('https://soundhelix.com');
 
-<script>
-    // 1. MEMBUAT EVENT KLIK PALSU VIA SCRIPT
-    const eventKlikPalsu = new MouseEvent('click', { 
-        view: window, 
-        bubbles: true, 
-        cancelable: true 
-    });
-
-    // Menargetkan elemen tertentu, dalam hal ini adalah body halaman web
-    const targetElemen = document.body; 
-
-    // 2. MEMBUAT EVENT LISTENER
-    targetElemen.addEventListener('click', (event) => { 
-        console.log("--- Event Klik Terpicu ---");
-        console.log("Apakah event ini asli dari manusia (isTrusted)?", event.isTrusted);
-
-        // Mencoba menjalankan TTS di dalam event buatan
-        const utterance = new SpeechSynthesisUtterance("Halo, ini mencoba membypass."); 
-        window.speechSynthesis.speak(utterance);
-        
-        // Menangkap error jika TTS diblokir
-        utterance.onerror = (e) => {
-            if (e.error === 'not-allowed') {
-                console.error("⚠️ Hasil: Browser MENOLAK suara karena dipicu oleh kode otomatis (isTrusted = false).");
-            }
-        };
-    }); 
-
-    // 3. MEMICU EVENT SECARA PAKSA LEWAT KODE (Otomatis saat halaman dimuat)
-    // Pada browser modern, fungsi klik di bawah ini akan BERHASIL dieksekusi,
-    // TETAPI browser akan langsung memblokir suara TTS karena event.isTrusted bernilai false.
-    console.log("Menjalankan dispatchEvent otomatis...");
-    targetElemen.dispatchEvent(eventKlikPalsu);
-</script>
-
+        // Menguji Race Condition dengan jeda waktu asinkronus mikro saat dokumen dimuat
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("Mencoba memutar audio otomatis via micro-task...");
+            
+            setTimeout(() => {
+                audioPalsu.play()
+                    .then(() => {
+                        // Tanda Kerentanan: Jika teks ini muncul dan suara terdengar tanpa klik
+                        console.log("🔴 Kerentanan Terdeteksi: Browser mengizinkan autoplay audio tanpa interaksi!");
+                    })
+                    .catch((error) => {
+                        // Kondisi Aman: Browser modern yang aman akan masuk ke blok catch ini
+                        console.warn("🟢 Browser Aman: Autoplay diblokir secara otomatis.", error.message);
+                    });
+            }, 0); // Jeda 0ms untuk melempar eksekusi ke akhir antrean event loop
+        });
+    </script>
 </body>
 </html>
