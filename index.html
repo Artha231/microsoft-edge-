@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Browser Security PoC</title>
 
   <style>
@@ -14,26 +15,28 @@
     body {
       margin: 0;
       min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 24px;
-      font-family: Arial, sans-serif;
-      background: #101827;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: #0f172a;
       color: #f8fafc;
+      font-family: Arial, sans-serif;
     }
 
     .card {
       width: 100%;
-      max-width: 520px;
-      padding: 30px;
+      max-width: 480px;
+      padding: 28px;
       background: #1e293b;
       border: 1px solid #334155;
       border-radius: 16px;
+      box-shadow: 0 15px 40px #0003;
     }
 
     h1 {
       margin-top: 0;
-      font-size: 26px;
+      font-size: 25px;
     }
 
     p {
@@ -49,21 +52,20 @@
     input {
       width: 100%;
       padding: 12px;
+      color: white;
+      background: #0f172a;
       border: 1px solid #475569;
       border-radius: 8px;
-      background: #0f172a;
-      color: white;
     }
 
     button {
       width: 100%;
       margin-top: 14px;
       padding: 13px;
-      border: 0;
+      border: none;
       border-radius: 8px;
       background: #3b82f6;
       color: white;
-      font-size: 15px;
       font-weight: bold;
       cursor: pointer;
     }
@@ -75,8 +77,8 @@
     #status {
       margin-top: 20px;
       padding: 12px;
-      border-radius: 8px;
       background: #0f172a;
+      border-radius: 8px;
       overflow-wrap: anywhere;
     }
 
@@ -93,11 +95,12 @@
     <h1>Browser Security PoC</h1>
 
     <p>
-      Demo pengujian fullscreen dan pembuatan file TXT
-      pada browser sendiri.
+      Pengujian fullscreen dan unduhan file TXT
+      pada browser.
     </p>
 
     <label for="count">Jumlah file TXT (1–5)</label>
+
     <input
       id="count"
       type="number"
@@ -115,7 +118,7 @@
     </button>
 
     <div id="status" role="status" aria-live="polite">
-      Status: menunggu pengujian.
+      Status: siap untuk pengujian.
     </div>
 
     <div id="downloads"></div>
@@ -133,32 +136,35 @@
     start.addEventListener("click", async () => {
       downloads.replaceChildren();
 
+      // Bersihkan file dari pengujian sebelumnya.
       objectUrls.forEach(url => URL.revokeObjectURL(url));
       objectUrls = [];
 
       const count = Number(countInput.value);
 
       if (!Number.isInteger(count) || count < 1 || count > 5) {
-        status.textContent = "Masukkan jumlah file antara 1 dan 5.";
+        status.textContent =
+          "Masukkan jumlah file antara 1 dan 5.";
         return;
       }
 
-      // Minta fullscreen setelah interaksi pengguna.
+      // Fullscreen memerlukan interaksi pengguna.
       try {
         await document.documentElement.requestFullscreen();
-        status.textContent = "Fullscreen aktif. Menyiapkan file TXT...";
       } catch {
-        status.textContent =
-          "Fullscreen tidak diizinkan. Tetap menyiapkan file TXT...";
+        // Pengujian file tetap bisa dilanjutkan.
       }
 
+      let prepared = 0;
+
       for (let i = 1; i <= count; i++) {
+        const content =
+          "Browser Security PoC\n" +
+          "Nomor file: " + i + "\n" +
+          "Dibuat untuk pengujian browser.\n";
+
         const blob = new Blob(
-          [
-            `Browser Security PoC\n`,
-            `File nomor: ${i}\n`,
-            `Dibuat untuk pengujian lokal.\n`
-          ],
+          [content],
           { type: "text/plain;charset=utf-8" }
         );
 
@@ -171,24 +177,32 @@
         link.textContent = `Unduh poc-${i}.txt`;
 
         downloads.appendChild(link);
+        prepared++;
       }
 
       status.textContent =
-        `${count} file TXT siap. Klik tautan masing-masing untuk mengunduh.`;
+        `${prepared} file TXT berhasil disiapkan. ` +
+        "Klik tautan unduhan di bawah untuk mengunduh file.";
+
+      // Tidak memicu unduhan massal secara otomatis.
+      // Browser dapat membatasi unduhan berulang.
     });
 
     exit.addEventListener("click", async () => {
       if (document.fullscreenElement) {
-        await document.exitFullscreen();
+        try {
+          await document.exitFullscreen();
+        } catch {
+          status.textContent =
+            "Browser tidak mengizinkan keluar dari fullscreen.";
+        }
       }
-
-      status.textContent = "Mode fullscreen dinonaktifkan.";
     });
 
     document.addEventListener("fullscreenchange", () => {
-      if (!document.fullscreenElement) {
+      if (document.fullscreenElement) {
         status.textContent =
-          "Fullscreen tidak aktif. Kamu bisa menjalankan pengujian lagi.";
+          "Fullscreen aktif. File TXT dapat diunduh di bawah.";
       }
     });
 
