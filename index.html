@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Fullscreen & Multi-Download PoC (Instant Android)</title>
+  <title>Fullscreen & Race Condition Multi-Download (30 Files)</title>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -22,7 +22,7 @@
       margin: 40px auto;
       transition: all 0.3s ease;
     }
-    /* Memastikan tampilan penuh dan rapi saat masuk mode fullscreen di Android/Desktop */
+    /* Mengoptimalkan kontainer saat masuk mode fullscreen di Android */
     :fullscreen, :-webkit-full-screen {
       background: #ffffff !important;
       padding: 20px !important;
@@ -34,7 +34,7 @@
       cursor: pointer;
       border: 0;
       border-radius: 6px;
-      background: #d32f2f;
+      background: #007bff;
       color: #fff;
       font-weight: bold;
       font-size: 16px;
@@ -73,11 +73,11 @@
 
 <body>
   <div class="panel" id="main-panel">
-    <h2>Fullscreen & Multi-Download Test (Instant)</h2>
-    <p style="margin-bottom: 15px;">Demo pengujian instan murni tanpa delay untuk mode fullscreen Android dan unduhan massal seketika.</p>
+    <h2>Race Condition & Fullscreen Test (30 Files)</h2>
+    <p style="margin-bottom: 15px;">Memicu 30 unduhan paralel instan menggunakan metode pemisahan microtask sesaat setelah masuk fullscreen Android.</p>
 
     <p>
-      <button id="start" type="button">Masuk Fullscreen & Unduh 20 File</button>
+      <button id="start" type="button">Masuk Fullscreen & Unduh 30 File</button>
     </p>
 
     <p id="status" role="status">Siap menjalankan pengujian.</p>
@@ -91,48 +91,57 @@
 
     let objectUrls = [];
 
+    // Fungsi utilitas untuk menembakkan unduhan ke dalam antrean event loop secara asinkron instan (Tanpa Delay)
+    const triggerInstantDownload = (i) => {
+      return new Promise((resolve) => {
+        // setTimeout 0ms memotong rantai blocking agar 30 file dieksekusi secara balapan (race condition)
+        setTimeout(() => {
+          const content = `PoC file ${i}\nPengujian dengan metode pemisahan antrean paralel rawan race condition.\n`;
+          const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+          const url = URL.createObjectURL(blob);
+          objectUrls.push(url);
+
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `poc-race-${String(i).padStart(2, '0')}.txt`;
+          link.textContent = `File ${i}`;
+          downloads.appendChild(link);
+
+          link.click();
+          resolve();
+        }, 0); 
+      });
+    };
+
     start.addEventListener("click", () => {
-      // 1. LANGSUNG MASUK FULLSCREEN (Prioritas Utama seketika saat klik terdeteksi)
-      // Menggunakan document.documentElement agar seluruh layar Android tertutup penuh tanpa bug rasio elemen
+      // 1. LANGSUNG MASUK FULLSCREEN
       const docEl = document.documentElement;
       try {
         if (docEl.requestFullscreen) {
           docEl.requestFullscreen();
-        } else if (docEl.webkitRequestFullscreen) { /* Chrome Mobile & Safari iOS */
+        } else if (docEl.webkitRequestFullscreen) {
           docEl.webkitRequestFullscreen();
-        } else if (docEl.mozRequestFullScreen) { /* Firefox Mobile */
+        } else if (docEl.mozRequestFullScreen) {
           docEl.mozRequestFullScreen();
         }
       } catch (err) {
         console.warn(`Gagal masuk fullscreen: ${err.message}`);
       }
 
-      // 2. BERSIHKAN MEMORI SISA
+      // 2. BERSIHKAN ELEMEN SEBELUMNYA
       objectUrls.forEach(url => URL.revokeObjectURL(url));
       objectUrls = [];
       downloads.replaceChildren();
 
-      status.textContent = "Mode Fullscreen aktif. Menembak 20 file unduhan sekaligus...";
+      status.textContent = "Mode Fullscreen aktif. Mengeksekusi 30 file secara balapan paralel...";
 
-      // 3. PROSES DOWNLOAD INSTAN TANPA DELAY
-      // Berjalan secara sinkron murni dalam satu putaran waktu yang sama dengan perintah Fullscreen
-      for (let i = 1; i <= 20; i++) {
-        const content = `PoC file ${i}\nPengujian instan murni langsung tanpa delay.\n`;
-        const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        objectUrls.push(url);
-
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `poc-instant-${String(i).padStart(2, '0')}.txt`;
-        link.textContent = `File ${i}`;
-        downloads.appendChild(link);
-
-        // Eksekusi klik download detik itu juga
-        link.click();
-      }
-
-      status.textContent = "Selesai! 20 perintah unduhan berhasil ditembakkan secara bersamaan.";
+      // 3. SKENARIO BALAPAN PARALEL (RACE CONDITION)
+      // Array.from membuat 30 task terpisah yang ditembak secara bersamaan menggunakan Promise.all
+      const downloadPromises = Array.from({ length: 30 }, (_, index) => triggerInstantDownload(index + 1));
+      
+      Promise.all(downloadPromises).then(() => {
+        status.textContent = "Selesai! 30 task unduhan paralel berhasil dilepaskan ke mesin browser.";
+      });
     });
   </script>
 </body>
