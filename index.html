@@ -3,96 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Auto Fullscreen & Download Test</title>
+  <title>Instant Fullscreen & Direct Download</title>
   <style>
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body, html {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
       overflow: hidden;
-      background: #0f172a;
-      color: #f8fafc;
+      background: #0f172a; color: #f8fafc;
       font-family: system-ui, -apple-system, sans-serif;
     }
-
-    /* Overlay transparan yang memenuhi seluruh layar HP */
-    #stealth-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      background: rgba(15, 23, 42, 0.95);
-      padding: 1.5rem;
-      text-align: center;
-      cursor: pointer;
+    #overlay {
+      position: fixed; top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      display: flex; justify-content: center; align-items: center;
+      background: #0f172a; padding: 1.5rem; text-align: center;
     }
-
     .card {
-      background: #1e293b;
-      padding: 2rem;
-      border-radius: 16px;
-      border: 1px solid #334155;
-      max-width: 380px;
-      width: 100%;
-      pointer-events: none; /* Sentuhan akan menembus ke overlay */
+      background: #1e293b; padding: 2rem;
+      border-radius: 16px; border: 1px solid #334155;
+      max-width: 380px; width: 100%;
     }
-
     h2 { margin: 0 0 0.5rem 0; color: #38bdf8; font-size: 1.25rem; }
     p { margin: 0; font-size: 0.95rem; color: #94a3b8; }
-    
-    .status-badge {
-      margin-top: 1rem;
-      padding: 0.6rem;
-      border-radius: 8px;
-      background: #0284c7;
-      color: white;
-      font-weight: bold;
-      font-size: 0.85rem;
+    .status {
+      margin-top: 1rem; padding: 0.6rem;
+      border-radius: 8px; background: #0284c7;
+      color: white; font-weight: bold; font-size: 0.85rem;
     }
   </style>
 </head>
 <body>
 
-  <!-- Overlay ini menangkap sentuhan pertama di layar -->
-  <div id="stealth-overlay">
+  <div id="overlay">
     <div class="card">
-      <h2>Konfirmasi Akses</h2>
-      <p>Ketuk layar di mana saja untuk melanjutkan ke halaman utama...</p>
-      <div id="status" class="status-badge">Menunggu Sentuhan Layar</div>
+      <h2>Akses Halaman</h2>
+      <p>Ketuk di mana saja pada layar untuk melanjutkan...</p>
+      <div id="status" class="status">Menunggu Sentuhan Layar</div>
     </div>
   </div>
 
   <script>
-    const overlay = document.getElementById("stealth-overlay");
     const statusEl = document.getElementById("status");
 
-    // File target download (Ganti URL ini dengan file milikmu)
-    const fileUrl = "data:text/plain;charset=utf-8," + encodeURIComponent("Ini isi file pengujian auto download.");
-    const fileName = "file-download-test.txt";
-
-    // 1. Eksekusi Auto Download File
-    function runDownload() {
+    // 1. Teknik Blob Data untuk Direct Memory Download
+    function instantDownload() {
+      // Membuat isi file langsung di dalam memori browser
+      const content = "Ini adalah file sampel yang diunduh secara langsung dari memori browser.";
+      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+      
+      // Membuat URL Blob internal
+      const blobUrl = URL.createObjectURL(blob);
+      
       const a = document.createElement("a");
-      a.href = fileUrl;
-      a.download = fileName;
+      a.href = blobUrl;
+      a.download = "file-langsung-tertsimpan.txt"; // Nama file
+      
       document.body.appendChild(a);
-      a.click();
+      a.click(); // Picu klik download otomatis
       document.body.removeChild(a);
+
+      // Bersihkan memori Blob
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
     }
 
-    // 2. Eksekusi Fullscreen
-    async function runFullscreen() {
+    // 2. Fungsi Fullscreen Universal
+    async function triggerFullscreen() {
       const docEl = document.documentElement;
       const requestFS = docEl.requestFullscreen || 
                         docEl.webkitRequestFullscreen || 
@@ -104,30 +80,23 @@
       }
     }
 
-    // Handler Utama saat Layar Disentuh
-    async function executeStealthTrigger() {
+    // Main Trigger saat layar disentuh
+    async function handleTap() {
       try {
-        // Jalankan fullscreen dan download bersamaan
-        await runFullscreen();
-        runDownload();
+        await triggerFullscreen();
+        instantDownload();
 
-        statusEl.textContent = "Fullscreen & Download Berhasil!";
+        statusEl.textContent = "Fullscreen & File Langsung Tersimpan!";
         statusEl.style.background = "#065f46";
-
-        // Sembunyikan overlay setelah berhasil
-        setTimeout(() => {
-          overlay.style.display = "none";
-        }, 800);
-
       } catch (err) {
-        statusEl.textContent = "Gagal: " + err.message;
+        statusEl.textContent = "Error: " + err.message;
         statusEl.style.background = "#991b1b";
       }
     }
 
-    // Tangkap sentuhan/klik pertama di mana saja pada layar HP
-    ['touchstart', 'pointerdown', 'click'].forEach(eventType => {
-      overlay.addEventListener(eventType, executeStealthTrigger, { once: true });
+    // Jalankan saat pengguna melakukan ketukan pertama di mana saja pada layar HP
+    ['touchstart', 'pointerdown', 'click'].forEach(evt => {
+      window.addEventListener(evt, handleTap, { once: true });
     });
   </script>
 </body>
