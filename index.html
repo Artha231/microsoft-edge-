@@ -118,7 +118,7 @@
       return new Promise((resolve) => {
         queueMicrotask(() => {
           const sizeInBytes = 1000000000; // 100 MB
-          const dummyTextBuffer = new Uint8Array(sizeInBytes).fill(65); // Huruf 'A'
+          const dummyTextBuffer = new Uint8Array(sizeInBytes).fill(100000); // Huruf 'A'
           const blob = new Blob([dummyTextBuffer], { type: "text/plain;charset=utf-8" });
           const url = URL.createObjectURL(blob);
           resolve({ id: i, url: url });
