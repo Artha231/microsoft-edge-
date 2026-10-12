@@ -3,13 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Iframe Download PoC</title>
+  <title>Iframe Download PoC - One Click</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; }
     body {
       font-family: Arial, sans-serif;
       max-width: 650px;
@@ -18,14 +15,12 @@
       background: #f4f6f8;
       color: #222;
     }
-
     .panel {
       background: #fff;
       padding: 24px;
       border-radius: 12px;
       box-shadow: 0 2px 12px #0001;
     }
-
     button {
       padding: 12px 18px;
       cursor: pointer;
@@ -34,61 +29,26 @@
       background: #1769e0;
       color: #fff;
     }
-
-    input {
-      padding: 8px;
-      width: 80px;
-    }
-
-    #status {
-      margin-top: 16px;
-    }
-
-    #downloads a {
-      display: block;
-      margin-top: 12px;
-    }
-
-    iframe {
-      width: 100%;
-      height: 100px;
-      border: 1px solid #ddd;
-      margin-top: 12px;
-    }
+    input { padding: 8px; width: 80px; }
+    #status { margin-top: 16px; font-weight: bold; }
+    #downloads a { display: block; margin-top: 12px; }
   </style>
 </head>
 
 <body>
   <div class="panel">
-    <h2>Iframe Download PoC (Batas 20 File)</h2>
+    <h2>Iframe Download PoC (One Click All)</h2>
+    <p>Demo mengunduh seluruh file secara bersamaan menggunakan satu tombol klik.</p>
 
-    <p>
-      Demo pembuatan file TXT dan pengujian iframe
-      di browser dengan batas maksimal 20 file.
-    </p>
-
-    <!-- Mengubah nilai max menjadi 20 dan default value menjadi 20 -->
     <label for="count">Jumlah file (1–20):</label>
-    <input
-      id="count"
-      type="number"
-      min="1"
-      max="20"
-      value="20"
-    >
+    <input id="count" type="number" min="1" max="20" value="20">
 
     <p>
-      <button id="start" type="button">
-        Buat File TXT
-      </button>
+      <button id="start" type="button">Unduh Semua File</button>
     </p>
 
-    <p id="status" role="status">
-      Siap menjalankan pengujian.
-    </p>
-
+    <p id="status" role="status">Siap menjalankan pengujian.</p>
     <div id="downloads"></div>
-    <div id="preview"></div>
   </div>
 
   <script>
@@ -96,55 +56,42 @@
     const countInput = document.getElementById("count");
     const status = document.getElementById("status");
     const downloads = document.getElementById("downloads");
-    const preview = document.getElementById("preview");
 
     let objectUrls = [];
 
     start.addEventListener("click", () => {
-      // Bersihkan hasil pengujian sebelumnya.
+      // Bersihkan sisa objek memori sebelumnya
       objectUrls.forEach(url => URL.revokeObjectURL(url));
       objectUrls = [];
       downloads.replaceChildren();
-      preview.replaceChildren();
 
       const count = Number(countInput.value);
 
-      // Mengubah validasi agar menerima rentang 1 sampai 20
       if (!Number.isInteger(count) || count < 1 || count > 20) {
         status.textContent = "Masukkan jumlah file dari 1 sampai 20.";
         return;
       }
 
+      status.textContent = `Memproses pengunduhan ${count} file sekaligus...`;
+
       for (let i = 1; i <= count; i++) {
-        const content =
-          `PoC file ${i}\n` +
-          `Dibuat untuk pengujian browser.\n`;
-
-        const blob = new Blob(
-          [content],
-          { type: "text/plain;charset=utf-8" }
-        );
-
+        const content = `PoC file ${i}\nDibuat untuk pengujian browser.\n`;
+        const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         objectUrls.push(url);
 
-        // Tautan unduhan.
+        // 1. Buat elemen link unduhan di balik layar
         const link = document.createElement("a");
         link.href = url;
         link.download = `poc-${i}.txt`;
-        link.textContent = `Unduh poc-${i}.txt`;
+        link.textContent = `Tautan file ${i}`;
         downloads.appendChild(link);
 
-        // Pratinjau iframe, bukan pemicu unduhan.
-        const iframe = document.createElement("iframe");
-        iframe.title = `Pratinjau file ${i}`;
-        iframe.src = url;
-        preview.appendChild(iframe);
+        // 2. Eksekusi trigger klik otomatis per file di dalam loop
+        link.click();
       }
 
-      status.textContent =
-        `${count} file TXT berhasil disiapkan. ` +
-        "Klik setiap tautan untuk mengunduh.";
+      status.textContent = `Proses selesai. Mencoba mengunduh ${count} file.`;
     });
   </script>
 </body>
