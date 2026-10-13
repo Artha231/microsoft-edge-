@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Tab Switching — Vibrate Behavior Test</title>
+<title>BRUTAL — Non-Stop Vibrate Test</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
         height: 100%;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        background: #0d0f14;
+        background: #0a0000;
         color: #e6e8eb;
         user-select: none;
         -webkit-tap-highlight-color: transparent;
@@ -25,164 +25,150 @@
         justify-content: center;
         text-align: center;
         padding: 24px;
-        transition: background .3s;
+        transition: background .15s;
     }
-    #zone.idle    { background: #0d0f14; }
-    #zone.active  { background: #1a0f0f; }
-    #zone.hidden  { background: #0f1a1f; } /* saat tab disembunyikan */
+    #zone.idle   { background: #0a0000; }
+    #zone.active {
+        background: #2a0000;
+        animation: bgPulse .3s infinite alternate;
+    }
+    @keyframes bgPulse {
+        from { background: #2a0000; }
+        to   { background: #4a0000; }
+    }
 
     .icon {
-        font-size: 64px;
-        margin-bottom: 12px;
-        transition: transform .3s;
+        font-size: 80px;
+        margin-bottom: 8px;
+        transition: transform .1s;
     }
-    #zone.active .icon { animation: shake .4s infinite; }
+    #zone.active .icon {
+        animation: shake .08s infinite;
+    }
     @keyframes shake {
-        0%, 100% { transform: rotate(0deg); }
-        25%      { transform: rotate(-8deg); }
-        75%      { transform: rotate(8deg); }
+        0%   { transform: rotate(-15deg) scale(1.3); }
+        50%  { transform: rotate(15deg) scale(1.4); }
+        100% { transform: rotate(-15deg) scale(1.3); }
     }
 
     .title {
-        font-size: 20px;
-        font-weight: 700;
-        margin-bottom: 6px;
+        font-size: 22px;
+        font-weight: 900;
+        margin-bottom: 4px;
+        letter-spacing: 2px;
     }
+    #zone.active .title {
+        color: #ff2020;
+        text-shadow: 0 0 20px #ff0000;
+    }
+
     .hint {
-        font-size: 13px;
+        font-size: 12px;
         color: #8b93a1;
-        line-height: 1.6;
+        line-height: 1.5;
         max-width: 340px;
+        margin-top: 8px;
     }
-    #zone.active .hint { color: #f87171; }
 
     .timer {
         font-family: ui-monospace, monospace;
-        font-size: 40px;
-        font-weight: 700;
-        color: #f87171;
-        margin: 12px 0 4px;
-        min-height: 46px;
-        letter-spacing: 1px;
-        text-shadow: 0 0 16px rgba(248, 113, 113, 0.4);
+        font-size: 52px;
+        font-weight: 900;
+        color: #ff2020;
+        margin: 8px 0;
+        min-height: 60px;
+        letter-spacing: 2px;
+        text-shadow: 0 0 30px #ff0000;
+        font-variant-numeric: tabular-nums;
     }
 
-    /* Statistik grid */
+    /* Stats */
     .stats {
         position: fixed;
-        top: 12px;
-        left: 12px;
-        right: 12px;
+        top: 10px;
+        left: 10px;
+        right: 10px;
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 6px;
+        gap: 5px;
         font-family: ui-monospace, monospace;
         font-size: 10px;
         z-index: 5;
     }
     .stat {
-        background: rgba(30, 30, 36, 0.85);
-        border: 1px solid #2c313a;
+        background: rgba(20, 0, 0, 0.9);
+        border: 1px solid #4a0000;
         border-radius: 6px;
-        padding: 5px 6px;
+        padding: 5px;
         text-align: center;
     }
-    .stat .v { font-size: 14px; font-weight: 700; }
-    .stat .l { color: #8b93a1; text-transform: uppercase; letter-spacing: .04em; margin-top: 1px; }
+    .stat .v { font-size: 15px; font-weight: 900; }
+    .stat .l { color: #8b93a1; text-transform: uppercase; letter-spacing: .04em; margin-top: 1px; font-size: 9px; }
+    .stat.hi  .v { color: #ff2020; }
     .stat.ok  .v { color: #2ecc71; }
     .stat.err .v { color: #e74c3c; }
     .stat.warn .v { color: #f1c40f; }
-    .stat.hi  .v { color: #a855f7; }
 
-    /* Event log */
+    /* Log */
     #eventLog {
         position: fixed;
-        bottom: 12px;
-        left: 12px;
-        right: 12px;
-        max-height: 180px;
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+        max-height: 140px;
         overflow-y: auto;
-        background: #05070a;
-        border: 1px solid #2c313a;
+        background: #000;
+        border: 1px solid #4a0000;
         border-radius: 8px;
-        padding: 8px 10px;
+        padding: 6px 10px;
         font-family: ui-monospace, monospace;
-        font-size: 10.5px;
-        line-height: 1.5;
+        font-size: 10px;
+        line-height: 1.45;
         white-space: pre-wrap;
         z-index: 5;
     }
-    #eventLog .t  { color: #6b7280; }
     #eventLog .i  { color: #79c0ff; }
     #eventLog .ok { color: #3fb950; }
     #eventLog .wr { color: #d29922; }
     #eventLog .er { color: #f85149; }
-    #eventLog .hi { color: #d2a8ff; font-weight: 600; }
+    #eventLog .hi { color: #ff2020; font-weight: 700; }
 
-    /* Pulse indikator jari */
+    /* Pulse */
     #pulse {
         position: fixed;
-        width: 44px;
-        height: 44px;
+        width: 50px;
+        height: 50px;
         border-radius: 50%;
-        background: rgba(248, 113, 113, 0.3);
+        background: rgba(255, 32, 32, 0.4);
         pointer-events: none;
         transform: translate(-50%, -50%);
         opacity: 0;
-        transition: opacity .15s;
+        transition: opacity .1s;
         z-index: 3;
     }
     #pulse.on { opacity: 1; }
-
-    /* Overlay saat tab disembunyikan */
-    #hiddenBanner {
-        position: fixed;
-        inset: 0;
-        background: rgba(15, 26, 31, 0.95);
-        display: none;
-        align-items: center;
-        justify-content: center;
-        z-index: 10;
-        font-family: ui-monospace, monospace;
-        color: #8b93a1;
-        text-align: center;
-        padding: 20px;
-        font-size: 13px;
-    }
-    #hiddenBanner.on { display: flex; }
 </style>
 </head>
 <body>
 
-<!-- Statistik -->
 <div class="stats">
-    <div class="stat hi">   <div class="v" id="s-call">0</div> <div class="l">Panggilan</div></div>
+    <div class="stat hi">   <div class="v" id="s-call">0</div> <div class="l">Calls</div></div>
     <div class="stat ok">   <div class="v" id="s-ok">0</div>   <div class="l">OK</div></div>
     <div class="stat err">  <div class="v" id="s-fail">0</div> <div class="l">Fail</div></div>
-    <div class="stat warn"> <div class="v" id="s-hid">0</div>  <div class="l">Hidden</div></div>
+    <div class="stat warn"> <div class="v" id="s-hz">0</div>   <div class="l">Hz</div></div>
 </div>
 
-<!-- Zona utama -->
 <div id="zone" class="idle">
-    <div class="icon" id="icon">👋</div>
-    <div class="title" id="title">Geser jari di layar</div>
+    <div class="icon" id="icon">💀</div>
+    <div class="title" id="title">GESER UNTUK BRUTAL</div>
     <div class="timer" id="timer"></div>
     <div class="hint" id="hint">
-        Gerakkan jari untuk memulai getaran.<br>
-        Lalu <b>pindah tab</b> atau <b>keluar aplikasi</b> untuk menguji perilaku.
+        Getar akan non-stop tanpa jeda.<br>
+        Angkat jari untuk menghentikan.
     </div>
 </div>
 
-<!-- Indikator jari -->
 <div id="pulse"></div>
-
-<!-- Overlay saat tab disembunyikan (murni visual untuk ketika kembali) -->
-<div id="hiddenBanner">
-    Tab tidak terlihat.<br>
-    Getaran seharusnya sudah berhenti.
-</div>
-
-<!-- Log event -->
 <div id="eventLog"></div>
 
 <script>
@@ -192,59 +178,64 @@
 // ============================================================
 // DOM
 // ============================================================
-const zone      = document.getElementById('zone');
-const icon      = document.getElementById('icon');
-const title     = document.getElementById('title');
-const timer     = document.getElementById('timer');
-const hint      = document.getElementById('hint');
-const pulse     = document.getElementById('pulse');
-const eventLog  = document.getElementById('eventLog');
-const hiddenBanner = document.getElementById('hiddenBanner');
-
-const sCall = document.getElementById('s-call');
-const sOk   = document.getElementById('s-ok');
-const sFail = document.getElementById('s-fail');
-const sHid  = document.getElementById('s-hid');
+const zone     = document.getElementById('zone');
+const icon     = document.getElementById('icon');
+const title    = document.getElementById('title');
+const timer    = document.getElementById('timer');
+const hint     = document.getElementById('hint');
+const pulse    = document.getElementById('pulse');
+const eventLog = document.getElementById('eventLog');
+const sCall    = document.getElementById('s-call');
+const sOk      = document.getElementById('s-ok');
+const sFail    = document.getElementById('s-fail');
+const sHz      = document.getElementById('s-hz');
 
 // ============================================================
-// KONFIGURASI
+// KONFIGURASI BRUTAL
 // ============================================================
-const CHUNK_MS   = 9000;
-const OVERLAP_MS = 2000;
-const INTERVAL   = CHUNK_MS - OVERLAP_MS;  // 7000
+// Strategi: 3 layer paralel, masing-masing memanggil vibrate() dengan
+// chunk 9000ms dan interval pendek yang saling menutupi.
+// Tidak ada gap > 500ms di antara dua panggilan berurutan.
+
+const CHUNK        = 9000;   // di bawah batas 10000ms
+const LAYER1_DELAY = 0;      // mulai langsung
+const LAYER1_STEP  = 5000;   // 5 detik — overlap 4 detik
+const LAYER2_DELAY = 1500;   // offset 1.5 detik
+const LAYER2_STEP  = 5000;
+const LAYER3_DELAY = 3000;   // offset 3 detik
+const LAYER3_STEP  = 5000;
+const WATCHDOG     = 800;    // cek tiap 800ms
+const MAX_GAP      = 2000;   // jika gap > 2s → re-fire paksa
 
 // ============================================================
 // STATE
 // ============================================================
-let active        = false;
-let startTime     = 0;
-let intervalId    = null;
-let tickerId      = null;
-let callCount     = 0;
-let okCount       = 0;
-let failCount     = 0;
-let hiddenCount   = 0;
-
-// Pelacakan untuk membuktikan apa yang terjadi
-let lastFireAt           = 0;
-let lastFireBeforeHide   = 0;
-let activeWhenHidden     = false;
-let startedAtHidden      = false;
-let lastHiddenAt         = 0;
-let lastVisibleAt        = 0;
+let active      = false;
+let startTime   = 0;
+let layer1Id    = null;
+let layer2Id    = null;
+let layer3Id    = null;
+let watchdogId  = null;
+let tickerId    = null;
+let callCount   = 0;
+let okCount     = 0;
+let failCount   = 0;
+let lastFireAt  = 0;
+let recentFires = [];
+let lastHiddenAt = 0;
 
 // ============================================================
-// LOGGING
+// LOG
 // ============================================================
-const MAX_LOG = 200;
+const MAX_LOG = 150;
 let logLines = 0;
-function ts() { return new Date().toTimeString().slice(0, 8); }
+function ts() { return new Date().toTimeString().slice(0,8); }
 
 function log(text, cls = '') {
-    const span = document.createElement('span');
-    span.className = cls;
-    span.textContent = `[${ts()}] ${text}\n`;
-    eventLog.appendChild(span);
+    const s = document.createElement('span');
+    s.className = cls;
+    s.textContent = `[${ts()}] ${text}\n`;
+    eventLog.appendChild(s);
     logLines++;
     while (logLines > MAX_LOG && eventLog.firstChild) {
         eventLog.removeChild(eventLog.firstChild);
@@ -259,9 +250,12 @@ function log(text, cls = '') {
 function vib(pattern) {
     if (typeof navigator.vibrate !== 'function') return false;
     try {
-        const result = navigator.vibrate(pattern);
+        const r = navigator.vibrate(pattern);
         lastFireAt = Date.now();
-        return result;
+        recentFires.push(lastFireAt);
+        const cutoff = Date.now() - 2000;
+        recentFires = recentFires.filter(t => t > cutoff);
+        return r;
     } catch (_) {
         return false;
     }
@@ -272,7 +266,7 @@ function vib(pattern) {
 // ============================================================
 function updateTimer() {
     if (!active) return;
-    const sec = ((Date.now() - startTime) / 1000).toFixed(1);
+    const sec = ((Date.now() - startTime) / 1000).toFixed(2);
     timer.textContent = sec + 's';
 }
 
@@ -280,18 +274,7 @@ function updateStats() {
     sCall.textContent = callCount;
     sOk.textContent   = okCount;
     sFail.textContent = failCount;
-    sHid.textContent  = hiddenCount;
-}
-
-function updateHint() {
-    if (active) {
-        const sec = ((Date.now() - startTime) / 1000).toFixed(0);
-        hint.innerHTML = `Aktif — ${sec}s<br>
-            Coba: pindah tab · tekan tombol home · buka app lain`;
-    } else {
-        hint.innerHTML = `Gerakkan jari untuk memulai getaran.<br>
-            Lalu <b>pindah tab</b> atau <b>keluar aplikasi</b> untuk menguji.`;
-    }
+    sHz.textContent   = (recentFires.length / 2).toFixed(1);
 }
 
 function showPulse(x, y) {
@@ -304,51 +287,73 @@ function hidePulse() { pulse.classList.remove('on'); }
 // ============================================================
 // FIRE
 // ============================================================
-function fire(label = 'loop') {
+function fire(layer) {
     if (!active) return;
-    const ok = vib(CHUNK_MS);
+    const ok = vib(CHUNK);
     callCount++;
     if (ok) okCount++; else failCount++;
-    lastFireAt = Date.now();
     updateStats();
-    // Log hanya saat ok=false supaya tidak spam
-    if (!ok) log(`⚠ fire(${label}) → FAIL`, 'wr');
+    if (!ok) log(`⚠ fire(${layer}) FAIL`, 'wr');
 }
 
 // ============================================================
-// START
+// START — brutal 3 layer
 // ============================================================
 function start() {
     if (active) return;
     if (typeof navigator.vibrate !== 'function') {
         hint.textContent = 'Vibration API tidak didukung.';
-        log('❌ navigator.vibrate tidak tersedia', 'er');
+        log('❌ API tidak tersedia', 'er');
         return;
     }
 
     active = true;
     startTime = Date.now();
     callCount = okCount = failCount = 0;
+    recentFires = [];
     updateStats();
 
-    zone.classList.remove('idle', 'hidden');
+    zone.classList.remove('idle');
     zone.classList.add('active');
     icon.textContent = '📳';
-    title.textContent = 'Getaran Aktif';
+    title.textContent = 'BRUTAL MODE';
 
-    log('▶ Getaran dimulai', 'hi');
-    log(`Konfigurasi: chunk=${CHUNK_MS}ms, interval=${INTERVAL}ms`, 'i');
+    log('💀 BRUTAL MODE AKTIF', 'hi');
+    log(`Layer1: step ${LAYER1_STEP}ms | Layer2: offset ${LAYER2_DELAY}ms step ${LAYER2_STEP}ms | Layer3: offset ${LAYER3_DELAY}ms step ${LAYER3_STEP}ms`, 'i');
 
-    fire('init');
-    intervalId = setInterval(() => fire('loop'), INTERVAL);
+    // ---- Layer 1 ----
+    fire('L1-init');
+    layer1Id = setInterval(() => fire('L1'), LAYER1_STEP);
 
+    // ---- Layer 2 (offset) ----
+    setTimeout(() => {
+        if (!active) return;
+        fire('L2-init');
+        layer2Id = setInterval(() => fire('L2'), LAYER2_STEP);
+    }, LAYER2_DELAY);
+
+    // ---- Layer 3 (offset) ----
+    setTimeout(() => {
+        if (!active) return;
+        fire('L3-init');
+        layer3Id = setInterval(() => fire('L3'), LAYER3_STEP);
+    }, LAYER3_DELAY);
+
+    // ---- Watchdog ----
+    watchdogId = setInterval(() => {
+        if (!active) return;
+        const gap = Date.now() - lastFireAt;
+        if (gap > MAX_GAP) {
+            log(`🐕 Watchdog: gap ${gap}ms → re-fire paksa`, 'wr');
+            fire('watchdog');
+        }
+    }, WATCHDOG);
+
+    // ---- Ticker ----
     updateTimer();
-    tickerId = setInterval(() => {
-        updateTimer();
-        updateHint();
-    }, 200);
+    tickerId = setInterval(updateTimer, 50);
 
-    updateHint();
+    hint.innerHTML = `💀 NON-STOP AKTIF<br>Angkat jari untuk berhenti.`;
 }
 
 // ============================================================
@@ -358,27 +363,32 @@ function stop(reason = 'manual') {
     if (!active) return;
     active = false;
 
-    clearInterval(intervalId); intervalId = null;
+    clearInterval(layer1Id);   layer1Id = null;
+    clearInterval(layer2Id);   layer2Id = null;
+    clearInterval(layer3Id);   layer3Id = null;
+    clearInterval(watchdogId); watchdogId = null;
     clearInterval(tickerId);   tickerId = null;
 
-    try { navigator.vibrate(0); } catch (_) {}
+    // Matikan vibrate dengan semua cara yang mungkin
+    try { navigator.vibrate(0); } catch(_) {}
+    try { navigator.vibrate([]); } catch(_) {}
 
-    zone.classList.remove('active', 'hidden');
+    zone.classList.remove('active');
     zone.classList.add('idle');
-    icon.textContent = '👋';
-    title.textContent = 'Geser jari di layar';
+    icon.textContent = '💀';
+    title.textContent = 'GESER UNTUK BRUTAL';
 
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
     timer.textContent = elapsed + 's';
     hint.innerHTML = `Berhenti (${reason}) setelah ${elapsed}s.<br>
-        ${callCount} panggilan (${okCount} OK, ${failCount} fail).<br>
+        ${callCount} calls · ${okCount} OK · ${failCount} FAIL.<br>
         Geser lagi untuk memulai.`;
 
-    log(`⏹ Stop (${reason}) setelah ${elapsed}s — ${callCount} call, ${okCount} OK, ${failCount} fail`, 'ok');
+    log(`⏹ Stop (${reason}) — ${elapsed}s — ${callCount} calls, ${okCount} OK, ${failCount} FAIL`, 'ok');
 }
 
 // ============================================================
-// GESTURE DETECTION
+// GESTURE
 // ============================================================
 function onTouchStart(e) {
     const t = e.touches[0];
@@ -404,7 +414,7 @@ zone.addEventListener('touchmove',   onTouchMove,   { passive: false });
 zone.addEventListener('touchend',    onTouchEnd,    { passive: false });
 zone.addEventListener('touchcancel', onTouchCancel, { passive: false });
 
-// Mouse fallback untuk desktop
+// Mouse fallback
 zone.addEventListener('mousemove', (e) => {
     if (e.buttons === 0) return;
     showPulse(e.clientX, e.clientY);
@@ -416,134 +426,61 @@ zone.addEventListener('mouseup', () => {
 });
 
 // ============================================================
-// INTI TEST: visibilitychange
+// VISIBILITY (tab switch test)
 // ============================================================
 document.addEventListener('visibilitychange', () => {
     const now = Date.now();
-    const hidden = document.hidden;
-
-    if (hidden) {
-        // === Halaman disembunyikan ===
-        hiddenCount++;
-        updateStats();
+    if (document.hidden) {
         lastHiddenAt = now;
-        activeWhenHidden = active;
-
-        log('═'.repeat(30), 'hi');
-        log('👁 visibilitychange → HIDDEN', 'hi');
-        log(`   active sebelum hide = ${active}`, 'i');
-        log(`   callCount sebelum hide = ${callCount}`, 'i');
-        log(`   waktu sejak fire terakhir = ${now - lastFireAt}ms`, 'i');
-
-        // Cek: apakah vibrate benar-benar berhenti?
-        // Kita coba panggil vibrate(0) untuk memastikan — ini tidak akan
-        // mengganggu pola yang sedang berjalan karena halaman hidden.
+        log('👁 HIDDEN — getar seharusnya berhenti', 'hi');
+        log(`   active=${active}, calls=${callCount}, gap=${now - lastFireAt}ms`, 'i');
         try { navigator.vibrate(0); } catch(_) {}
-
-        if (active) {
-            // Simpan waktu sebelum stop
-            lastFireBeforeHide = lastFireAt;
-
-            // Jeda pendek untuk observasi, lalu stop
-            setTimeout(() => {
-                if (document.hidden) {
-                    log('   → getaran seharusnya sudah berhenti (spesifikasi)', 'wr');
-                }
-            }, 500);
-        }
-
-        // Tampilkan banner (hanya terlihat saat kembali)
-        hiddenBanner.classList.add('on');
     } else {
-        // === Halaman kembali terlihat ===
-        lastVisibleAt = now;
-        hiddenBanner.classList.remove('on');
-
-        log('👁 visibilitychange → VISIBLE', 'hi');
-        log(`   durasi hidden = ${(now - lastHiddenAt)}ms`, 'i');
-        log(`   active saat kembali = ${active}`, 'i');
-        log(`   callCount saat kembali = ${callCount}`, 'i');
-
-        // Cek userActivation — apakah sticky activation masih ada?
+        log('👁 VISIBLE kembali', 'hi');
+        log(`   durasi hidden=${now - lastHiddenAt}ms`, 'i');
         if (navigator.userActivation) {
             const ua = navigator.userActivation;
-            log(`   userActivation: isActive=${ua.isActive}, hasBeenActive=${ua.hasBeenActive}`,
-                ua.hasBeenActive ? 'ok' : 'wr');
+            log(`   userActivation: isActive=${ua.isActive}, hasBeenActive=${ua.hasBeenActive}`, 'i');
         }
-
-        // Test: apakah vibrate masih bisa dipanggil?
         if (typeof navigator.vibrate === 'function') {
-            const testOk = vib([30]);
-            log(`   test vibrate([30]) setelah visible → ${testOk ? 'OK' : 'FAIL'}`,
-                testOk ? 'ok' : 'er');
-
-            // Matikan lagi supaya tidak mengganggu
+            const t = vib([30]);
+            log(`   test vibrate([30]) → ${t ? 'OK' : 'FAIL'}`, t ? 'ok' : 'er');
             try { navigator.vibrate(0); } catch(_) {}
         }
-
-        // Apakah getaran kita dilanjutkan otomatis?
-        if (active) {
-            const gap = now - lastFireAt;
-            log(`   getaran aktif — gap sejak fire terakhir = ${gap}ms`, 'i');
-            if (gap > INTERVAL + 2000) {
-                log('   ⚠ timer di-pause saat hidden (gap > interval)', 'wr');
-                log('   → getaran TIDAK dilanjutkan otomatis', 'wr');
-            }
-        } else {
-            log('   getaran tidak aktif saat kembali (normal)', 'i');
-        }
     }
-});
-
-// ============================================================
-// SUPPORT: pagehide / pageshow (untuk app switching di mobile)
-// ============================================================
-window.addEventListener('pagehide', (e) => {
-    log('📄 pagehide — halaman akan disembunyikan/di-unload', 'hi');
-    log(`   persisted = ${e.persisted}`, 'i');
-});
-
-window.addEventListener('pageshow', (e) => {
-    log('📄 pageshow — halaman kembali aktif', 'hi');
-    log(`   persisted = ${e.persisted}`, 'i');
-});
-
-// ============================================================
-// FOCUS / BLUR (untuk app switching)
-// ============================================================
-window.addEventListener('focus', () => {
-    log('🎯 window focus', 'ok');
-});
-window.addEventListener('blur', () => {
-    log('💤 window blur', 'wr');
 });
 
 // ============================================================
 // CLEANUP
 // ============================================================
 window.addEventListener('beforeunload', () => {
-    if (intervalId) clearInterval(intervalId);
-    if (tickerId)   clearInterval(tickerId);
+    clearInterval(layer1Id);
+    clearInterval(layer2Id);
+    clearInterval(layer3Id);
+    clearInterval(watchdogId);
+    clearInterval(tickerId);
     try { navigator.vibrate(0); } catch(_) {}
+});
+
+window.addEventListener('blur', () => {
+    log('💤 window blur', 'wr');
+});
+window.addEventListener('focus', () => {
+    log('🎯 window focus', 'ok');
 });
 
 // ============================================================
 // INIT
 // ============================================================
 updateStats();
-updateHint();
-
-log('=== READY ===', 'hi');
-log('Instruksi:', 'i');
-log('1. Geser jari → getaran mulai', 'i');
-log('2. Pindah tab atau tekan home', 'i');
-log('3. Kembali ke halaman ini', 'i');
-log('4. Amati log untuk melihat perilaku', 'i');
-if (typeof navigator.vibrate !== 'function') {
-    log('❌ Vibration API tidak tersedia di browser ini', 'er');
-} else {
+log('=== BRUTAL MODE READY ===', 'hi');
+if (typeof navigator.vibrate === 'function') {
     log('✅ Vibration API tersedia', 'ok');
+    log('Geser jari → getar NON-STOP tanpa jeda', 'i');
+} else {
+    log('❌ Vibration API TIDAK tersedia', 'er');
 }
+log(`Konfigurasi: chunk=${CHUNK}ms · step=5000ms · watchdog=${WATCHDOG}ms`, 'i');
 
 })();
 </script>
