@@ -50,16 +50,8 @@
       border-radius: 10px;
       font-size: 16px;
       cursor: pointer;
-    }
-
-    #closePopup {
       color: white;
       background: #2563eb;
-    }
-
-    #stopBtn {
-      color: white;
-      background: #dc2626;
     }
 
     #status {
@@ -102,8 +94,6 @@
       Lakukan gesture pada halaman untuk menampilkan notifikasi.
     </p>
 
-    <button id="stopBtn">Stop Getaran</button>
-
     <div id="status" role="status" aria-live="polite">
       Status: menunggu gesture
     </div>
@@ -126,13 +116,11 @@
   <script>
     const popup = document.getElementById("popup");
     const closePopup = document.getElementById("closePopup");
-    const stopBtn = document.getElementById("stopBtn");
     const status = document.getElementById("status");
 
     let popupShown = false;
     let vibrationTimer = null;
 
-    // Popup muncul otomatis saat gesture pertama terdeteksi.
     function detectGesture() {
       if (popupShown) return;
 
@@ -145,17 +133,11 @@
       once: true
     });
 
-    document.addEventListener("touchend", detectGesture, {
-      once: true,
-      passive: true
-    });
-
     document.addEventListener("scroll", detectGesture, {
       once: true,
       passive: true
     });
 
-    // Tombol popup memulai pengujian getaran.
     closePopup.addEventListener("click", () => {
       popup.style.display = "none";
 
@@ -178,20 +160,6 @@
       }, 1300);
 
       status.textContent = "Status: getaran aktif";
-    });
-
-    // Tombol Stop tetap aktif.
-    stopBtn.addEventListener("click", () => {
-      if (vibrationTimer !== null) {
-        clearInterval(vibrationTimer);
-        vibrationTimer = null;
-      }
-
-      if (typeof navigator.vibrate === "function") {
-        navigator.vibrate(0);
-      }
-
-      status.textContent = "Status: getaran berhenti";
     });
 
     window.addEventListener("pagehide", () => {
