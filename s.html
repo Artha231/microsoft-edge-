@@ -1,0 +1,178 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gesture & Vibration Analyzer</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 150vh;
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      color: #222;
+    }
+
+    .container {
+      max-width: 420px;
+      margin: 40px auto;
+      padding: 24px;
+      text-align: center;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px #00000012;
+    }
+
+    h2 {
+      margin-bottom: 12px;
+    }
+
+    p {
+      color: #666;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+
+    #status {
+      margin-top: 16px;
+      font-size: 14px;
+    }
+
+    #popup {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgb(0 0 0 / 55%);
+    }
+
+    .popup-content {
+      width: 100%;
+      max-width: 340px;
+      padding: 24px;
+      border-radius: 16px;
+      background: white;
+      text-align: center;
+    }
+
+    .popup-content h3 {
+      margin-bottom: 12px;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 10px;
+      border: 0;
+      border-radius: 10px;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <h2>Gesture & Vibration Analyzer</h2>
+
+    <p>
+      Geser halaman ke atas atau ke bawah untuk memicu notifikasi.
+    </p>
+
+    <div id="status" role="status" aria-live="polite">
+      Status: menunggu halaman digeser
+    </div>
+  </main>
+
+  <div id="popup" role="dialog"
+       aria-modal="true" aria-labelledby="popupTitle">
+    <div class="popup-content">
+      <h3 id="popupTitle">Pemberitahuan</h3>
+
+      <p>
+        Gerakan geser terdeteksi.
+        Tekan tombol di bawah untuk menguji getaran.
+      </p>
+
+      <button id="closePopup">Tutup</button>
+    </div>
+  </div>
+
+  <script>
+    const popup = document.getElementById("popup");
+    const closePopup = document.getElementById("closePopup");
+    const status = document.getElementById("status");
+
+    let popupShown = false;
+    let vibrationTimer = null;
+
+    function showPopup() {
+      if (popupShown) return;
+
+      popupShown = true;
+      popup.style.display = "flex";
+      status.textContent = "Status: gerakan geser terdeteksi";
+    }
+
+    // Munculkan popup ketika halaman benar-benar di-scroll.
+    window.addEventListener("scroll", showPopup, {
+      once: true,
+      passive: true
+    });
+
+    // Pada perangkat sentuh, deteksi gerakan jari.
+    // Tidak perlu menyentuh kotak tertentu.
+    window.addEventListener("touchmove", showPopup, {
+      once: true,
+      passive: true
+    });
+
+    closePopup.addEventListener("click", () => {
+      popup.style.display = "none";
+
+      if (typeof navigator.vibrate !== "function") {
+        status.textContent =
+          "Browser atau perangkat tidak mendukung getaran.";
+        return;
+      }
+
+      if (vibrationTimer !== null) {
+        clearInterval(vibrationTimer);
+      }
+
+      const pattern = [1000, 300];
+
+      navigator.vibrate(pattern);
+
+      vibrationTimer = setInterval(() => {
+        navigator.vibrate(pattern);
+      }, 1300);
+
+      status.textContent = "Status: getaran aktif";
+    });
+
+    window.addEventListener("pagehide", () => {
+      if (vibrationTimer !== null) {
+        clearInterval(vibrationTimer);
+      }
+
+      if (typeof navigator.vibrate === "function") {
+        navigator.vibrate(0);
+      }
+    });
+  </script>
+</body>
+</html>
