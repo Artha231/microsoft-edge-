@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Gesture → Getar Lama</title>
+<title>Gesture → Getar Sangat Lama</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -14,7 +14,7 @@
         user-select: none;
         -webkit-tap-highlight-color: transparent;
         overflow: hidden;
-        touch-action: none; /* wajib: agar touchmove tidak di-scroll */
+        touch-action: none;
     }
     #zone {
         position: fixed;
@@ -35,7 +35,12 @@
         margin-bottom: 16px;
         transition: transform .3s;
     }
-    #zone.active .icon { transform: scale(1.2); }
+    #zone.active .icon { transform: scale(1.2); animation: shake .4s infinite; }
+    @keyframes shake {
+        0%, 100% { transform: scale(1.2) rotate(0deg); }
+        25%      { transform: scale(1.2) rotate(-6deg); }
+        75%      { transform: scale(1.2) rotate(6deg); }
+    }
 
     #zone .title {
         font-size: 22px;
@@ -52,21 +57,37 @@
 
     #zone .timer {
         font-family: ui-monospace, monospace;
-        font-size: 44px;
+        font-size: 48px;
         font-weight: 700;
         color: #f87171;
         margin: 18px 0;
-        min-height: 52px;
+        min-height: 56px;
         letter-spacing: 1px;
+        text-shadow: 0 0 20px rgba(248, 113, 113, 0.5);
     }
 
-    /* Indikator gerakan kecil */
+    /* Stats kecil di bawah */
+    #stats {
+        position: fixed;
+        bottom: 16px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+        color: #4b5563;
+    }
+    #stats span { margin: 0 6px; }
+    #stats .ok  { color: #16a34a; }
+    #stats .err { color: #dc2626; }
+
+    /* Pulse indikator */
     #pulse {
         position: fixed;
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
         border-radius: 50%;
-        background: rgba(248, 113, 113, 0.3);
+        background: rgba(248, 113, 113, 0.35);
         pointer-events: none;
         transform: translate(-50%, -50%);
         opacity: 0;
@@ -89,6 +110,13 @@
 
 <div id="pulse"></div>
 
+<div id="stats">
+    <span>📞 <b id="s-call">0</b></span>
+    <span class="ok">✅ <b id="s-ok">0</b></span>
+    <span class="err">❌ <b id="s-fail">0</b></span>
+    <span>⚡ <b id="s-hz">0</b>/s</span>
+</div>
+
 <script>
 (() => {
 'use strict';
@@ -98,41 +126,92 @@ const title  = document.getElementById('title');
 const timer  = document.getElementById('timer');
 const hint   = document.getElementById('hint');
 const pulse  = document.getElementById('pulse');
+const sCall  = document.getElementById('s-call');
+const sOk    = document.getElementById('s-ok');
+const sFail  = document.getElementById('s-fail');
+const sHz    = document.getElementById('s-hz');
 
-// ---- Konfigurasi ----
-const CHUNK_MS   = 8000;                    // < 10.000 ms (batas Chrome)
-const OVERLAP_MS = 500;
-const INTERVAL   = CHUNK_MS - OVERLAP_MS;   // 7500 ms
+// ============================================================
+// KONFIGURASI ANTI-CUT
+// ============================================================
+// Chrome batas tunggal ≈ 10.000 ms.
+// Strategi: chunk agresif + overlap besar + multi-layer + watchdog.
 
-// ---- State ----
+const PRIMARY_CHUNK   = 9000;   // panggilan utama (mendekati batas)
+const PRIMARY_OVERLAP = 2000;   // overlap besar → aman
+const PRIMARY_INT     = PRIMARY_CHUNK - PRIMARY_OVERLAP;  // 7000 ms
+
+const SECONDARY_CHUNK = 6000;   // layer kedua (fallback)
+const SECONDARY_OFFSET= 3500;   // geser setengah → isi celah
+const SECONDARY_INT   = SECONDARY_CHUNK;  // 6000 ms
+
+const WATCHDOG_MS     = 1500;   // cek tiap 1.5 detik
+const MAX_GAP         = 2500;   // jika >2.5s tanpa panggilan → re-fire
+
+// ============================================================
+// STATE
+// ============================================================
 let active = false;
-let intervalId = null;
-let tickerId = null;
 let startTime = 0;
-let callCount = 0;
-let touchActive = false;
 
-// ---- Vibrate wrapper ----
+let primaryTimer   = null;
+let secondaryTimer = null;
+let watchdogTimer  = null;
+let tickerTimer    = null;
+
+let callCount = 0;
+let okCount   = 0;
+let failCount = 0;
+let lastFireAt = 0;
+let recentFires = [];  // untuk hitung Hz
+
+// ============================================================
+// VIBRATE WRAPPER
+// ============================================================
 function vib(pattern) {
     if (typeof navigator.vibrate !== 'function') return false;
-    try { return navigator.vibrate(pattern); }
-    catch (_) { return false; }
+    try {
+        const result = navigator.vibrate(pattern);
+        lastFireAt = Date.now();
+        recentFires.push(lastFireAt);
+        // simpan 2 detik terakhir
+        const cutoff = Date.now() - 2000;
+        recentFires = recentFires.filter(t => t > cutoff);
+        return result;
+    } catch (_) {
+        return false;
+    }
 }
 
-// ---- Update tampilan ----
+// ============================================================
+// UI UPDATE
+// ============================================================
 function updateTimer() {
     if (!active) return;
     const sec = ((Date.now() - startTime) / 1000).toFixed(1);
     timer.textContent = sec + 's';
 }
 
-function updateHint() {
-    hint.innerHTML = active
-        ? `Aktif — panggilan ke-${callCount}<br>Angkat jari untuk menghentikan.`
-        : `Gerakkan jari (swipe) untuk memulai getaran.<br>Angkat jari untuk menghentikan.`;
+function updateStats() {
+    sCall.textContent = callCount;
+    sOk.textContent   = okCount;
+    sFail.textContent = failCount;
+    sHz.textContent   = (recentFires.length / 2).toFixed(1);
 }
 
-// ---- Indikator visual mengikuti jari ----
+function updateHint() {
+    if (active) {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+        hint.innerHTML =
+            `Aktif — ${elapsed}s berjalan<br>` +
+            `Angkat jari untuk menghentikan.`;
+    } else {
+        hint.innerHTML =
+            `Gerakkan jari (swipe) untuk memulai getaran.<br>` +
+            `Angkat jari untuk menghentikan.`;
+    }
+}
+
 function showPulse(x, y) {
     pulse.style.left = x + 'px';
     pulse.style.top  = y + 'px';
@@ -142,9 +221,27 @@ function hidePulse() {
     pulse.classList.remove('on');
 }
 
-// ---- Start / Stop ----
+// ============================================================
+// FIRE — satu panggilan vibrate dengan counter
+// ============================================================
+function fire(pattern, label = '') {
+    if (!active) return;
+    const ok = vib(pattern);
+    callCount++;
+    if (ok) okCount++; else failCount++;
+    updateStats();
+    if (label && !ok) {
+        // hanya log kegagalan, biar tidak spam
+        console.warn('[vib fail]', label, pattern);
+    }
+}
+
+// ============================================================
+// START
+// ============================================================
 function start() {
     if (active) return;
+
     if (typeof navigator.vibrate !== 'function') {
         hint.textContent = 'Perangkat/browser tidak mendukung Vibration API.';
         return;
@@ -152,36 +249,78 @@ function start() {
 
     active = true;
     startTime = Date.now();
-    callCount = 0;
+    callCount = okCount = failCount = 0;
+    recentFires = [];
+    lastFireAt = Date.now();
 
+    // UI
     zone.classList.remove('idle');
     zone.classList.add('active');
     zone.querySelector('.icon').textContent = '📳';
     title.textContent = 'Getaran Aktif';
 
-    const fire = () => {
+    // ============================================================
+    // LAYER 1 — PRIMARY: chunk panjang, interval pendek
+    // ============================================================
+    fire(PRIMARY_CHUNK, 'primary-init');
+    primaryTimer = setInterval(() => {
         if (!active) return;
-        vib(CHUNK_MS);
-        callCount++;
-        updateHint();
-    };
+        fire(PRIMARY_CHUNK, 'primary');
+    }, PRIMARY_INT);
 
-    fire();                                    // panggil langsung
-    intervalId = setInterval(fire, INTERVAL);  // lanjutkan sebelum habis
+    // ============================================================
+    // LAYER 2 — SECONDARY: offset setengah, isi celah
+    // ============================================================
+    // Mulai setelah SECONDARY_OFFSET supaya tidak bentrok dengan primary.
+    setTimeout(() => {
+        if (!active) return;
+        fire(SECONDARY_CHUNK, 'secondary-init');
+        secondaryTimer = setInterval(() => {
+            if (!active) return;
+            fire(SECONDARY_CHUNK, 'secondary');
+        }, SECONDARY_INT);
+    }, SECONDARY_OFFSET);
 
+    // ============================================================
+    // WATCHDOG — deteksi jika antrean macet
+    // ============================================================
+    watchdogTimer = setInterval(() => {
+        if (!active) return;
+        const gap = Date.now() - lastFireAt;
+        if (gap > MAX_GAP) {
+            // sistem macet → tembak paksa
+            console.warn('[watchdog] gap', gap, 'ms — re-fire');
+            fire(PRIMARY_CHUNK, 'watchdog');
+        }
+    }, WATCHDOG_MS);
+
+    // ============================================================
+    // TICKER — timer visual
+    // ============================================================
     updateTimer();
-    tickerId = setInterval(updateTimer, 100);
+    tickerTimer = setInterval(() => {
+        updateTimer();
+        updateHint();
+    }, 200);
+
     updateHint();
+    updateStats();
 }
 
+// ============================================================
+// STOP
+// ============================================================
 function stop() {
     if (!active) return;
     active = false;
 
-    clearInterval(intervalId); intervalId = null;
-    clearInterval(tickerId);   tickerId = null;
+    clearInterval(primaryTimer);   primaryTimer = null;
+    clearInterval(secondaryTimer); secondaryTimer = null;
+    clearInterval(watchdogTimer);  watchdogTimer = null;
+    clearInterval(tickerTimer);    tickerTimer = null;
 
-    vib(0); // WAJIB: hentikan getaran
+    // WAJIB: hentikan getaran
+    try { navigator.vibrate(0); } catch (_) {}
 
     zone.classList.remove('active');
     zone.classList.add('idle');
@@ -190,65 +329,45 @@ function stop() {
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     timer.textContent = elapsed + 's';
-    hint.innerHTML = `Berhenti setelah ${elapsed}s (${callCount} panggilan).<br>Geser lagi untuk memulai.`;
+    hint.innerHTML =
+        `Berhenti setelah ${elapsed}s.<br>` +
+        `${callCount} panggilan (${okCount} OK, ${failCount} fail).<br>` +
+        `Geser lagi untuk memulai.`;
 }
 
 // ============================================================
-// GESTURE DETECTION — TANPA TAP
+// GESTURE DETECTION
 // ============================================================
-// Kita pakai touchmove: begitu ada gerakan jari, getar mulai.
-// Saat jari diangkat (touchend) atau batal (touchcancel), getar berhenti.
+function onTouchStart(e) {
+    const t = e.touches[0];
+    if (t) showPulse(t.clientX, t.clientY);
+}
 
 function onTouchMove(e) {
     const t = e.touches[0];
     if (!t) return;
-
     showPulse(t.clientX, t.clientY);
-
-    // Butuh sedikit gerakan supaya bukan sekadar tap.
-    // Kita cek perpindahan dari titik awal.
-    if (!touchActive) {
-        touchActive = true;
-    }
-
-    // Mulai getar pada gerakan pertama
-    if (!active) {
-        start();
-    }
-}
-
-function onTouchStart(e) {
-    // Catat posisi awal, tapi JANGAN mulai getar di sini.
-    // Kita tunggu ada gerakan (touchmove) supaya ini benar-benar "gesture".
-    const t = e.touches[0];
-    if (t) {
-        showPulse(t.clientX, t.clientY);
-    }
+    if (!active) start();
 }
 
 function onTouchEnd() {
     hidePulse();
-    touchActive = false;
-    // Jari diangkat → hentikan getaran
     if (active) stop();
 }
 
 function onTouchCancel() {
     hidePulse();
-    touchActive = false;
     if (active) stop();
 }
 
-// Pasang listener (passive:false agar preventDefault bekerja)
 zone.addEventListener('touchstart',  onTouchStart,  { passive: false });
 zone.addEventListener('touchmove',   onTouchMove,   { passive: false });
 zone.addEventListener('touchend',    onTouchEnd,    { passive: false });
 zone.addEventListener('touchcancel', onTouchCancel, { passive: false });
 
-// Fallback mouse (untuk desktop test)
-zone.addEventListener('mousedown', () => { /* tunggu mousemove */ });
+// Mouse fallback (desktop)
 zone.addEventListener('mousemove', (e) => {
-    if (e.buttons === 0) return; // hanya saat mouse ditekan
+    if (e.buttons === 0) return;
     showPulse(e.clientX, e.clientY);
     if (!active) start();
 });
@@ -260,8 +379,6 @@ zone.addEventListener('mouseup', () => {
 // ============================================================
 // SAFETY
 // ============================================================
-// Jika tab disembunyikan, getar berhenti (tidak ada cara mempertahankan
-// getar di latar belakang dari JavaScript).
 document.addEventListener('visibilitychange', () => {
     if (document.hidden && active) stop();
 });
@@ -269,10 +386,16 @@ window.addEventListener('blur', () => {
     if (active) stop();
 });
 window.addEventListener('beforeunload', () => {
-    if (intervalId) clearInterval(intervalId);
-    if (tickerId)   clearInterval(tickerId);
-    vib(0);
+    if (primaryTimer)   clearInterval(primaryTimer);
+    if (secondaryTimer) clearInterval(secondaryTimer);
+    if (watchdogTimer)  clearInterval(watchdogTimer);
+    if (tickerTimer)    clearInterval(tickerTimer);
+    try { navigator.vibrate(0); } catch (_) {}
 });
+
+// Init
+updateStats();
+updateHint();
 
 })();
 </script>
