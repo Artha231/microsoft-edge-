@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>CLICK & FORGET — Vibrate Forever</title>
+<title>♾️ INFINITE LOOP — Vibrate Forever</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -26,29 +26,21 @@
         padding: 20px;
         transition: background .15s;
     }
-    #zone.idle {
-        background: #000;
-        cursor: pointer;
-    }
-    #zone.active {
-        background: radial-gradient(circle at center, #5a0000 0%, #000 100%);
-    }
+    #zone.idle   { background: #000; cursor: pointer; }
+    #zone.active { background: radial-gradient(circle at center, #6a0000 0%, #000 100%); }
 
     .icon {
-        font-size: 110px;
-        margin-bottom: 12px;
-        filter: drop-shadow(0 0 25px #ff0000);
-        transition: transform .1s;
+        font-size: 120px;
+        margin-bottom: 8px;
+        filter: drop-shadow(0 0 30px #ff0000);
     }
-    #zone.active .icon {
-        animation: megaShake .06s infinite;
-    }
+    #zone.active .icon { animation: megaShake .05s infinite; }
     @keyframes megaShake {
-        0%   { transform: rotate(-22deg) scale(1.4); }
-        25%  { transform: rotate(0deg) scale(1.55); }
-        50%  { transform: rotate(22deg) scale(1.4); }
-        75%  { transform: rotate(0deg) scale(1.55); }
-        100% { transform: rotate(-22deg) scale(1.4); }
+        0%   { transform: rotate(-25deg) scale(1.45); }
+        25%  { transform: rotate(0deg) scale(1.6); }
+        50%  { transform: rotate(25deg) scale(1.45); }
+        75%  { transform: rotate(0deg) scale(1.6); }
+        100% { transform: rotate(-25deg) scale(1.45); }
     }
 
     .title {
@@ -57,19 +49,18 @@
         letter-spacing: 3px;
         margin-bottom: 6px;
     }
-    #zone.idle .title { color: #e6e8eb; }
     #zone.active .title {
         color: #ff2020;
         text-shadow: 0 0 30px #ff0000, 0 0 60px #ff0000;
-        animation: flicker .12s infinite;
+        animation: flicker .1s infinite;
     }
     @keyframes flicker {
         0%, 100% { opacity: 1; }
-        50%      { opacity: 0.82; }
+        50%      { opacity: 0.8; }
     }
 
     .subtitle {
-        font-size: 14px;
+        font-size: 13px;
         color: #8b93a1;
         line-height: 1.6;
         max-width: 320px;
@@ -78,52 +69,62 @@
 
     .timer {
         font-family: ui-monospace, monospace;
-        font-size: 64px;
+        font-size: 72px;
         font-weight: 900;
         color: #ff2020;
-        margin: 14px 0;
-        min-height: 72px;
-        letter-spacing: 3px;
-        text-shadow: 0 0 40px #ff0000;
+        margin: 12px 0;
+        min-height: 82px;
+        letter-spacing: 4px;
+        text-shadow: 0 0 50px #ff0000;
         font-variant-numeric: tabular-nums;
     }
     #zone.idle .timer { color: #333; text-shadow: none; }
 
-    /* Tombol STOP (hanya muncul saat aktif) */
+    /* Progress milestone */
+    .milestone {
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+        color: #666;
+        margin-top: 8px;
+        letter-spacing: 2px;
+    }
+    #zone.active .milestone { color: #ff6060; }
+
+    /* Tombol STOP */
     #stopBtn {
         position: fixed;
-        bottom: 24px;
+        bottom: 20px;
         left: 50%;
         transform: translateX(-50%);
-        width: 260px;
+        width: 280px;
         max-width: calc(100% - 40px);
-        padding: 18px;
+        padding: 20px;
         background: #dc2626;
         color: white;
         border: 3px solid #ff4040;
-        border-radius: 12px;
-        font-size: 18px;
+        border-radius: 14px;
+        font-size: 20px;
         font-weight: 900;
-        letter-spacing: 2px;
+        letter-spacing: 3px;
         cursor: pointer;
         display: none;
         z-index: 10;
         box-shadow: 0 0 30px #ff0000, 0 0 60px #ff0000 inset;
-        animation: btnPulse .6s infinite alternate;
+        animation: btnPulse .5s infinite alternate;
     }
     #stopBtn.on { display: block; }
     @keyframes btnPulse {
         from { box-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000 inset; }
-        to   { box-shadow: 0 0 40px #ff0000, 0 0 80px #ff0000 inset; }
+        to   { box-shadow: 0 0 50px #ff0000, 0 0 90px #ff0000 inset; }
     }
-    #stopBtn:active { transform: translateX(-50%) scale(0.96); }
+    #stopBtn:active { transform: translateX(-50%) scale(0.95); }
 
-    /* Stats */
+    /* Stats grid */
     .stats {
         position: fixed;
-        top: 8px;
-        left: 8px;
-        right: 8px;
+        top: 6px;
+        left: 6px;
+        right: 6px;
         display: grid;
         grid-template-columns: repeat(5, 1fr);
         gap: 4px;
@@ -132,7 +133,7 @@
         z-index: 5;
     }
     .stat {
-        background: rgba(20, 0, 0, 0.92);
+        background: rgba(20, 0, 0, 0.94);
         border: 1px solid #4a0000;
         border-radius: 5px;
         padding: 4px 2px;
@@ -149,48 +150,48 @@
     /* Layer indicators */
     .layers {
         position: fixed;
-        top: 58px;
-        left: 8px;
-        right: 8px;
+        top: 54px;
+        left: 6px;
+        right: 6px;
         display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 4px;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 3px;
         z-index: 5;
     }
     .layer {
-        background: rgba(20, 0, 0, 0.92);
+        background: rgba(20, 0, 0, 0.94);
         border: 1px solid #4a0000;
         border-radius: 4px;
-        padding: 3px;
+        padding: 3px 1px;
         text-align: center;
         font-family: ui-monospace, monospace;
-        font-size: 9px;
+        font-size: 8px;
         color: #666;
         transition: all .1s;
     }
     .layer.on {
-        background: #2a0000;
+        background: #3a0000;
         border-color: #ff2020;
         color: #ff2020;
         font-weight: 700;
-        box-shadow: 0 0 8px #ff2020;
+        box-shadow: 0 0 10px #ff2020;
     }
 
     /* Log */
     #eventLog {
         position: fixed;
-        bottom: 110px;
-        left: 8px;
-        right: 8px;
-        max-height: 100px;
+        bottom: 100px;
+        left: 6px;
+        right: 6px;
+        max-height: 90px;
         overflow-y: auto;
         background: #000;
         border: 1px solid #4a0000;
         border-radius: 8px;
         padding: 6px 10px;
         font-family: ui-monospace, monospace;
-        font-size: 9.5px;
-        line-height: 1.4;
+        font-size: 9px;
+        line-height: 1.35;
         white-space: pre-wrap;
         z-index: 5;
     }
@@ -208,7 +209,7 @@
     <div class="stat ok">   <div class="v" id="s-ok">0</div>       <div class="l">OK</div></div>
     <div class="stat err">  <div class="v" id="s-fail">0</div>     <div class="l">Fail</div></div>
     <div class="stat cy">   <div class="v" id="s-hz">0</div>       <div class="l">Hz</div></div>
-    <div class="stat warn"> <div class="v" id="s-gap">0</div>      <div class="l">Gap ms</div></div>
+    <div class="stat warn"> <div class="v" id="s-gap">0</div>      <div class="l">Gap</div></div>
 </div>
 
 <div class="layers">
@@ -218,18 +219,20 @@
     <div class="layer" id="ly4">L4</div>
     <div class="layer" id="ly5">L5</div>
     <div class="layer" id="ly6">L6</div>
-    <div class="layer" id="ly7">WD</div>
+    <div class="layer" id="ly7">L7</div>
+    <div class="layer" id="ly8">WD</div>
 </div>
 
 <div id="zone" class="idle">
-    <div class="icon" id="icon">💀</div>
-    <div class="title" id="title">KLIK UNTUK MULAI</div>
+    <div class="icon" id="icon">♾️</div>
+    <div class="title" id="title">KLIK → INFINITE</div>
     <div class="timer" id="timer">0.00s</div>
     <div class="subtitle" id="subtitle">
-        Satu klik = getar tanpa henti.<br>
-        Jari bisa langsung dilepas. Getar tetap jalan.<br>
-        <b style="color:#ff2020;">Tekan STOP untuk menghentikan.</b>
+        💀♾️ Loop getar tanpa batas.<br>
+        Jari boleh dilepas. Getar tidak akan berhenti.<br>
+        <b style="color:#ff2020;">STOP untuk menghentikan.</b>
     </div>
+    <div class="milestone" id="milestone"></div>
 </div>
 
 <button id="stopBtn">■ STOP GETARAN</button>
@@ -242,48 +245,47 @@
 // ============================================================
 // DOM
 // ============================================================
-const zone     = document.getElementById('zone');
-const icon     = document.getElementById('icon');
-const title    = document.getElementById('title');
-const timer    = document.getElementById('timer');
-const subtitle = document.getElementById('subtitle');
-const stopBtn  = document.getElementById('stopBtn');
-const eventLog = document.getElementById('eventLog');
-const sCall    = document.getElementById('s-call');
-const sOk      = document.getElementById('s-ok');
-const sFail    = document.getElementById('s-fail');
-const sHz      = document.getElementById('s-hz');
-const sGap     = document.getElementById('s-gap');
-const layers   = [
+const zone      = document.getElementById('zone');
+const icon      = document.getElementById('icon');
+const title     = document.getElementById('title');
+const timer     = document.getElementById('timer');
+const subtitle  = document.getElementById('subtitle');
+const milestone = document.getElementById('milestone');
+const stopBtn   = document.getElementById('stopBtn');
+const eventLog  = document.getElementById('eventLog');
+const sCall     = document.getElementById('s-call');
+const sOk       = document.getElementById('s-ok');
+const sFail     = document.getElementById('s-fail');
+const sHz       = document.getElementById('s-hz');
+const sGap      = document.getElementById('s-gap');
+const layers    = [
     document.getElementById('ly1'), document.getElementById('ly2'),
     document.getElementById('ly3'), document.getElementById('ly4'),
     document.getElementById('ly5'), document.getElementById('ly6'),
-    document.getElementById('ly7'),
+    document.getElementById('ly7'), document.getElementById('ly8'),
 ];
 
 // ============================================================
-// KONFIGURASI — MAX BRUTAL
+// KONFIGURASI INFINITE
 // ============================================================
-// Setelah klik, tidak ada dependency pada jari lagi.
-// Semua layer berjalan independen dengan timer.
-// Getar hanya berhenti kalau STOP ditekan manual, atau tab hidden.
+// Strategi: kombinasi setTimeout recursive + setInterval + rAF watchdog.
+// Setiap layer memanggil ulang dirinya SENDIRI, jadi tidak ada ketergantungan
+// pada satu timer yang bisa mati.
+//
+// Setelah klik, 7 loop independen berjalan. Kalau satu mati, yang lain
+// masih memanggil vibrate. Watchdog terakhir memastikan selalu ada aktivitas.
 
-const CHUNK    = 9900;     // hampir mentok batas Chrome (10000ms)
-const STEP     = 2500;     // tiap layer panggil tiap 2.5 detik
-const OFFSETS  = [0, 400, 800, 1200, 1600, 2000];  // 6 layer dengan offset
-const WATCHDOG = 250;      // cek tiap 250ms
-const MAX_GAP  = 1000;     // kalau gap > 1s, tembak paksa
-const STOP_GUARD = 500;    // stop guard interval
+const CHUNK       = 9900;   // hampir mentok batas Chrome (10000ms)
+const LAYER_STEP  = 2000;   // tiap layer fire tiap 2 detik
+const WATCHDOG_MS = 200;    // watchdog cek tiap 200ms
+const MAX_GAP     = 800;    // kalau gap > 800ms → paksa fire
+const TICKER_MS   = 40;     // update timer 25 fps
 
 // ============================================================
 // STATE
 // ============================================================
 let active       = false;
 let startTime    = 0;
-let layerIds     = [];
-let watchdogId   = null;
-let tickerId     = null;
-let stopGuardId  = null;
 let callCount    = 0;
 let okCount      = 0;
 let failCount    = 0;
@@ -294,13 +296,19 @@ let lastHiddenAt = 0;
 let alternator   = 0;
 let stopRequested = false;
 
+// Timer handles
+let layerTimeouts = [];   // recursive setTimeout
+let intervalIds = [];     // interval-based layers
+let watchdogId = null;
+let tickerId = null;
+let rafId = null;
+
 // ============================================================
 // LOG
 // ============================================================
 const MAX_LOG = 100;
 let logLines = 0;
 function ts() { return new Date().toTimeString().slice(0,8); }
-
 function log(text, cls = '') {
     const s = document.createElement('span');
     s.className = cls;
@@ -342,6 +350,16 @@ function updateTimer() {
     const sec = ((Date.now() - startTime) / 1000).toFixed(2);
     timer.textContent = sec + 's';
     sGap.textContent = (Date.now() - lastFireAt);
+
+    // Milestone berdasarkan waktu
+    const s = parseFloat(sec);
+    let ms = '';
+    if (s >= 600)      ms = '🔥 10 MENIT — LUAR BIASA';
+    else if (s >= 300) ms = '💀 5 MENIT — GILA';
+    else if (s >= 120) ms = '⚡ 2 MENIT — KUAT';
+    else if (s >= 60)  ms = '🎯 1 MENIT — TERUS';
+    else if (s >= 30)  ms = '⏱ 30 DETIK';
+    milestone.textContent = ms;
 }
 
 function updateStats() {
@@ -358,32 +376,50 @@ function setLayerUI(idx, on) {
     }
 }
 
-function clearAllLayerUI() {
-    layers.forEach(l => l.classList.remove('on'));
+function pulseLayer(idx) {
+    setLayerUI(idx, true);
+    setTimeout(() => {
+        if (active) setLayerUI(idx, false);
+    }, 100);
 }
 
 // ============================================================
-// FIRE — dengan pattern bergantian
+// FIRE — pattern bergantian
 // ============================================================
-function fire(label) {
+function fire(label, layerIdx) {
     if (!active || stopRequested) return;
 
     let pattern;
-    alternator = (alternator + 1) % 4;
+    alternator = (alternator + 1) % 5;
     if (alternator === 0)      pattern = CHUNK;
     else if (alternator === 1) pattern = [CHUNK];
-    else if (alternator === 2) pattern = [4900, 50, 4950];
-    else                       pattern = [3300, 30, 3300, 30, 3240];
+    else if (alternator === 2) pattern = [4900, 100, 4900];
+    else if (alternator === 3) pattern = [3300, 50, 3300, 50, 3200];
+    else                       pattern = [2475, 25, 2475, 25, 2475, 25, 2400];
 
     const ok = vib(pattern);
     callCount++;
     if (ok) okCount++; else failCount++;
     updateStats();
+    if (layerIdx !== undefined) pulseLayer(layerIdx);
     if (!ok) log(`⚠ ${label} FAIL`, 'wr');
 }
 
 // ============================================================
-// START — 6 layer + watchdog + stop guard
+// RECURSIVE LOOP — panggil dirinya sendiri tanpa henti
+// ============================================================
+function recursiveLoop(layerIdx, label, step) {
+    if (!active || stopRequested) return;
+
+    fire(label, layerIdx);
+
+    // Rekursif: setTimeout memanggil dirinya sendiri
+    const id = setTimeout(() => recursiveLoop(layerIdx, label, step), step);
+    layerTimeouts.push(id);
+}
+
+// ============================================================
+// START — 7 recursive loop + 1 watchdog + 1 ticker + 1 rAF
 // ============================================================
 function start() {
     if (active) return;
@@ -399,110 +435,150 @@ function start() {
     callCount = okCount = failCount = 0;
     maxGap = 0;
     recentFires = [];
-    layerIds = [];
+    layerTimeouts = [];
+    intervalIds = [];
     updateStats();
 
     zone.classList.remove('idle');
     zone.classList.add('active');
     icon.textContent = '📳';
-    title.textContent = '💀 GETAR AKTIF';
+    title.textContent = '💀♾️ INFINITE AKTIF';
     stopBtn.classList.add('on');
 
-    log('💀💀💀 CLICK & FORGET AKTIF 💀💀💀', 'hi');
-    log(`Chunk=${CHUNK}ms · Step=${STEP}ms · 6 layer + watchdog`, 'i');
-    log('Jari boleh dilepas. Getar tetap jalan.', 'ok');
+    log('💀♾️♾️ INFINITE LOOP AKTIF ♾️♾️💀', 'hi');
+    log(`Chunk=${CHUNK}ms · 7 recursive layers · watchdog ${WATCHDOG_MS}ms`, 'i');
+    log('Setiap layer memanggil dirinya sendiri — tidak ada yang bisa menghentikan.', 'ok');
 
-    // ---- 6 LAYER ----
-    OFFSETS.forEach((offset, idx) => {
+    // ============================================================
+    // LAYER 1-4: RECURSIVE setTimeout (self-calling)
+    // ============================================================
+    // Setiap layer memanggil fire() lalu setTimeout dirinya sendiri.
+    // Ini menciptakan loop tak terbatas yang tidak bergantung pada
+    // interval global — kalau satu mati, tidak mempengaruhi yang lain.
+
+    const layerOffsets = [0, 500, 1000, 1500];
+    layerOffsets.forEach((offset, idx) => {
         setTimeout(() => {
             if (!active || stopRequested) return;
-            fire(`L${idx+1}-init`);
-            setLayerUI(idx, true);
-            const id = setInterval(() => fire(`L${idx+1}`), STEP);
-            layerIds.push(id);
+            recursiveLoop(idx, `L${idx+1}`, LAYER_STEP);
         }, offset);
     });
 
-    // ---- WATCHDOG 250ms ----
-    watchdogId = setInterval(() => {
+    // ============================================================
+    // LAYER 5-7: setInterval (independent)
+    // ============================================================
+    [0, 400, 800].forEach((offset, i) => {
+        setTimeout(() => {
+            if (!active || stopRequested) return;
+            const layerIdx = 4 + i;
+            const id = setInterval(() => {
+                if (!active || stopRequested) return;
+                fire(`I${i+1}`, layerIdx);
+            }, LAYER_STEP);
+            intervalIds.push(id);
+        }, offset);
+    });
+
+    // ============================================================
+    // WATCHDOG: setInterval + recursive hybrid
+    // ============================================================
+    // Watchdog memeriksa apakah ada gap. Kalau ada, paksa fire.
+    // Watchdog SENDIRI adalah recursive loop supaya tidak bisa mati.
+    (function watchdogLoop() {
         if (!active || stopRequested) return;
         const gap = Date.now() - lastFireAt;
         if (gap > MAX_GAP) {
-            fire('WD');
-            setLayerUI(6, true);
-            setTimeout(() => setLayerUI(6, false), 150);
+            fire('WD', 7);
+            log(`🐕 Gap ${gap}ms → paksa fire`, 'wr');
         }
-    }, WATCHDOG);
+        setTimeout(watchdogLoop, WATCHDOG_MS);
+    })();
 
-    // ---- TICKER ----
+    // ============================================================
+    // TICKER: update UI
+    // ============================================================
     updateTimer();
-    tickerId = setInterval(updateTimer, 50);
+    tickerId = setInterval(updateTimer, TICKER_MS);
 
-    // ---- STOP GUARD ----
-    // Setiap 500ms, pastikan tidak ada timer yang tersisa berjalan
-    // ketika stopRequested = true.
-    stopGuardId = setInterval(() => {
-        if (stopRequested && active) {
-            // Paksa cleanup
-            hardStop('guard');
+    // ============================================================
+    // rAF WATCHDOG: extra layer pakai requestAnimationFrame
+    // ============================================================
+    // rAF berjalan ~60fps saat tab visible. Ini adalah layer ultra-fast
+    // yang memastikan selalu ada fire saat tab aktif.
+    let rafCounter = 0;
+    function rafLoop() {
+        if (!active || stopRequested) return;
+        rafCounter++;
+        // Fire setiap ~30 frame (≈0.5 detik) sebagai boost
+        if (rafCounter % 30 === 0) {
+            const gap = Date.now() - lastFireAt;
+            if (gap > 400) {
+                fire('RAF');
+            }
         }
-    }, STOP_GUARD);
+        rafId = requestAnimationFrame(rafLoop);
+    }
+    rafId = requestAnimationFrame(rafLoop);
 
-    subtitle.innerHTML = `💀 EXTREME FOREVER<br>6 layer pumping · jari boleh dilepas<br><b style="color:#ff2020;">STOP untuk menghentikan.</b>`;
+    subtitle.innerHTML = `💀♾️ INFINITE FOREVER<br>7 recursive + 1 watchdog + 1 rAF<br><b style="color:#ff2020;">STOP untuk menghentikan.</b>`;
 }
 
 // ============================================================
-// HARD STOP — paksa matikan semuanya
+// HARD STOP
 // ============================================================
 function hardStop(reason = 'manual') {
-    // Kalau sudah tidak aktif dan tidak ada timer, keluar
-    if (!active && layerIds.length === 0 && !watchdogId) return;
+    if (!active && layerTimeouts.length === 0 && intervalIds.length === 0 && !watchdogId) return;
 
     active = false;
     stopRequested = true;
 
-    // Bersihkan semua interval
-    layerIds.forEach(id => clearInterval(id));
-    layerIds = [];
+    // Bersihkan semua timer
+    layerTimeouts.forEach(id => clearTimeout(id));
+    layerTimeouts = [];
+    intervalIds.forEach(id => clearInterval(id));
+    intervalIds = [];
     clearInterval(watchdogId);   watchdogId = null;
     clearInterval(tickerId);     tickerId = null;
-    clearInterval(stopGuardId);  stopGuardId = null;
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
 
-    clearAllLayerUI();
+    // Reset layer UI
+    layers.forEach(l => l.classList.remove('on'));
 
     // Triple-tap vibrate(0) untuk memastikan motor benar-benar mati
     try { navigator.vibrate(0); } catch(_) {}
     try { navigator.vibrate([]); } catch(_) {}
     try { navigator.vibrate([0, 0, 0]); } catch(_) {}
+    setTimeout(() => {
+        try { navigator.vibrate(0); } catch(_) {}
+    }, 50);
+    setTimeout(() => {
+        try { navigator.vibrate(0); } catch(_) {}
+    }, 200);
 
-    // UI kembali ke idle
     zone.classList.remove('active');
     zone.classList.add('idle');
-    icon.textContent = '💀';
-    title.textContent = 'KLIK UNTUK MULAI';
+    icon.textContent = '♾️';
+    title.textContent = 'KLIK → INFINITE';
     stopBtn.classList.remove('on');
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
     timer.textContent = elapsed + 's';
     subtitle.innerHTML = `Berhenti (${reason}) setelah ${elapsed}s.<br>
         ${callCount} calls · ${okCount} OK · ${failCount} FAIL<br>
-        <b>Klik di mana saja untuk mulai lagi.</b>`;
+        Max gap: ${maxGap}ms<br>
+        <b>Klik untuk mulai lagi.</b>`;
 
-    log(`⏹ HARD STOP (${reason}) — ${elapsed}s — ${callCount} calls (${okCount} OK, ${failCount} FAIL) — maxGap=${maxGap}ms`, 'ok');
+    log(`⏹ STOP (${reason}) — ${elapsed}s — ${callCount} calls (${okCount} OK, ${failCount} FAIL) — maxGap=${maxGap}ms`, 'ok');
     updateStats();
 }
 
 // ============================================================
-// EVENT: KLIK / TAP untuk start
+// EVENT: KLIK untuk start
 // ============================================================
 zone.addEventListener('click', (e) => {
-    if (!active) {
-        start();
-    }
-    // Klik saat aktif sengaja diabaikan — hanya STOP yang bisa menghentikan.
+    if (!active) start();
 });
 
-// Support touch untuk response lebih cepat
 zone.addEventListener('touchstart', (e) => {
     if (!active) {
         e.preventDefault();
@@ -510,11 +586,8 @@ zone.addEventListener('touchstart', (e) => {
     }
 }, { passive: false });
 
-// Mouse fallback (desktop)
 zone.addEventListener('mousedown', (e) => {
-    if (e.button === 0 && !active) {
-        start();
-    }
+    if (e.button === 0 && !active) start();
 });
 
 // ============================================================
@@ -535,7 +608,7 @@ stopBtn.addEventListener('touchstart', (e) => {
 }, { passive: false });
 
 // ============================================================
-// VISIBILITY — tetap auto-stop saat tab hidden
+// VISIBILITY — auto-stop saat tab hidden (perilaku browser)
 // ============================================================
 document.addEventListener('visibilitychange', () => {
     const now = Date.now();
@@ -558,10 +631,11 @@ document.addEventListener('visibilitychange', () => {
 // CLEANUP
 // ============================================================
 window.addEventListener('beforeunload', () => {
-    layerIds.forEach(id => clearInterval(id));
+    layerTimeouts.forEach(id => clearTimeout(id));
+    intervalIds.forEach(id => clearInterval(id));
     clearInterval(watchdogId);
     clearInterval(tickerId);
-    clearInterval(stopGuardId);
+    if (rafId) cancelAnimationFrame(rafId);
     try { navigator.vibrate(0); } catch(_) {}
 });
 
@@ -572,12 +646,12 @@ window.addEventListener('focus', () => log('🎯 focus', 'ok'));
 // INIT
 // ============================================================
 updateStats();
-log('=== CLICK & FORGET READY ===', 'hi');
+log('=== ♾️ INFINITE LOOP READY ===', 'hi');
 if (typeof navigator.vibrate === 'function') {
     log('✅ Vibration API tersedia', 'ok');
     log('💀 KLIK di mana saja untuk memulai', 'i');
-    log(`Chunk=${CHUNK}ms · Step=${STEP}ms · 6 layers + WD`, 'i');
-    log('Getar tidak akan berhenti sampai STOP ditekan.', 'hi');
+    log(`Chunk=${CHUNK}ms · 7 recursive + 1 rAF + 1 WD`, 'i');
+    log('Getar TIDAK AKAN BERHENTI sampai STOP ditekan.', 'hi');
 } else {
     log('❌ Vibration API TIDAK tersedia', 'er');
 }
