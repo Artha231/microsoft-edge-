@@ -2,14 +2,14 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>💀 Full Test Suite — SW + Resource Exhaustion</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📡 Service Worker Vibrate — Background Test</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
         height: 100%;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        background: #05070a;
+        background: #0d0f14;
         color: #e6e8eb;
         user-select: none;
         -webkit-tap-highlight-color: transparent;
@@ -21,70 +21,61 @@
         display: flex;
         flex-direction: column;
     }
-
-    /* Header */
     .header {
-        padding: 10px 14px;
+        padding: 12px 16px;
         background: #1a1d24;
         border-bottom: 1px solid #2c313a;
-        flex-shrink: 0;
     }
-    .header h1 { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
-    .header .sub { font-size: 10px; color: #8b93a1; line-height: 1.4; }
+    .header h1 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    .header .sub { font-size: 11px; color: #8b93a1; line-height: 1.5; }
 
-    /* Tab selector */
-    .tabs {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
+    /* Status panel */
+    .status-panel {
+        padding: 12px 16px;
         background: #12151b;
         border-bottom: 1px solid #2c313a;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .status-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-family: ui-monospace, monospace;
+    }
+    .dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: #444;
         flex-shrink: 0;
     }
-    .tab {
-        padding: 12px 8px;
-        text-align: center;
-        font-size: 12px;
-        font-weight: 700;
-        color: #8b93a1;
-        cursor: pointer;
-        border-bottom: 3px solid transparent;
-        transition: all .15s;
-    }
-    .tab.active {
-        color: #e6e8eb;
-        border-bottom-color: #dc2626;
-        background: #1a1d24;
-    }
-
-    /* Panels */
-    .panel {
-        display: none;
-        flex: 1;
-        flex-direction: column;
-        overflow: hidden;
-    }
-    .panel.active { display: flex; }
+    .dot.on  { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
+    .dot.off { background: #dc2626; }
+    .dot.warn { background: #f1c40f; box-shadow: 0 0 8px #f1c40f; }
+    .status-item .lbl { color: #8b93a1; }
+    .status-item .val { color: #e6e8eb; font-weight: 700; }
 
     /* Stats */
     .stats {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 3px;
-        padding: 6px 8px;
+        gap: 4px;
+        padding: 8px 12px;
         background: #12151b;
         border-bottom: 1px solid #2c313a;
-        flex-shrink: 0;
     }
     .stat {
         background: #1a1d24;
         border: 1px solid #2c313a;
-        border-radius: 5px;
-        padding: 5px 3px;
+        border-radius: 6px;
+        padding: 6px 4px;
         text-align: center;
         font-family: ui-monospace, monospace;
     }
-    .stat .v { font-size: 12px; font-weight: 900; line-height: 1.1; }
-    .stat .l { font-size: 7px; color: #8b93a1; text-transform: uppercase; margin-top: 1px; }
+    .stat .v { font-size: 14px; font-weight: 900; line-height: 1.1; }
+    .stat .l { font-size: 8px; color: #8b93a1; text-transform: uppercase; margin-top: 1px; }
     .stat.ok .v { color: #2ecc71; }
     .stat.hi .v { color: #ff2020; }
     .stat.wr .v { color: #f1c40f; }
@@ -92,20 +83,19 @@
 
     /* Buttons */
     .btn-area {
-        padding: 10px;
+        padding: 10px 12px;
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 6px;
         background: #12151b;
         border-bottom: 1px solid #2c313a;
-        flex-shrink: 0;
     }
     button {
         padding: 12px 8px;
         font-size: 12px;
         font-weight: 700;
         border: none;
-        border-radius: 7px;
+        border-radius: 8px;
         cursor: pointer;
         color: white;
         transition: transform .05s;
@@ -113,143 +103,105 @@
     }
     button:active { transform: scale(0.96); }
     button:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-primary { background: #dc2626; grid-column: 1 / -1; padding: 15px; font-size: 14px; }
-    .btn-blue { background: #2563eb; }
-    .btn-purple { background: #7c3aed; }
-    .btn-gray { background: #374151; }
-    .btn-orange { background: #ea580c; }
+    .btn-full { grid-column: 1 / -1; }
+    .btn-reg  { background: #2563eb; }
+    .btn-perm { background: #7c3aed; }
+    .btn-fire { background: #dc2626; }
+    .btn-loop { background: #ea580c; }
+    .btn-stop { background: #374151; }
+    .btn-test { background: #059669; }
 
     /* Log */
-    .log {
+    #log {
         flex: 1;
         overflow-y: auto;
         background: #000;
-        padding: 8px 10px;
+        padding: 10px 12px;
         font-family: ui-monospace, monospace;
-        font-size: 10px;
-        line-height: 1.5;
+        font-size: 10.5px;
+        line-height: 1.55;
         white-space: pre-wrap;
         word-break: break-word;
     }
-    .log .i  { color: #79c0ff; }
-    .log .ok { color: #3fb950; }
-    .log .wr { color: #d29922; }
-    .log .er { color: #f85149; }
-    .log .hi { color: #d2a8ff; font-weight: 700; }
+    #log .i  { color: #79c0ff; }
+    #log .ok { color: #3fb950; }
+    #log .wr { color: #d29922; }
+    #log .er { color: #f85149; }
+    #log .hi { color: #d2a8ff; font-weight: 700; }
 
-    /* Info boxes */
+    /* Info box */
     .info {
-        padding: 8px 12px;
+        padding: 10px 14px;
         background: #1a1d24;
-        border-left: 3px solid #dc2626;
-        font-size: 10px;
-        line-height: 1.5;
+        border-left: 3px solid #f1c40f;
+        font-size: 10.5px;
+        line-height: 1.6;
         color: #8b93a1;
         flex-shrink: 0;
     }
     .info b { color: #e6e8eb; }
-    .info code { background: #000; padding: 1px 3px; border-radius: 2px; color: #f1c40f; }
-
-    /* SW status dot */
-    .dot {
-        display: inline-block;
-        width: 7px; height: 7px;
-        border-radius: 50%;
-        background: #666;
-        margin-right: 4px;
-        vertical-align: middle;
-    }
-    .dot.on { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
-    .dot.off { background: #dc2626; }
+    .info code { background: #000; padding: 1px 4px; border-radius: 3px; color: #f1c40f; }
 </style>
 </head>
 <body>
 
 <div id="app">
     <div class="header">
-        <h1>💀 Full Test Suite</h1>
+        <h1>📡 Service Worker Vibrate Test</h1>
         <div class="sub">
-            Service Worker Bypass + Resource Exhaustion — dua trik yang Anda minta, diuji empiris.
+            Uji apakah getaran bisa dipicu dari Service Worker saat layar mati / tab hidden.
         </div>
     </div>
 
-    <div class="tabs">
-        <div class="tab active" data-tab="sw">📡 Service Worker</div>
-        <div class="tab" data-tab="ex">💥 Resource Exhaust</div>
+    <div class="status-panel">
+        <div class="status-item">
+            <span class="dot" id="dot-sw"></span>
+            <span class="lbl">SW:</span>
+            <span class="val" id="val-sw">—</span>
+        </div>
+        <div class="status-item">
+            <span class="dot" id="dot-perm"></span>
+            <span class="lbl">Izin:</span>
+            <span class="val" id="val-perm">—</span>
+        </div>
+        <div class="status-item">
+            <span class="dot" id="dot-vib"></span>
+            <span class="lbl">Vibrate:</span>
+            <span class="val" id="val-vib">—</span>
+        </div>
+        <div class="status-item">
+            <span class="dot" id="dot-vis"></span>
+            <span class="lbl">Halaman:</span>
+            <span class="val" id="val-vis">—</span>
+        </div>
     </div>
 
-    <!-- ============================================================ -->
-    <!-- PANEL 1: SERVICE WORKER -->
-    <!-- ============================================================ -->
-    <div class="panel active" id="panel-sw">
-        <div class="info">
-            <b>Tujuan:</b> Memicu getaran via Service Worker + Notification API.<br>
-            <b>Realita:</b> SW bisa memicu notifikasi yang bergetar di latar belakang, tapi:
-            <code>vibrate</code> di notifikasi <b>terdepresiasi di Android O+</b>.
-            Getaran hanya berlangsung ~200-500ms per notifikasi, tidak bisa loop.
-        </div>
-
-        <div class="stats">
-            <div class="stat hi"> <div class="v" id="sw-notif">0</div>  <div class="l">Notif</div></div>
-            <div class="stat ok"> <div class="v" id="sw-ok">0</div>      <div class="l">OK</div></div>
-            <div class="stat wr"> <div class="v" id="sw-err">0</div>     <div class="l">Fail</div></div>
-            <div class="stat cy"> <div class="v" id="sw-state">—</div>   <div class="l">SW</div></div>
-        </div>
-
-        <div class="btn-area">
-            <button class="btn-primary" id="sw-register">📡 REGISTER SERVICE WORKER</button>
-            <button class="btn-blue" id="sw-permission" disabled>🔔 MINTA IZIN NOTIFIKASI</button>
-            <button class="btn-purple" id="sw-fire-once" disabled>💥 FIRE 1 NOTIFIKASI</button>
-            <button class="btn-orange" id="sw-fire-loop" disabled>🔁 LOOP 20 NOTIFIKASI</button>
-            <button class="btn-gray" id="sw-stop" disabled>■ STOP</button>
-            <button class="btn-gray" id="sw-clear">🗑 CLEAR LOG</button>
-        </div>
-
-        <div class="log" id="sw-log">Belum dijalankan. Tekan REGISTER SERVICE WORKER.
-
-Catatan teknis:
-- Service Worker harus di HTTPS atau localhost
-- Notifikasi butuh izin pengguna (tidak bisa auto)
-- vibrate di showNotification() diabaikan di Android O+
-- Loop cepat bisa kena rate limit Chrome</div>
+    <div class="stats">
+        <div class="stat hi"> <div class="v" id="s-sent">0</div>     <div class="l">Terkirim</div></div>
+        <div class="stat ok"> <div class="v" id="s-shown">0</div>    <div class="l">Ditampilkan</div></div>
+        <div class="stat wr"> <div class="v" id="s-fail">0</div>     <div class="l">Gagal</div></div>
+        <div class="stat cy"> <div class="v" id="s-hidden">0</div>   <div class="l">Saat Hidden</div></div>
     </div>
 
-    <!-- ============================================================ -->
-    <!-- PANEL 2: RESOURCE EXHAUSTION -->
-    <!-- ============================================================ -->
-    <div class="panel" id="panel-ex">
-        <div class="info">
-            <b>Tujuan:</b> Membanjiri main thread dengan update berlebihan (Brash-style).<br>
-            <b>Realita:</b> Browser akan <b>freeze lalu crash</b>. Getaran berhenti total.
-            Ini <b>DoSing diri sendiri</b>, bukan bypass getaran.
-            <b>JANGAN dijalankan lama</b> — tab akan crash.
-        </div>
-
-        <div class="stats">
-            <div class="stat hi"> <div class="v" id="ex-ops">0</div>      <div class="l">Ops</div></div>
-            <div class="stat ok"> <div class="v" id="ex-fps">0</div>      <div class="l">FPS</div></div>
-            <div class="stat wr"> <div class="v" id="ex-lag">0</div>      <div class="l">Lag ms</div></div>
-            <div class="stat cy"> <div class="v" id="ex-mem">0</div>      <div class="l">MB</div></div>
-        </div>
-
-        <div class="btn-area">
-            <button class="btn-primary" id="ex-start">💥 MULAI RESOURCE EXHAUSTION</button>
-            <button class="btn-blue" id="ex-soft">⚡ SOFT FLOOD (1000 ops/frame)</button>
-            <button class="btn-orange" id="ex-hard">🔥 HARD FLOOD (Brash-style)</button>
-            <button class="btn-purple" id="ex-memory">💾 MEMORY FLOOD (100MB)</button>
-            <button class="btn-gray" id="ex-stop" disabled>■ STOP</button>
-            <button class="btn-gray" id="ex-clear">🗑 CLEAR LOG</button>
-        </div>
-
-        <div class="log" id="ex-log">Belum dijalankan. Pilih metode flood.
-
-Metode:
-- SOFT: 1000 ops per frame — UI lag tapi belum crash
-- HARD: Brash-style title flood — crash dalam 15-30 detik
-- MEMORY: alokasi 100MB — OOM, tab di-kill
-
-⚠️ HARD dan MEMORY bisa membuat tab crash tanpa peringatan.</div>
+    <div class="btn-area">
+        <button class="btn-reg btn-full" id="btn-register">1️⃣ DAFTARKAN SERVICE WORKER</button>
+        <button class="btn-perm" id="btn-permission" disabled>2️⃣ MINTA IZIN</button>
+        <button class="btn-test" id="btn-test" disabled>🧪 TEST 1 GETAR</button>
+        <button class="btn-fire" id="btn-fire" disabled>💥 FIRE 1 NOTIF</button>
+        <button class="btn-loop" id="btn-loop" disabled>🔁 LOOP 30 NOTIF</button>
+        <button class="btn-stop" id="btn-stop" disabled>■ STOP</button>
     </div>
+
+    <div id="log">Memuat...
+</div>
+
+<div class="info">
+    <b>Cara kerja:</b> Service Worker menampilkan notifikasi via <code>showNotification()</code>
+    dengan properti <code>vibrate</code>. Notifikasi ini muncul di tray sistem — bahkan saat
+    browser di background atau layar mati.<br><br>
+    <b>Yang diuji:</b> Apakah properti <code>vibrate</code> benar-benar memicu getar fisik
+    saat notifikasi muncul di background. Di Android modern, properti ini <b>sering diabaikan</b>
+    karena Notification Channels.
 </div>
 
 <script>
@@ -257,531 +209,482 @@ Metode:
 'use strict';
 
 // ============================================================
-// UTIL LOG
+// DOM
 // ============================================================
-function makeLogger(elId) {
-    const el = document.getElementById(elId);
-    const MAX = 200;
-    return {
-        write(text, cls = '') {
-            const span = document.createElement('span');
-            span.className = cls;
-            span.textContent = text + '\n';
-            el.appendChild(span);
-            while (el.children.length > MAX) el.removeChild(el.firstChild);
-            el.scrollTop = el.scrollHeight;
-        },
-        clear() { el.textContent = ''; }
-    };
-}
-const swLog = makeLogger('sw-log');
-const exLog = makeLogger('ex-log');
+const $ = id => document.getElementById(id);
+const logEl        = $('log');
+const dotSw        = $('dot-sw');
+const dotPerm      = $('dot-perm');
+const dotVib       = $('dot-vib');
+const dotVis       = $('dot-vis');
+const valSw        = $('val-sw');
+const valPerm      = $('val-perm');
+const valVib       = $('val-vib');
+const valVis       = $('val-vis');
+const sSent        = $('s-sent');
+const sShown       = $('s-shown');
+const sFail        = $('s-fail');
+const sHidden      = $('s-hidden');
+const btnRegister  = $('btn-register');
+const btnPermission= $('btn-permission');
+const btnTest      = $('btn-test');
+const btnFire      = $('btn-fire');
+const btnLoop      = $('btn-loop');
+const btnStop      = $('btn-stop');
 
 // ============================================================
-// TAB SWITCHER
+// STATE
 // ============================================================
-document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
-    });
-});
-
-// ============================================================
-// HELPER: vibrate wrapper
-// ============================================================
-function vib(pattern) {
-    if (typeof navigator.vibrate !== 'function') return false;
-    try { return navigator.vibrate(pattern); }
-    catch (_) { return false; }
-}
-
-// ============================================================
-// ============================================================
-// BAGIAN 1: SERVICE WORKER
-// ============================================================
-// ============================================================
-const swState = {
+const state = {
     registration: null,
-    active: false,
-    notifCount: 0,
-    okCount: 0,
-    errCount: 0,
+    permission: 'default',
+    sent: 0,
+    shown: 0,
+    fail: 0,
+    hiddenFires: 0,
     loopTimer: null,
-    intervalMs: 1500
+    loopCount: 0,
+    loopMax: 30
 };
 
-const swNotif = document.getElementById('sw-notif');
-const swOk    = document.getElementById('sw-ok');
-const swErr   = document.getElementById('sw-err');
-const swStateEl = document.getElementById('sw-state');
-const swRegisterBtn = document.getElementById('sw-register');
-const swPermissionBtn = document.getElementById('sw-permission');
-const swFireOnceBtn = document.getElementById('sw-fire-once');
-const swFireLoopBtn = document.getElementById('sw-fire-loop');
-const swStopBtn = document.getElementById('sw-stop');
-const swClearBtn = document.getElementById('sw-clear');
-
-function updateSWStats() {
-    swNotif.textContent = swState.notifCount;
-    swOk.textContent = swState.okCount;
-    swErr.textContent = swState.errCount;
-    swStateEl.textContent = swState.active ? 'ON' : '—';
+// ============================================================
+// LOGGER
+// ============================================================
+const MAX_LOG = 250;
+function log(text, cls = '') {
+    const span = document.createElement('span');
+    span.className = cls;
+    span.textContent = text + '\n';
+    logEl.appendChild(span);
+    while (logEl.children.length > MAX_LOG) {
+        logEl.removeChild(logEl.firstChild);
+    }
+    logEl.scrollTop = logEl.scrollHeight;
 }
 
-// Service Worker source code (inline via Blob)
+// ============================================================
+// UI HELPERS
+// ============================================================
+function setDot(el, cls) {
+    el.className = 'dot ' + cls;
+}
+
+function refreshStatus() {
+    // SW status
+    if (state.registration) {
+        setDot(dotSw, 'on');
+        valSw.textContent = 'aktif';
+    } else {
+        setDot(dotSw, 'off');
+        valSw.textContent = 'belum';
+    }
+
+    // Permission
+    if (state.permission === 'granted') {
+        setDot(dotPerm, 'on');
+        valPerm.textContent = 'granted';
+    } else if (state.permission === 'denied') {
+        setDot(dotPerm, 'off');
+        valPerm.textContent = 'denied';
+    } else {
+        setDot(dotPerm, 'warn');
+        valPerm.textContent = 'default';
+    }
+
+    // Vibrate API
+    if (typeof navigator.vibrate === 'function') {
+        setDot(dotVib, 'on');
+        valVib.textContent = 'tersedia';
+    } else {
+        setDot(dotVib, 'off');
+        valVib.textContent = 'tidak ada';
+    }
+
+    // Visibility
+    if (document.hidden) {
+        setDot(dotVis, 'warn');
+        valVis.textContent = 'hidden';
+    } else {
+        setDot(dotVis, 'on');
+        valVis.textContent = 'visible';
+    }
+
+    // Stats
+    sSent.textContent = state.sent;
+    sShown.textContent = state.shown;
+    sFail.textContent = state.fail;
+    sHidden.textContent = state.hiddenFires;
+}
+
+// ============================================================
+// SERVICE WORKER SOURCE (inline via Blob URL)
+// ============================================================
+// SW ini menerima pesan dari halaman utama, lalu menampilkan
+// notifikasi dengan properti `vibrate`. Notifikasi ini akan
+// muncul di tray sistem — bahkan saat browser di background.
+//
+// CATATAN PENTING: SW juga bisa memanggil navigator.vibrate()
+// langsung, tapi biasanya TIDAK berfungsi karena:
+// 1. SW tidak punya akses ke `navigator` di semua browser
+// 2. Chrome memblokir vibrate() dari SW karena bukan user gesture
+// 3. Notifikasi adalah satu-satunya cara yang "resmi"
+
 const SW_SOURCE = `
-    self.addEventListener('install', (e) => {
-        self.skipWaiting();
-    });
-    self.addEventListener('activate', (e) => {
-        e.waitUntil(self.clients.claim());
-    });
-    self.addEventListener('message', (e) => {
-        const data = e.data || {};
-        if (data.cmd === 'notify') {
-            const pattern = data.vibrate || [300, 100, 300, 100, 300];
-            self.registration.showNotification(data.title || 'Test Notif', {
-                body: data.body || 'Vibrate test ' + Date.now(),
-                tag: 'vibtest-' + Date.now(),
-                vibrate: pattern,
-                silent: true,
-                requireInteraction: false,
-                renotify: false
-            }).then(() => {
-                if (e.source) e.source.postMessage({ cmd: 'notified', ok: true });
-            }).catch(err => {
-                if (e.source) e.source.postMessage({ cmd: 'notified', ok: false, err: err.message });
-            });
+'use strict';
+
+self.addEventListener('install', (event) => {
+    console.log('[SW] install');
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+    console.log('[SW] activate');
+    event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('message', (event) => {
+    const data = event.data || {};
+    const clientSource = event.source;
+
+    if (data.cmd === 'notify') {
+        const pattern = data.vibrate || [400, 200, 400, 200, 400];
+        const title = data.title || 'Test Vibrate';
+        const body = data.body || ('Notif #' + Date.now());
+        const tag = 'vib-' + Date.now();
+
+        // Coba panggil navigator.vibrate langsung dari SW
+        // (kemungkinan besar GAGAL karena SW tidak punya akses)
+        let directVibrateOk = false;
+        try {
+            if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+                directVibrateOk = navigator.vibrate(pattern);
+            }
+        } catch (e) {
+            directVibrateOk = false;
         }
-        if (data.cmd === 'notify-via-vibrate') {
-            // Coba alternate: panggil vibrate di SW (biasanya tidak jalan)
-            let ok = false;
-            try { ok = navigator.vibrate && navigator.vibrate([300, 100, 300]); } catch(_) {}
-            self.registration.showNotification('SW Vibrate Test', {
-                body: 'navigator.vibrate in SW returned: ' + ok,
-                tag: 'sw-vib-' + Date.now()
+
+        // Tampilkan notifikasi (cara utama)
+        self.registration.showNotification(title, {
+            body: body,
+            tag: tag,
+            vibrate: pattern,
+            silent: false,
+            requireInteraction: false,
+            renotify: false,
+            data: {
+                timestamp: Date.now(),
+                directVibrate: directVibrateOk
+            }
+        }).then(() => {
+            // Kirim balik status ke halaman
+            if (clientSource) {
+                clientSource.postMessage({
+                    cmd: 'notified',
+                    ok: true,
+                    directVibrateOk: directVibrateOk,
+                    timestamp: Date.now()
+                });
+            }
+            // Broadcast ke semua client
+            self.clients.matchAll().then(clients => {
+                clients.forEach(c => {
+                    c.postMessage({
+                        cmd: 'notified-broadcast',
+                        directVibrateOk: directVibrateOk,
+                        timestamp: Date.now()
+                    });
+                });
             });
-        }
-    });
+        }).catch(err => {
+            if (clientSource) {
+                clientSource.postMessage({
+                    cmd: 'notified',
+                    ok: false,
+                    error: err.message
+                });
+            }
+        });
+    }
+});
+
+// Saat notifikasi diklik
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window' }).then(clients => {
+            if (clients.length > 0) {
+                return clients[0].focus();
+            }
+            return self.clients.openWindow('/');
+        })
+    );
+});
+
+// Log jika SW di-terminate
+self.addEventListener('error', (e) => {
+    console.error('[SW] error', e.message);
+});
 `;
 
+// ============================================================
+// REGISTER SW
+// ============================================================
 async function registerSW() {
+    log('▶ Mendaftarkan Service Worker...', 'hi');
+
     if (!('serviceWorker' in navigator)) {
-        swLog.write('❌ Service Worker tidak didukung', 'er');
+        log('❌ Service Worker tidak didukung di browser ini', 'er');
         return;
     }
     if (!('Notification' in window)) {
-        swLog.write('❌ Notification API tidak didukung', 'er');
-        return;
-    }
-    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-        swLog.write('❌ Service Worker butuh HTTPS atau localhost', 'er');
-        swLog.write('   Protocol saat ini: ' + location.protocol, 'wr');
-        swLog.write('   Hostname: ' + location.hostname, 'wr');
-        swLog.write('', '');
-        swLog.write('ℹ Info: GitHub Pages sudah HTTPS, jadi seharusnya OK.', 'i');
+        log('❌ Notification API tidak didukung', 'er');
         return;
     }
 
-    swLog.write('▶ Registering Service Worker...', 'hi');
+    // Cek secure context
+    if (!window.isSecureContext) {
+        log('❌ Halaman bukan secure context', 'er');
+        log('   Service Worker butuh HTTPS atau localhost', 'wr');
+        log('   Protocol saat ini: ' + location.protocol, 'i');
+        return;
+    }
+
+    log('   Protocol: ' + location.protocol + ' // host: ' + location.hostname, 'i');
+    log('   Secure context: ' + (window.isSecureContext ? 'YA' : 'TIDAK'), 'ok');
+
     try {
         const blob = new Blob([SW_SOURCE], { type: 'application/javascript' });
-        const url = URL.createObjectURL(blob);
-        const reg = await navigator.serviceWorker.register(url);
-        swState.registration = reg;
-        swState.active = true;
-        await navigator.serviceWorker.ready;
+        const swUrl = URL.createObjectURL(blob);
+        const registration = await navigator.serviceWorker.register(swUrl);
+        state.registration = registration;
 
-        swLog.write('✅ Service Worker registered & ready', 'ok');
-        swLog.write('   Scope: ' + reg.scope, 'i');
+        log('✅ Service Worker terdaftar', 'ok');
+        log('   Scope: ' + registration.scope, 'i');
 
-        swRegisterBtn.disabled = true;
-        swPermissionBtn.disabled = false;
-        updateSWStats();
+        // Tunggu sampai SW benar-benar aktif
+        const activeReg = await navigator.serviceWorker.ready;
+        log('✅ Service Worker siap & aktif', 'ok');
+        log('   Controller: ' + (navigator.serviceWorker.controller ? 'ada' : 'belum (perlu reload)'), 'i');
 
-        // Listen for messages from SW
-        navigator.serviceWorker.addEventListener('message', (e) => {
-            const d = e.data || {};
-            if (d.cmd === 'notified') {
-                if (d.ok) {
-                    swState.okCount++;
-                    swLog.write('✅ Notifikasi ditampilkan (ok)', 'ok');
+        btnRegister.disabled = true;
+        btnPermission.disabled = false;
+        refreshStatus();
+
+        // Listen untuk pesan dari SW
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            const data = event.data || {};
+            if (data.cmd === 'notified') {
+                if (data.ok) {
+                    state.shown++;
+                    log('✅ Notif ditampilkan oleh SW', 'ok');
+                    if (data.directVibrateOk) {
+                        log('   🎉 SW navigator.vibrate() = TRUE — getar dari SW BERHASIL', 'ok');
+                    } else {
+                        log('   ⚠ SW navigator.vibrate() = FALSE — tidak didukung di SW', 'wr');
+                    }
+                    if (document.hidden) {
+                        state.hiddenFires++;
+                        log('   🌙 Ini terjadi saat HIDDEN!', 'hi');
+                    }
                 } else {
-                    swState.errCount++;
-                    swLog.write('❌ SW gagal tampilkan notif: ' + d.err, 'er');
+                    state.fail++;
+                    log('❌ SW gagal tampilkan notif: ' + data.error, 'er');
                 }
-                updateSWStats();
+                refreshStatus();
+            } else if (data.cmd === 'notified-broadcast') {
+                log('   [broadcast] SW notified, directVibrate=' + data.directVibrateOk, 'i');
             }
         });
 
     } catch (err) {
-        swLog.write('❌ Register gagal: ' + err.message, 'er');
-        swState.active = false;
-        updateSWStats();
+        log('❌ Register SW gagal: ' + err.message, 'er');
+        log('   Stack: ' + (err.stack || '').slice(0, 200), 'wr');
     }
 }
 
-async function requestNotificationPermission() {
-    swLog.write('▶ Meminta izin notifikasi...', 'hi');
-    try {
-        const perm = await Notification.requestPermission();
-        swLog.write('   Hasil: ' + perm, perm === 'granted' ? 'ok' : 'wr');
-        if (perm === 'granted') {
-            swPermissionBtn.disabled = true;
-            swFireOnceBtn.disabled = false;
-            swFireLoopBtn.disabled = false;
-            swStopBtn.disabled = false;
-        } else {
-            swLog.write('   ⚠ Izin ditolak — tidak bisa lanjut', 'er');
-        }
-    } catch (err) {
-        swLog.write('❌ Gagal minta izin: ' + err.message, 'er');
-    }
-}
+// ============================================================
+// REQUEST NOTIFICATION PERMISSION
+// ============================================================
+async function requestPermission() {
+    log('▶ Meminta izin notifikasi...', 'hi');
 
-function sendSWNotify(vibratePattern) {
-    if (!navigator.serviceWorker.controller) {
-        swLog.write('⚠ Tidak ada SW controller — reload halaman', 'wr');
+    if (!('Notification' in window)) {
+        log('❌ Notification API tidak didukung', 'er');
         return;
     }
+
+    try {
+        const permission = await Notification.requestPermission();
+        state.permission = permission;
+        log('   Hasil: ' + permission, permission === 'granted' ? 'ok' : 'wr');
+
+        if (permission === 'granted') {
+            btnPermission.disabled = true;
+            btnTest.disabled = false;
+            btnFire.disabled = false;
+            btnLoop.disabled = false;
+            btnStop.disabled = false;
+            log('✅ Siap. Tekan TEST 1 GETAR untuk menguji.', 'ok');
+        } else if (permission === 'denied') {
+            log('❌ Izin ditolak. Tidak bisa lanjut.', 'er');
+            log('   Buka Settings → Site settings → Notifications untuk reset', 'wr');
+        } else {
+            log('⚠ Izin belum ditentukan', 'wr');
+        }
+        refreshStatus();
+    } catch (err) {
+        log('❌ Gagal minta izin: ' + err.message, 'er');
+    }
+}
+
+// ============================================================
+// KIRIM PESAN KE SW
+// ============================================================
+function sendToSW(pattern, label) {
+    if (!navigator.serviceWorker.controller) {
+        log('❌ Tidak ada SW controller — reload halaman', 'er');
+        return;
+    }
+
+    state.sent++;
+    log(`📤 [${label}] Kirim ke SW — vibrate=[${pattern.join(', ')}]`, 'i');
+    if (document.hidden) {
+        log('   🌙 (halaman sedang HIDDEN)', 'wr');
+    }
+
     navigator.serviceWorker.controller.postMessage({
         cmd: 'notify',
-        title: '💀 Vibrate Test',
-        body: 'Notif #' + (swState.notifCount + 1) + ' — ' + new Date().toLocaleTimeString(),
-        vibrate: vibratePattern || [300, 100, 300, 100, 300]
+        title: '📡 Vibrate Test',
+        body: `${label} — notif #${state.sent} — ${new Date().toLocaleTimeString()}`,
+        vibrate: pattern
     });
-    swState.notifCount++;
-    updateSWStats();
+    refreshStatus();
 }
 
-function swFireOnce() {
-    swLog.write('💥 Mengirim 1 notifikasi via SW...', 'hi');
-    swLog.write('   Pattern vibrate: [300, 100, 300, 100, 300]', 'i');
-    sendSWNotify([300, 100, 300, 100, 300]);
+// ============================================================
+// TEST / FIRE / LOOP
+// ============================================================
+function testSingle() {
+    log('🧪 TEST 1 GETAR — pattern pendek [400, 200, 400]', 'hi');
+    sendToSW([400, 200, 400], 'test');
 }
 
-function swFireLoop() {
-    if (swState.loopTimer) {
-        swLog.write('⚠ Loop sudah berjalan', 'wr');
+function fireSingle() {
+    log('💥 FIRE 1 NOTIF — pattern panjang [500, 200, 500, 200, 500]', 'hi');
+    sendToSW([500, 200, 500, 200, 500], 'fire');
+}
+
+function startLoop() {
+    if (state.loopTimer) {
+        log('⚠ Loop sudah berjalan', 'wr');
         return;
     }
-    swLog.write('🔁 Memulai loop 20 notifikasi (interval ' + swState.intervalMs + 'ms)...', 'hi');
-    swLog.write('   ⚠ SW akan menembak notif berulang', 'wr');
 
-    let count = 0;
-    swState.loopTimer = setInterval(() => {
-        count++;
-        if (count > 20) {
-            swLog.write('⏹ Loop selesai (20 notif terkirim)', 'ok');
-            clearInterval(swState.loopTimer);
-            swState.loopTimer = null;
+    state.loopCount = 0;
+    log(`🔁 Memulai loop ${state.loopMax} notifikasi (interval 1.5 detik)`, 'hi');
+    log('   📌 Sekarang Anda bisa pindah tab / matikan layar', 'wr');
+    log('   📌 Notifikasi akan terus muncul di tray', 'wr');
+    log('   📌 Amati apakah HP bergetar setiap notif muncul', 'wr');
+    log('', '');
+
+    btnLoop.disabled = true;
+    btnStop.disabled = false;
+
+    state.loopTimer = setInterval(() => {
+        state.loopCount++;
+        if (state.loopCount > state.loopMax) {
+            log(`⏹ Loop selesai (${state.loopMax} notif terkirim)`, 'ok');
+            stopLoop();
             return;
         }
-        swLog.write(`   [${count}/20] fire...`, 'i');
-        sendSWNotify([300, 100, 300, 100, 300]);
-    }, swState.intervalMs);
+        sendToSW(
+            [500, 200, 500, 200, 500],
+            `loop ${state.loopCount}/${state.loopMax}`
+        );
+    }, 1500);
 }
 
-function swStop() {
-    if (swState.loopTimer) {
-        clearInterval(swState.loopTimer);
-        swState.loopTimer = null;
-        swLog.write('⏹ Loop dihentikan manual', 'wr');
+function stopLoop() {
+    if (state.loopTimer) {
+        clearInterval(state.loopTimer);
+        state.loopTimer = null;
     }
-    // Close all notifications
-    if (swState.registration) {
-        swState.registration.getNotifications().then(notifs => {
+
+    btnLoop.disabled = false;
+    btnStop.disabled = true;
+
+    // Tutup semua notifikasi
+    if (state.registration) {
+        state.registration.getNotifications().then(notifs => {
             notifs.forEach(n => n.close());
-            swLog.write(`   Closed ${notifs.length} notifications`, 'i');
-        });
+            log(`🧹 Menutup ${notifs.length} notifikasi`, 'i');
+        }).catch(() => {});
     }
 }
 
-swRegisterBtn.addEventListener('click', registerSW);
-swPermissionBtn.addEventListener('click', requestNotificationPermission);
-swFireOnceBtn.addEventListener('click', swFireOnce);
-swFireLoopBtn.addEventListener('click', swFireLoop);
-swStopBtn.addEventListener('click', swStop);
-swClearBtn.addEventListener('click', () => swLog.clear());
-
-updateSWStats();
-
 // ============================================================
+// VISIBILITY DETECTION
 // ============================================================
-// BAGIAN 2: RESOURCE EXHAUSTION
-// ============================================================
-// ============================================================
-const exState = {
-    running: false,
-    mode: null,
-    ops: 0,
-    startTime: 0,
-    rafId: null,
-    softTimer: null,
-    hardInterval: null,
-    memoryHold: [],
-    memoryInterval: null,
-    lastFrameTime: 0,
-    frameCount: 0,
-    fps: 0,
-    fpsTimer: null,
-    maxLag: 0
-};
-
-const exOps = document.getElementById('ex-ops');
-const exFps = document.getElementById('ex-fps');
-const exLag = document.getElementById('ex-lag');
-const exMem = document.getElementById('ex-mem');
-const exStartBtn = document.getElementById('ex-start');
-const exSoftBtn = document.getElementById('ex-soft');
-const exHardBtn = document.getElementById('ex-hard');
-const exMemoryBtn = document.getElementById('ex-memory');
-const exStopBtn = document.getElementById('ex-stop');
-const exClearBtn = document.getElementById('ex-clear');
-
-function updateExStats() {
-    exOps.textContent = exState.ops.toLocaleString();
-    exFps.textContent = exState.fps;
-    const lag = exState.lastFrameTime ? Math.round(performance.now() - exState.lastFrameTime) : 0;
-    exLag.textContent = Math.min(lag, 9999);
-    // Memory
-    if (performance.memory) {
-        exMem.textContent = Math.round(performance.memory.usedJSHeapSize / 1048576);
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        log('', '');
+        log('═══════════════════════════════════', 'hi');
+        log('👁 HALAMAN → HIDDEN', 'hi');
+        log('   Waktu: ' + new Date().toLocaleTimeString(), 'i');
+        log('   Notifikasi berikutnya akan muncul di background', 'wr');
+        log('   Amati apakah HP bergetar saat notif muncul', 'wr');
+        log('═══════════════════════════════════', 'hi');
     } else {
-        exMem.textContent = 'n/a';
+        log('', '');
+        log('═══════════════════════════════════', 'hi');
+        log('👁 HALAMAN → VISIBLE kembali', 'hi');
+        log(`   Total hidden fires: ${state.hiddenFires}`, 'i');
+        log('═══════════════════════════════════', 'hi');
     }
-}
-
-function exStartFpsCounter() {
-    exState.lastFrameTime = performance.now();
-    exState.frameCount = 0;
-    exState.fpsTimer = setInterval(() => {
-        exState.fps = exState.frameCount;
-        exState.frameCount = 0;
-        updateExStats();
-    }, 1000);
-}
-
-function exStartCommon() {
-    exState.running = true;
-    exState.startTime = Date.now();
-    exState.ops = 0;
-    exState.maxLag = 0;
-
-    exStartBtn.disabled = true;
-    exSoftBtn.disabled = true;
-    exHardBtn.disabled = true;
-    exMemoryBtn.disabled = true;
-    exStopBtn.disabled = false;
-
-    exStartFpsCounter();
-
-    // rAF loop untuk hitung FPS + update UI
-    const loop = () => {
-        if (!exState.running) return;
-        exState.frameCount++;
-        updateExStats();
-        exState.rafId = requestAnimationFrame(loop);
-    };
-    exState.rafId = requestAnimationFrame(loop);
-
-    // Event loop lag check
-    const lagCheck = setInterval(() => {
-        if (!exState.running) return;
-        const now = performance.now();
-        const lag = now - exState.lastFrameTime;
-        if (lag > exState.maxLag) exState.maxLag = lag;
-    }, 100);
-    exState.softTimer = lagCheck; // reuse slot
-}
-
-// === SOFT FLOOD ===
-// 1000 operasi sinkron per frame → UI lag tapi tidak crash
-function exSoftFlood() {
-    exStartCommon();
-    exState.mode = 'soft';
-    exLog.write('⚡ SOFT FLOOD dimulai', 'hi');
-    exLog.write('   1000 operasi per frame — UI lag tapi tidak crash', 'i');
-    exLog.write('   Getaran juga akan tetap jalan (kalau ada)', 'i');
-
-    // Vibrate aggressive
-    const vibTimer = setInterval(() => {
-        vib(9000);
-    }, 15);
-    exState.memoryInterval = vibTimer; // reuse slot
-
-    // Flood with sync ops
-    const flood = () => {
-        if (!exState.running) return;
-        const t0 = performance.now();
-        let x = 0;
-        for (let i = 0; i < 1000; i++) {
-            x += Math.sqrt(i) * Math.random();
-            x = x % 1000000;
-        }
-        exState.ops += 1000;
-        exState.rafId = requestAnimationFrame(flood);
-    };
-    exState.rafId = requestAnimationFrame(flood);
-}
-
-// === HARD FLOOD (Brash-style) ===
-// Title + DOM updates tanpa henti → freeze lalu crash
-function exHardFlood() {
-    exStartCommon();
-    exState.mode = 'hard';
-    exLog.write('🔥 HARD FLOOD dimulai (Brash-style)', 'hi');
-    exLog.write('   ⚠ Ini akan menyebabkan freeze, lalu tab crash', 'er');
-    exLog.write('   ⚠ JANGAN tinggalkan tanpa pengawasan', 'er');
-
-    // Preload hex strings
-    const hex = '0123456789abcdef';
-    const strings = [];
-    for (let i = 0; i < 100; i++) {
-        let s = '';
-        for (let j = 0; j < 512; j++) {
-            s += hex[(Math.random() * 16) | 0];
-        }
-        strings.push(s);
-    }
-
-    // Aggressive vibrate
-    const vibTimer = setInterval(() => {
-        vib(9000);
-    }, 15);
-    exState.memoryInterval = vibTimer;
-
-    // Title flood
-    let i = 0;
-    const originalTitle = document.title;
-    const flood = () => {
-        if (!exState.running) return;
-        // Flood title
-        for (let k = 0; k < 200; k++) {
-            document.title = strings[i % strings.length].slice(0, 32);
-            i++;
-        }
-        exState.ops += 200;
-
-        // Force sync layout
-        void document.body.offsetHeight;
-
-        exState.rafId = requestAnimationFrame(flood);
-    };
-    exState.rafId = requestAnimationFrame(flood);
-}
-
-// === MEMORY FLOOD ===
-function exMemoryFlood() {
-    exStartCommon();
-    exState.mode = 'memory';
-    exLog.write('💾 MEMORY FLOOD dimulai', 'hi');
-    exLog.write('   Alokasi ~10MB/detik hingga OOM (tab crash)', 'er');
-    exLog.write('   ⚠ Android akan kill tab kalau >200MB', 'er');
-
-    // Aggressive vibrate
-    const vibTimer = setInterval(() => {
-        vib(9000);
-    }, 15);
-    exState.memoryInterval = vibTimer;
-
-    const alloc = setInterval(() => {
-        if (!exState.running) return;
-        // 10MB per tick
-        const chunk = new Array(2.5 * 1024 * 1024).fill(0);
-        exState.memoryHold.push(chunk);
-        exState.ops += 2500000;
-        const mb = exState.memoryHold.length * 10;
-        exLog.write(`   Alokasi +10MB (total ~${mb}MB)`, mb > 100 ? 'er' : 'wr');
-    }, 1000);
-    exState.softTimer = alloc;
-}
-
-// === STOP ===
-function exStop() {
-    if (!exState.running) return;
-    exState.running = false;
-
-    if (exState.rafId) cancelAnimationFrame(exState.rafId);
-    if (exState.softTimer) clearInterval(exState.softTimer);
-    if (exState.hardInterval) clearInterval(exState.hardInterval);
-    if (exState.fpsTimer) clearInterval(exState.fpsTimer);
-    if (exState.memoryInterval) clearInterval(exState.memoryInterval);
-
-    exState.rafId = null;
-    exState.softTimer = null;
-    exState.hardInterval = null;
-    exState.fpsTimer = null;
-    exState.memoryInterval = null;
-
-    // Free memory
-    exState.memoryHold = [];
-
-    vib(0);
-
-    document.title = '💀 Full Test Suite — SW + Resource Exhaustion';
-
-    exStartBtn.disabled = false;
-    exSoftBtn.disabled = false;
-    exHardBtn.disabled = false;
-    exMemoryBtn.disabled = false;
-    exStopBtn.disabled = true;
-
-    const elapsed = ((Date.now() - exState.startTime) / 1000).toFixed(1);
-    exLog.write('', '');
-    exLog.write('═══════════════════════════════════', 'hi');
-    exLog.write(`⏹ STOPPED — mode=${exState.mode} — ${elapsed}s`, 'hi');
-    exLog.write(`   Total ops: ${exState.ops.toLocaleString()}`, 'i');
-    exLog.write(`   Max lag: ${Math.round(exState.maxLag)}ms`, 'i');
-    if (exState.mode === 'soft') {
-        exLog.write('   ℹ Soft flood TIDAK crash — hanya lag', 'ok');
-    } else {
-        exLog.write('   ⚠ Flood mode ini bisa crash kalau dibiarkan', 'wr');
-    }
-}
-
-exStartBtn.addEventListener('click', () => {
-    exLog.write('Pilih metode di bawah:', 'hi');
-    exLog.write('  ⚡ SOFT     → 1000 ops/frame', 'i');
-    exLog.write('  🔥 HARD     → Brash-style title flood', 'i');
-    exLog.write('  💾 MEMORY   → alokasi 10MB/detik', 'i');
+    refreshStatus();
 });
-exSoftBtn.addEventListener('click', exSoftFlood);
-exHardBtn.addEventListener('click', exHardFlood);
-exMemoryBtn.addEventListener('click', exMemoryFlood);
-exStopBtn.addEventListener('click', exStop);
-exClearBtn.addEventListener('click', () => exLog.clear());
 
-updateExStats();
+// ============================================================
+// EVENT BINDINGS
+// ============================================================
+btnRegister.addEventListener('click', registerSW);
+btnPermission.addEventListener('click', requestPermission);
+btnTest.addEventListener('click', testSingle);
+btnFire.addEventListener('click', fireSingle);
+btnLoop.addEventListener('click', startLoop);
+btnStop.addEventListener('click', stopLoop);
 
 // ============================================================
 // CLEANUP
 // ============================================================
 window.addEventListener('beforeunload', () => {
-    if (exState.running) exStop();
-    if (swState.loopTimer) clearInterval(swState.loopTimer);
-    vib(0);
+    if (state.loopTimer) clearInterval(state.loopTimer);
 });
 
 // ============================================================
 // INIT
 // ============================================================
-swLog.write('=== FULL TEST SUITE READY ===', 'hi');
-swLog.write('Protocol: ' + location.protocol + ' // Host: ' + location.hostname, 'i');
-swLog.write('Vibrate API: ' + (typeof navigator.vibrate === 'function' ? 'tersedia' : 'tidak'), 
+logEl.textContent = '';
+log('=== SERVICE WORKER VIBRATE TEST ===', 'hi');
+log('', '');
+log('Environment:', 'i');
+log('  Protocol   : ' + location.protocol, 'i');
+log('  Hostname   : ' + location.hostname, 'i');
+log('  Secure ctx : ' + (window.isSecureContext ? 'YA ✅' : 'TIDAK ❌'), window.isSecureContext ? 'ok' : 'er');
+log('  SW support : ' + ('serviceWorker' in navigator ? 'YA ✅' : 'TIDAK ❌'), 'serviceWorker' in navigator ? 'ok' : 'er');
+log('  Notif API  : ' + ('Notification' in window ? 'YA ✅' : 'TIDAK ❌'), 'Notification' in window ? 'ok' : 'er');
+log('  Vibrate API: ' + (typeof navigator.vibrate === 'function' ? 'YA ✅' : 'TIDAK ❌'),
     typeof navigator.vibrate === 'function' ? 'ok' : 'er');
-swLog.write('Service Worker: ' + ('serviceWorker' in navigator ? 'tersedia' : 'tidak'),
-    'serviceWorker' in navigator ? 'ok' : 'er');
-swLog.write('Notification API: ' + ('Notification' in window ? 'tersedia' : 'tidak'),
-    'Notification' in window ? 'ok' : 'er');
-swLog.write('', '');
-swLog.write('Mulai dari tombol REGISTER SERVICE WORKER.', 'i');
+log('', '');
+log('Langkah:', 'hi');
+log('  1. DAFTARKAN SERVICE WORKER', 'i');
+log('  2. MINTA IZIN notifikasi', 'i');
+log('  3. TEST 1 GETAR — pastikan getar berfungsi di depan', 'i');
+log('  4. LOOP 30 NOTIF — lalu pindah tab / matikan layar', 'i');
+log('  5. Amati apakah HP bergetar setiap notif muncul', 'i');
+log('', '');
 
-exLog.write('=== RESOURCE EXHAUSTION READY ===', 'hi');
-exLog.write('Tekan tombol metode untuk mulai.', 'i');
+refreshStatus();
 
 })();
 </script>
