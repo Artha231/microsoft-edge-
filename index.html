@@ -1,274 +1,161 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Vibration API — Stress Test</title>
-
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      padding: 20px;
-      background: #121214;
-      color: #e3e3e3;
-      font-family: -apple-system, BlinkMacSystemFont,
-        "Segoe UI", Roboto, Arial, sans-serif;
-    }
-
-    .container {
-      max-width: 500px;
-      margin: 20px auto;
-      padding: 24px;
-      border-radius: 12px;
-      background: #1e1e24;
-      box-shadow: 0 4px 20px #0008;
-    }
-
-    h2 {
-      margin-top: 0;
-    }
-
-    p {
-      color: #b7b7c2;
-      line-height: 1.5;
-    }
-
-    button {
-      width: 100%;
-      padding: 14px;
-      margin: 6px 0;
-      border: 0;
-      border-radius: 8px;
-      color: white;
-      font-size: 15px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    #startBtn {
-      background: #218838;
-    }
-
-    #stopBtn {
-      background: #dc3545;
-    }
-
-    #status-log {
-      min-height: 180px;
-      max-height: 320px;
-      overflow: auto;
-      padding: 14px;
-      background: #080808;
-      color: #00ff66;
-      border-radius: 6px;
-      font: 12px/1.6 monospace;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-    }
-
-    .metrics {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin: 16px 0;
-    }
-
-    .metric {
-      padding: 12px;
-      background: #292930;
-      border-radius: 8px;
-    }
-
-    .metric span {
-      display: block;
-      color: #aaa;
-      font-size: 12px;
-    }
-
-    .metric strong {
-      display: block;
-      margin-top: 5px;
-      font-size: 18px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Bug Test: Async Race Condition & Loop</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            padding: 20px;
+            background-color: #121214;
+            color: #e3e3e3;
+            text-align: center;
+        }
+        .container {
+            max-width: 450px;
+            margin: 30px auto;
+            background: #1e1e24;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        button {
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+            border: none;
+            transition: 0.2s;
+        }
+        .btn-start { background-color: #28a745; color: white; }
+        .btn-start:hover { background-color: #218838; }
+        .btn-stop { background-color: #dc3545; color: white; }
+        .btn-stop:hover { background-color: #bd2130; }
+        #status-log {
+            margin-top: 20px;
+            padding: 15px;
+            background: #000;
+            color: #00ff66;
+            font-family: monospace;
+            text-align: left;
+            border-radius: 6px;
+            font-size: 12px;
+            min-height: 150px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
 </head>
-
 <body>
-  <main class="container">
-    <h2>Vibration API Stress Test</h2>
 
-    <p>
-      Menguji hasil pemanggilan API, status aktivasi pengguna,
-      latensi, dan error tanpa membanjiri browser.
-    </p>
+<div class="container">
+    <h2>Race Condition & Loop Test</h2>
+    <p>Menguji apakah browser Android rentan terhadap pembajakan antrean asinkron (Race Condition) untuk menembus proteksi getar.</p>
+    
+    <button id="startBtn" class="btn-start">Mulai Race & Loop (Klik 1x)</button>
+    <button id="stopBtn" class="btn-stop">HENTIKAN PENGUJIAN</button>
 
-    <button id="startBtn">Mulai Pengujian</button>
-    <button id="stopBtn">Hentikan Pengujian</button>
+    <h3>Konsol Log Logika:</h3>
+    <div id="status-log">Menunggu instruksi...</div>
+</div>
 
-    <div class="metrics">
-      <div class="metric">
-        <span>Siklus selesai</span>
-        <strong id="cycles">0</strong>
-      </div>
-      <div class="metric">
-        <span>Latensi terakhir</span>
-        <strong id="latency">—</strong>
-      </div>
-      <div class="metric">
-        <span>Permintaan diterima</span>
-        <strong id="accepted">0</strong>
-      </div>
-      <div class="metric">
-        <span>Ditolak / error</span>
-        <strong id="rejected">0</strong>
-      </div>
-    </div>
+<script>
+    const logBox = document.getElementById('status-log');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
 
-    <h3>Log Pengujian</h3>
-    <div id="status-log" role="log" aria-live="polite">
-Menunggu instruksi...
-    </div>
-  </main>
+    let isRunning = false;
+    let loopCounter = 0;
 
-  <script>
-    const logBox = document.getElementById("status-log");
-    const startBtn = document.getElementById("startBtn");
-    const stopBtn = document.getElementById("stopBtn");
-
-    const cyclesEl = document.getElementById("cycles");
-    const latencyEl = document.getElementById("latency");
-    const acceptedEl = document.getElementById("accepted");
-    const rejectedEl = document.getElementById("rejected");
-
-    let running = false;
-    let cycleCount = 0;
-    let acceptedCount = 0;
-    let rejectedCount = 0;
-
-    const MAX_CYCLES = 30;
-    const CYCLE_DELAY_MS = 1500;
-    const VIBRATION_MS = 250;
-
-    const sleep = ms =>
-      new Promise(resolve => setTimeout(resolve, ms));
-
-    function writeLog(message) {
-      const timestamp = new Date().toLocaleTimeString();
-
-      logBox.textContent +=
-        `\n[${timestamp}] ${message}`;
-
-      // Batasi jumlah baris log di memori.
-      const lines = logBox.textContent.split("\n");
-      if (lines.length > 250) {
-        logBox.textContent = lines.slice(-200).join("\n");
-      }
-
-      logBox.scrollTop = logBox.scrollHeight;
-      console.log(message);
+    function writeLog(text) {
+        logBox.innerHTML += "\n> " + text;
+        logBox.scrollTop = logBox.scrollHeight; // Auto scroll ke bawah
+        console.log(text);
     }
 
-    function updateMetrics(latency) {
-      cyclesEl.textContent = cycleCount;
-      latencyEl.textContent =
-        latency == null ? "—" : `${latency.toFixed(2)} ms`;
-      acceptedEl.textContent = acceptedCount;
-      rejectedEl.textContent = rejectedCount;
-    }
+    // Fungsi delay asinkron
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-    async function runTest() {
-      if (running) return;
-
-      running = true;
-      cycleCount = 0;
-      acceptedCount = 0;
-      rejectedCount = 0;
-
-      logBox.textContent = "";
-      updateMetrics(null);
-
-      writeLog("Pengujian dimulai.");
-      writeLog(
-        `Batas: ${MAX_CYCLES} siklus; jeda ${CYCLE_DELAY_MS} ms.`
-      );
-
-      if (typeof navigator.vibrate !== "function") {
-        writeLog("Vibration API tidak tersedia di browser ini.");
-        running = false;
-        return;
-      }
-
-      while (running && cycleCount < MAX_CYCLES) {
-        cycleCount++;
-
-        const activation =
-          navigator.userActivation?.isActive ?? "tidak tersedia";
-
-        writeLog(
-          `Siklus ${cycleCount}/${MAX_CYCLES}; ` +
-          `userActivation.isActive=${activation}`
-        );
-
-        const start = performance.now();
-
-        try {
-          const result = navigator.vibrate(VIBRATION_MS);
-          const latency = performance.now() - start;
-
-          if (result === true) {
-            acceptedCount++;
-            writeLog(
-              `Permintaan diterima. Latensi ${latency.toFixed(2)} ms.`
-            );
-          } else {
-            rejectedCount++;
-            writeLog(
-              `Permintaan tidak diterima (hasil=${result}).`
-            );
-          }
-
-          updateMetrics(latency);
-        } catch (error) {
-          rejectedCount++;
-          writeLog(`Error API: ${error.message}`);
-          updateMetrics(null);
+    // Metode Race Condition: Melepaskan ratusan eksekusi secara paralel untuk membingungkan masa kedaluwarsa token
+    async function triggerRaceCondition() {
+        let promises = [];
+        
+        // Membuat 500 permintaan asinkron secara bersamaan (Kondisi Balapan)
+        for (let i = 0; i < 500; i++) {
+            promises.push((async () => {
+                // Memberikan delay acak kecil agar antrean Microtask menumpuk di memori
+                await sleep(Math.random() * 100); 
+                
+                if (navigator.vibrate) {
+                    // Mencoba menembus batasan durasi dengan angka ekstrem secara simultan
+                    return navigator.vibrate(999999999999999999);
+                }
+                return false;
+            })());
         }
 
-        await sleep(CYCLE_DELAY_MS);
-      }
-
-      running = false;
-
-      writeLog(
-        `Pengujian selesai. Siklus=${cycleCount}, ` +
-        `diterima=${acceptedCount}, error/ditolak=${rejectedCount}.`
-      );
+        // Jalankan semua fungsi secara bersamaan, lihat apakah ada salah satu yang lolos celah
+        const results = await Promise.all(promises);
+        return results.includes(true);
     }
 
-    startBtn.addEventListener("click", runTest);
+    // Fungsi Utama Loop Pengujian
+    async function startTestingLoop() {
+        isRunning = true;
+        loopCounter = 0;
+        logBox.innerHTML = "";
+        writeLog("Aktivasi Awal Terdeteksi. Memulai Loop & Race...");
 
-    stopBtn.addEventListener("click", () => {
-      running = false;
+        while (isRunning) {
+            loopCounter++;
+            writeLog(`[Siklus #${loopCounter}] Memulai delay 6 detik (Melewati batas 5 detik)...`);
+            
+            // Jeda 6 detik untuk memaksa token aktivasi kedaluwarsa secara teoritis
+            await sleep(6000);
 
-      if (typeof navigator.vibrate === "function") {
-        navigator.vibrate(0);
-      }
+            if (navigator.userActivation) {
+                writeLog(`Siklus #${loopCounter} - Status Aktivasi Resmi: ` + navigator.userActivation.isActive);
+            }
 
-      writeLog("Penghentian diminta pengguna.");
+            writeLog(`Siklus #${loopCounter} - Meluncurkan Serangan Race Condition...`);
+            
+            // Eksekusi trik race condition
+            let isBypassed = await triggerRaceCondition();
+
+            if (isBypassed) {
+                writeLog(`🚨 BUG CONFIRMED: Getar Ekstrem Tembus di Siklus #${loopCounter}!`);
+            } else {
+                writeLog(`❌ Siklus #${loopCounter}: Diblokir browser (Normal).`);
+            }
+
+            // Jeda 1 detik sebelum masuk ke perulangan berikutnya agar browser tidak crash total
+            await sleep(1000);
+        }
+    }
+
+    // Event Listener Tombol
+    startBtn.addEventListener('click', () => {
+        if (!isRunning) {
+            startTestingLoop();
+        } else {
+            writeLog("Pengujian sedang berjalan...");
+        }
     });
 
-    window.addEventListener("pagehide", () => {
-      running = false;
-
-      if (typeof navigator.vibrate === "function") {
-        navigator.vibrate(0);
-      }
+    stopBtn.addEventListener('click', () => {
+        isRunning = false;
+        if (navigator.vibrate) {
+            navigator.vibrate(0); // Matikan semua getaran aktif jika ada yang tembus
+        }
+        writeLog("🛑 Pengujian dihentikan secara paksa oleh pengguna.");
     });
-  </script>
+</script>
+
 </body>
 </html>
+ 
