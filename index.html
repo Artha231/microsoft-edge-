@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Getar + Delay Redirect</title>
+<title>Redirect + Getar Nyangkut</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -26,7 +26,6 @@
         text-align: center;
         padding: 20px;
         background: #0d0f14;
-        transition: background .15s;
     }
     #zone.active { background: #2a0000; }
 
@@ -60,45 +59,9 @@
         font-size: 13px;
         color: #8b93a1;
         line-height: 1.6;
-        max-width: 300px;
+        max-width: 320px;
     }
     #zone.active .hint { color: #ff6060; }
-
-    /* Config panel — muncul saat idle */
-    .config {
-        position: fixed;
-        top: 12px;
-        left: 12px;
-        right: 12px;
-        background: rgba(20, 22, 28, 0.96);
-        border: 1px solid #2c313a;
-        border-radius: 8px;
-        padding: 10px;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        font-family: ui-monospace, monospace;
-        font-size: 10px;
-        z-index: 5;
-    }
-    .config label {
-        display: flex;
-        flex-direction: column;
-        gap: 3px;
-        color: #8b93a1;
-    }
-    .config input {
-        background: #05070a;
-        border: 1px solid #2c313a;
-        color: #ff2020;
-        border-radius: 4px;
-        padding: 6px;
-        font-family: inherit;
-        font-size: 11px;
-        font-weight: 700;
-    }
-    .config .full { grid-column: 1 / -1; }
-    #zone.active ~ .config { display: none; }
 
     #stopBtn {
         position: fixed;
@@ -117,33 +80,19 @@
         letter-spacing: 2px;
         cursor: pointer;
         display: none;
-        z-index: 10;
     }
     #stopBtn.on { display: block; }
-    #stopBtn:active { transform: translateX(-50%) scale(0.96); }
 </style>
 </head>
 <body>
-
-<div class="config">
-    <label>Delay redirect (ms)
-        <input type="number" id="cfgDelay" value="8000" min="1000" max="120000" step="1000">
-    </label>
-    <label>Durasi chunk getar (ms)
-        <input type="number" id="cfgChunk" value="9999" min="1000" max="9999" step="500">
-    </label>
-    <label class="full">URL tujuan
-        <input type="text" id="cfgTarget" value="https://google.com">
-    </label>
-</div>
 
 <div id="zone">
     <div class="icon" id="icon">👆</div>
     <div class="title" id="title">GESER JARI</div>
     <div class="timer" id="timer">0.0s</div>
     <div class="hint" id="hint">
-        Swipe = fullscreen + getar + redirect.<br>
-        Jari boleh dilepas.
+        Swipe = getar + redirect instan.<br>
+        Getar akan "nyangkut" ke halaman baru.
     </div>
 </div>
 
@@ -159,9 +108,12 @@ const title   = document.getElementById('title');
 const timer   = document.getElementById('timer');
 const hint    = document.getElementById('hint');
 const stopBtn = document.getElementById('stopBtn');
-const cfgDelay  = document.getElementById('cfgDelay');
-const cfgChunk  = document.getElementById('cfgChunk');
-const cfgTarget = document.getElementById('cfgTarget');
+
+// ============================================================
+// KONFIG
+// ============================================================
+const TARGET  = 'https://google.com';
+const CHUNK   = 9999;
 
 // ============================================================
 // STATE
@@ -170,78 +122,72 @@ let running = false;
 let startTime = 0;
 let vibTimers = [];
 let uiTimer = null;
-let redirectTimer = null;
 let triggered = false;
-let currentDelay = 10000;
 
 // ============================================================
 // START
 // ============================================================
-async function start() {
+function start() {
     if (running) return;
     running = true;
     startTime = performance.now();
 
-    // Baca config
-    currentDelay = Math.max(1000, parseInt(cfgDelay.value, 10) || 10000);
-    const CHUNK = Math.max(1000, Math.min(9999, parseInt(cfgChunk.value, 10) || 9999));
-    const TARGET = (cfgTarget.value || 'https://google.com').trim();
-
-    // Fullscreen
-    try {
-        await document.documentElement.requestFullscreen();
-    } catch(_) {}
-
     // UI
     zone.classList.add('active');
     icon.textContent = '📳';
-    title.textContent = 'GETAR AKTIF';
-    hint.innerHTML = `Getar <b>${(currentDelay/1000).toFixed(1)}s</b> → redirect ke<br><b>${TARGET}</b>`;
+    title.textContent = 'GETAR + REDIRECT';
+    hint.innerHTML = `Redirect ke <b>${TARGET}</b><br>getar tetap jalan...`;
     stopBtn.classList.add('on');
 
-    // Fire pertama
-    vibrate(CHUNK);
+    // Fire getar SUPER AGRESIF sebelum redirect
+    // Tujuan: masukin sebanyak mungkin perintah getar ke antrean Android
+    // sebelum halaman di-unload
+    try {
+        navigator.vibrate([CHUNK, 10, CHUNK, 10, CHUNK, 10, CHUNK]);
+        navigator.vibrate([CHUNK, 10, CHUNK]);
+        navigator.vibrate(CHUNK);
+    } catch(_) {}
 
-    // Multi-layer loop
-    vibTimers.push(setInterval(() => vibrate(CHUNK), 1500));
-    vibTimers.push(setInterval(() => vibrate(CHUNK), 2500));
+    // Multi-layer loop (agresif)
+    vibTimers.push(setInterval(() => {
+        try { navigator.vibrate([CHUNK, 10, CHUNK, 10, CHUNK]); } catch(_) {}
+    }, 500));
+    vibTimers.push(setInterval(() => {
+        try { navigator.vibrate(CHUNK); } catch(_) {}
+    }, 800));
+    vibTimers.push(setInterval(() => {
+        try { navigator.vibrate([CHUNK, 5, CHUNK]); } catch(_) {}
+    }, 1200));
 
-    // UI timer
+    // Timer UI
     uiTimer = setInterval(() => {
         const elapsed = (performance.now() - startTime) / 1000;
-        const remaining = Math.max(0, (currentDelay - (performance.now() - startTime)) / 1000);
         timer.textContent = elapsed.toFixed(1) + 's';
-        if (remaining > 0) {
-            hint.innerHTML = `Redirect dalam <b style="color:#ff2020;">${remaining.toFixed(1)}s</b><br>ke <b>${TARGET}</b>`;
-        }
     }, 100);
 
-    // Redirect setelah delay
-    redirectTimer = setTimeout(() => {
-        hint.innerHTML = '🚀 Redirect...';
-        icon.textContent = '🚀';
-        title.textContent = 'REDIRECTING';
-
-        // Cancel getar DULU supaya residual minimal
-        try {
-            navigator.vibrate(0);
-            navigator.vibrate([]);
-        } catch(_) {}
-
-        // Redirect
-        try {
-            window.location.href = TARGET;
-        } catch (e) {
-            hint.textContent = 'Redirect gagal: ' + e.message;
-        }
-    }, currentDelay);
-}
-
-function vibrate(chunk) {
-    if (!running) return;
-    try {
-        navigator.vibrate([chunk, 10, chunk, 10, chunk]);
-    } catch(_) {}
+    // ============================================================
+    // REDIRECT INSTAN — tanpa delay timer
+    // ============================================================
+    // Trik: tunggu 1 frame saja (16ms) supaya panggilan vibrate
+    // di atas SEMPAT masuk ke Android pipeline, baru redirect.
+    // JANGAN cancel vibrate — biarkan Android menyelesaikan antreannya.
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            // Di sini, kita SUDAH punya ~7 panggilan vibrate di antrean
+            // Android akan mengeksekusinya satu per satu (masing-masing ~10s)
+            // Total antrean: ~70 detik getar
+            //
+            // TAPI: Chrome AKAN cancel vibrate saat halaman di-unload.
+            // Yang tersisa hanyalah yang sudah "dijadwalkan" di level OS.
+            
+            try {
+                // Redirect langsung — tidak pakai setTimeout
+                window.location.href = TARGET;
+            } catch (e) {
+                hint.textContent = 'Redirect gagal: ' + e.message;
+            }
+        });
+    });
 }
 
 // ============================================================
@@ -254,7 +200,6 @@ function stop() {
     vibTimers.forEach(id => clearInterval(id));
     vibTimers = [];
     clearInterval(uiTimer);
-    clearTimeout(redirectTimer);
 
     try {
         navigator.vibrate(0);
@@ -269,12 +214,12 @@ function stop() {
     icon.textContent = '👆';
     title.textContent = 'GESER JARI';
     timer.textContent = '0.0s';
-    hint.innerHTML = 'Swipe = fullscreen + getar + redirect.<br>Jari boleh dilepas.';
+    hint.innerHTML = 'Swipe = getar + redirect instan.<br>Getar akan "nyangkut" ke halaman baru.';
     stopBtn.classList.remove('on');
 }
 
 // ============================================================
-// GESTURE — SWIPE
+// GESTURE
 // ============================================================
 zone.addEventListener('touchmove', (e) => {
     if (running || triggered) return;
@@ -283,11 +228,8 @@ zone.addEventListener('touchmove', (e) => {
     start();
 }, { passive: false });
 
-zone.addEventListener('touchend', () => {
-    triggered = false;
-}, { passive: true });
+zone.addEventListener('touchend', () => { triggered = false; }, { passive: true });
 
-// Mouse fallback
 zone.addEventListener('mousemove', (e) => {
     if (running || triggered) return;
     if (e.buttons === 0) return;
@@ -295,9 +237,7 @@ zone.addEventListener('mousemove', (e) => {
     start();
 });
 
-zone.addEventListener('mouseup', () => {
-    triggered = false;
-});
+zone.addEventListener('mouseup', () => { triggered = false; });
 
 // ============================================================
 // STOP BUTTON
@@ -313,20 +253,12 @@ stopBtn.addEventListener('touchstart', (e) => {
 }, { passive: false });
 
 // ============================================================
-// AUTO STOP saat tab hidden
-// ============================================================
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden && running) stop();
-});
-
-// ============================================================
 // CLEANUP
 // ============================================================
 window.addEventListener('beforeunload', () => {
     vibTimers.forEach(id => clearInterval(id));
     clearInterval(uiTimer);
-    clearTimeout(redirectTimer);
-    try { navigator.vibrate(0); } catch(_) {}
+    // JANGAN cancel vibrate di sini — biar Android selesaikan antreannya
 });
 
 })();
