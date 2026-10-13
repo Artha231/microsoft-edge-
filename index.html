@@ -1,181 +1,136 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Mobile Security Alert Test</title>
-
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      background: #111;
-      color: white;
-      font-family: Arial, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-    }
-
-    body.strobe {
-      animation: flash 0.8s infinite alternate;
-    }
-
-    @keyframes flash {
-      from { background: #111; }
-      to { background: #8b0000; }
-    }
-
-    .alert-box {
-      padding: 28px;
-      max-width: 90%;
-      background: #222;
-      border: 2px solid #555;
-      border-radius: 14px;
-    }
-
-    h1 {
-      color: #ff5252;
-      margin-bottom: 16px;
-      font-size: 1.7rem;
-    }
-
-    p {
-      color: #ddd;
-      line-height: 1.6;
-      margin-bottom: 18px;
-    }
-
-    button {
-      border: 0;
-      border-radius: 8px;
-      padding: 12px 18px;
-      margin: 5px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    #start { background: #d32f2f; color: white; }
-    #stop { background: #eee; color: #111; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uji Coba Bug: Async Gesture Expiry Bypass</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 20px;
+            background-color: #f4f6f9;
+            color: #333;
+            text-align: center;
+        }
+        .container {
+            max-width: 400px;
+            margin: 50px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #status-log {
+            margin-top: 20px;
+            padding: 15px;
+            background: #222;
+            color: #00ff00;
+            font-family: monospace;
+            text-align: left;
+            border-radius: 6px;
+            font-size: 12px;
+            min-height: 100px;
+            white-space: pre-wrap;
+        }
+    </style>
 </head>
-
 <body>
-  <main class="alert-box">
-    <h1>SECURITY ALERT TEST</h1>
-    <p>Demo pengujian audio, getaran, dan fullscreen perangkat.</p>
-    <button id="start">Mulai Tes</button>
-    <button id="stop">Hentikan Tes</button>
-    <p id="status" aria-live="polite">Siap dimulai.</p>
-  </main>
 
-  <script>
-    let ctx;
-    let oscillator;
-    let gain;
-    let wakeLock;
-    let vibrationTimer;
-    let stopTimer;
+<div class="container">
+    <h2>Browser Gesture Test</h2>
+    <p>Gunakan tombol di bawah untuk menguji apakah browser Android Anda rentan terhadap <i>Async Expiry Bypass</i>.</p>
+    
+    <!-- Tombol Pemicu Utama -->
+    <button id="testBtn">Mulai Pengujian (Klik 1x)</button>
 
-    const status = document.getElementById("status");
+    <h3>Konsol Log Logika:</h3>
+    <div id="status-log">Menunggu klik dari Anda...</div>
+</div>
 
-    async function startTest() {
-      try {
-        // Fullscreen harus dipicu oleh interaksi pengguna.
-        if (document.documentElement.requestFullscreen) {
-          await document.documentElement.requestFullscreen();
-        }
+<script>
+    const logBox = document.getElementById('status-log');
+    const testBtn = document.getElementById('testBtn');
 
-        // Getaran pada perangkat yang mendukungnya.
-        if ("vibrate" in navigator) {
-          navigator.vibrate([400, 200, 400, 200]);
-
-          vibrationTimer = setInterval(() => {
-            navigator.vibrate([400, 200, 400, 200]);
-          }, 1200);
-        }
-
-        // Cegah layar tidur jika didukung browser.
-        if ("wakeLock" in navigator) {
-          try {
-            wakeLock = await navigator.wakeLock.request("screen");
-          } catch (_) {}
-        }
-
-        // Sirene audio.
-        ctx = new (
-          window.AudioContext || window.webkitAudioContext
-        )();
-
-        await ctx.resume();
-
-        oscillator = ctx.createOscillator();
-        gain = ctx.createGain();
-
-        oscillator.type = "sawtooth";
-        oscillator.frequency.setValueAtTime(800, ctx.currentTime);
-        oscillator.frequency.linearRampToValueAtTime(
-          1200, ctx.currentTime + 0.4
-        );
-
-        gain.gain.setValueAtTime(0.12, ctx.currentTime);
-        gain.gain.setValueAtTime(0.12, ctx.currentTime + 1.5);
-        gain.gain.linearRampToValueAtTime(
-          0.001, ctx.currentTime + 2
-        );
-
-        oscillator.connect(gain);
-        gain.connect(ctx.destination);
-        oscillator.start();
-        oscillator.stop(ctx.currentTime + 2);
-
-        document.body.classList.add("strobe");
-        status.textContent = "Tes aktif.";
-
-        // Demo berlangsung singkat, lalu berhenti otomatis.
-        stopTimer = setTimeout(stopTest, 5000);
-      } catch (error) {
-        status.textContent =
-          "Fullscreen atau audio tidak diizinkan browser. Coba mulai lagi.";
-      }
+    // Fungsi pembantu untuk mencetak log ke layar HP
+    function writeLog(text) {
+        logBox.innerHTML += "\n> " + text;
+        console.log(text);
     }
 
-    async function stopTest() {
-      clearInterval(vibrationTimer);
-      clearTimeout(stopTimer);
-
-      if ("vibrate" in navigator) navigator.vibrate(0);
-
-      if (ctx && ctx.state !== "closed") {
-        await ctx.close();
-      }
-
-      if (wakeLock) {
-        await wakeLock.release().catch(() => {});
-        wakeLock = null;
-      }
-
-      document.body.classList.remove("strobe");
-
-      if (document.fullscreenElement) {
-        await document.exitFullscreen().catch(() => {});
-      }
-
-      status.textContent = "Tes dihentikan.";
+    // Fungsi simulasi jeda waktu asinkron murni menggunakan Promise
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    document.getElementById("start")
-      .addEventListener("click", startTest);
+    testBtn.addEventListener('click', async () => {
+        logBox.innerHTML = ""; // Bersihkan log lama
+        writeLog("Tombol diklik. Token 'User Activation' aktif.");
+        writeLog("Memulai jeda asinkron berantai (Total: 6 detik)...");
 
-    document.getElementById("stop")
-      .addEventListener("click", stopTest);
-  </script>
+        // MENYIMPAN STATUS AKTIVASI SEBELUM DELAY (Untuk pengecekan internal)
+        if (navigator.userActivation) {
+            writeLog("Status Aktivasi Awal: " + navigator.userActivation.isActive);
+        }
+
+        // Trik Ekstraksi: Melakukan operasi asinkron bertingkat (Nested Promises)
+        // Di sini kita memaksa browser menunggu total 6 detik.
+        // Di browser yang aman, token interaksi HARUSNYA hangus setelah maksimal 5 detik.
+        await sleep(3000);
+        writeLog("...Sudah berjalan 3 detik...");
+        await sleep(3000);
+        writeLog("...Sudah berjalan 6 detik. Delay Selesai.");
+
+        if (navigator.userActivation) {
+            writeLog("Status Aktivasi Sekarang: " + navigator.userActivation.isActive);
+        }
+
+        writeLog("Mencoba mengeksekusi Fullscreen & Getar secara ilegal...");
+
+        // 1. UJI COBA BYPASS FULLSCREEN
+        try {
+            if (document.documentElement.requestFullscreen) {
+                await document.documentElement.requestFullscreen();
+            } else if (document.documentElement.webkitRequestFullscreen) {
+                await document.documentElement.webkitRequestFullscreen();
+            }
+            writeLog("🚨 BUG COMFIRMED: Sukses tembus Fullscreen setelah 6 detik!");
+        } catch (err) {
+            writeLog("❌ Fullscreen diblokir (Perilaku Normal).");
+        }
+
+        // 2. UJI COBA BYPASS VIBRATE (GETAR)
+        try {
+            if (navigator.vibrate) {
+                // Mencoba menggetarkan HP selama 2 detik
+                let success = navigator.vibrate(2000);
+                if (success) {
+                    writeLog("🚨 BUG COMFIRMED: HP Anda bergetar tanpa gesture langsung!");
+                } else {
+                    writeLog("❌ Getar ditolak atau gagal.");
+                }
+            } else {
+                writeLog("ℹ️ Browser tidak mendukung API Getar.");
+            }
+        } catch (err) {
+            writeLog("❌ Gagal mengeksekusi Getar: " + err.message);
+        }
+    });
+</script>
+
 </body>
 </html>
