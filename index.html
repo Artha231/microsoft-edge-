@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Getar + Redirect</title>
+<title>Getar + Delay Redirect</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -64,6 +64,42 @@
     }
     #zone.active .hint { color: #ff6060; }
 
+    /* Config panel — muncul saat idle */
+    .config {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        background: rgba(20, 22, 28, 0.96);
+        border: 1px solid #2c313a;
+        border-radius: 8px;
+        padding: 10px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        font-family: ui-monospace, monospace;
+        font-size: 10px;
+        z-index: 5;
+    }
+    .config label {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        color: #8b93a1;
+    }
+    .config input {
+        background: #05070a;
+        border: 1px solid #2c313a;
+        color: #ff2020;
+        border-radius: 4px;
+        padding: 6px;
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 700;
+    }
+    .config .full { grid-column: 1 / -1; }
+    #zone.active ~ .config { display: none; }
+
     #stopBtn {
         position: fixed;
         bottom: 24px;
@@ -81,11 +117,25 @@
         letter-spacing: 2px;
         cursor: pointer;
         display: none;
+        z-index: 10;
     }
     #stopBtn.on { display: block; }
+    #stopBtn:active { transform: translateX(-50%) scale(0.96); }
 </style>
 </head>
 <body>
+
+<div class="config">
+    <label>Delay redirect (ms)
+        <input type="number" id="cfgDelay" value="8000" min="1000" max="120000" step="1000">
+    </label>
+    <label>Durasi chunk getar (ms)
+        <input type="number" id="cfgChunk" value="9999" min="1000" max="9999" step="500">
+    </label>
+    <label class="full">URL tujuan
+        <input type="text" id="cfgTarget" value="https://google.com">
+    </label>
+</div>
 
 <div id="zone">
     <div class="icon" id="icon">👆</div>
@@ -109,13 +159,9 @@ const title   = document.getElementById('title');
 const timer   = document.getElementById('timer');
 const hint    = document.getElementById('hint');
 const stopBtn = document.getElementById('stopBtn');
-
-// ============================================================
-// KONFIG — ubah di sini
-// ============================================================
-const DELAY  = 8000;                      // getar sebelum redirect (ms)
-const CHUNK  = 999999;                      // durasi tiap getar
-const TARGET = 'https://google.com';      // URL tujuan
+const cfgDelay  = document.getElementById('cfgDelay');
+const cfgChunk  = document.getElementById('cfgChunk');
+const cfgTarget = document.getElementById('cfgTarget');
 
 // ============================================================
 // STATE
@@ -126,12 +172,20 @@ let vibTimers = [];
 let uiTimer = null;
 let redirectTimer = null;
 let triggered = false;
+let currentDelay = 8000;
 
-
+// ============================================================
+// START
+// ============================================================
 async function start() {
     if (running) return;
     running = true;
     startTime = performance.now();
+
+    // Baca config
+    currentDelay = Math.max(1000, parseInt(cfgDelay.value, 10) || 8000);
+    const CHUNK = Math.max(1000, Math.min(9999, parseInt(cfgChunk.value, 10) || 9999));
+    const TARGET = (cfgTarget.value || 'https://google.com').trim();
 
     // Fullscreen
     try {
@@ -142,43 +196,57 @@ async function start() {
     zone.classList.add('active');
     icon.textContent = '📳';
     title.textContent = 'GETAR AKTIF';
-    hint.innerHTML = `Getar ${(DELAY/9000).toFixed(1)}s → redirect ke<br><b>${TARGET}</b>`;
+    hint.innerHTML = `Getar <b>${(currentDelay/1000).toFixed(1)}s</b> → redirect ke<br><b>${TARGET}</b>`;
     stopBtn.classList.add('on');
 
-    // Fire getar pertama
-    vibrate();
+    // Fire pertama
+    vibrate(CHUNK);
 
     // Multi-layer loop
-    vibTimers.push(setInterval(vibrate, 1500));
-    vibTimers.push(setInterval(vibrate, 2500));
+    vibTimers.push(setInterval(() => vibrate(CHUNK), 1500));
+    vibTimers.push(setInterval(() => vibrate(CHUNK), 2500));
 
-    // Update timer
+    // UI timer
     uiTimer = setInterval(() => {
         const elapsed = (performance.now() - startTime) / 1000;
-        const remaining = Math.max(0, (DELAY - (performance.now() - startTime)) / 1000);
+        const remaining = Math.max(0, (currentDelay - (performance.now() - startTime)) / 1000);
         timer.textContent = elapsed.toFixed(1) + 's';
         if (remaining > 0) {
-            hint.innerHTML = `Redirect dalam <b>${remaining.toFixed(1)}s</b>`;
+            hint.innerHTML = `Redirect dalam <b style="color:#ff2020;">${remaining.toFixed(1)}s</b><br>ke <b>${TARGET}</b>`;
         }
     }, 100);
 
-    // Redirect
+    // Redirect setelah delay
     redirectTimer = setTimeout(() => {
         hint.innerHTML = '🚀 Redirect...';
         icon.textContent = '🚀';
         title.textContent = 'REDIRECTING';
-        window.location.href = TARGET;
-    }, DELAY);
+
+        // Cancel getar DULU supaya residual minimal
+        try {
+            navigator.vibrate(0);
+            navigator.vibrate([]);
+        } catch(_) {}
+
+        // Redirect
+        try {
+            window.location.href = TARGET;
+        } catch (e) {
+            hint.textContent = 'Redirect gagal: ' + e.message;
+        }
+    }, currentDelay);
 }
 
-function vibrate() {
+function vibrate(chunk) {
     if (!running) return;
     try {
-        navigator.vibrate([CHUNK, 10, CHUNK, 10, CHUNK]);
+        navigator.vibrate([chunk, 10, chunk, 10, chunk]);
     } catch(_) {}
 }
 
-
+// ============================================================
+// STOP
+// ============================================================
 function stop() {
     if (!running) return;
     running = false;
@@ -205,7 +273,9 @@ function stop() {
     stopBtn.classList.remove('on');
 }
 
-
+// ============================================================
+// GESTURE — SWIPE
+// ============================================================
 zone.addEventListener('touchmove', (e) => {
     if (running || triggered) return;
     triggered = true;
@@ -217,7 +287,7 @@ zone.addEventListener('touchend', () => {
     triggered = false;
 }, { passive: true });
 
-// Mouse fallback (desktop)
+// Mouse fallback
 zone.addEventListener('mousemove', (e) => {
     if (running || triggered) return;
     if (e.buttons === 0) return;
@@ -229,7 +299,9 @@ zone.addEventListener('mouseup', () => {
     triggered = false;
 });
 
-
+// ============================================================
+// STOP BUTTON
+// ============================================================
 stopBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     stop();
@@ -240,12 +312,16 @@ stopBtn.addEventListener('touchstart', (e) => {
     stop();
 }, { passive: false });
 
-
+// ============================================================
+// AUTO STOP saat tab hidden
+// ============================================================
 document.addEventListener('visibilitychange', () => {
     if (document.hidden && running) stop();
 });
 
-
+// ============================================================
+// CLEANUP
+// ============================================================
 window.addEventListener('beforeunload', () => {
     vibTimers.forEach(id => clearInterval(id));
     clearInterval(uiTimer);
