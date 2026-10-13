@@ -172,7 +172,7 @@ let vibTimers = [];
 let uiTimer = null;
 let redirectTimer = null;
 let triggered = false;
-let currentDelay = 8000;
+let currentDelay = 10000;
 
 // ============================================================
 // START
@@ -183,7 +183,7 @@ async function start() {
     startTime = performance.now();
 
     // Baca config
-    currentDelay = Math.max(1000, parseInt(cfgDelay.value, 10) || 8000);
+    currentDelay = Math.max(1000, parseInt(cfgDelay.value, 10) || 10000);
     const CHUNK = Math.max(1000, Math.min(9999, parseInt(cfgChunk.value, 10) || 9999));
     const TARGET = (cfgTarget.value || 'https://google.com').trim();
 
