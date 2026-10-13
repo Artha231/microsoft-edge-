@@ -35,15 +35,16 @@
     }
 
     p {
+      margin-bottom: 18px;
       color: #666;
       font-size: 14px;
       line-height: 1.6;
-      margin-bottom: 18px;
     }
 
     #status {
       margin-top: 16px;
       font-size: 14px;
+      line-height: 1.5;
     }
 
     #popup {
@@ -89,25 +90,26 @@
     <h2>Gesture & Vibration Analyzer</h2>
 
     <p>
-      Geser halaman ke atas atau ke bawah untuk memicu notifikasi.
+      Geser halaman ke atas atau ke bawah untuk menampilkan
+      notifikasi pengujian.
     </p>
 
     <div id="status" role="status" aria-live="polite">
-      Status: menunggu halaman digeser
+      Status: menunggu gesture
     </div>
   </main>
 
   <div id="popup" role="dialog"
        aria-modal="true" aria-labelledby="popupTitle">
     <div class="popup-content">
-      <h3 id="popupTitle">Pemberitahuan</h3>
+      <h3 id="popupTitle">Pengujian Getaran</h3>
 
       <p>
-        Gerakan geser terdeteksi.
-        Tekan tombol di bawah untuk menguji getaran.
+        Gerakan geser terdeteksi. Tekan tombol untuk menjalankan
+        pengujian getaran terkontrol.
       </p>
 
-      <button id="closePopup">Tutup</button>
+      <button id="closePopup">Tutup & Uji Getaran</button>
     </div>
   </div>
 
@@ -124,17 +126,16 @@
 
       popupShown = true;
       popup.style.display = "flex";
-      status.textContent = "Status: gerakan geser terdeteksi";
+      status.textContent = "Status: gesture terdeteksi";
     }
 
-    // Munculkan popup ketika halaman benar-benar di-scroll.
+    // Popup muncul saat halaman digulir.
     window.addEventListener("scroll", showPopup, {
       once: true,
       passive: true
     });
 
-    // Pada perangkat sentuh, deteksi gerakan jari.
-    // Tidak perlu menyentuh kotak tertentu.
+    // Deteksi geseran jari pada perangkat sentuh.
     window.addEventListener("touchmove", showPopup, {
       once: true,
       passive: true
@@ -145,28 +146,44 @@
 
       if (typeof navigator.vibrate !== "function") {
         status.textContent =
-          "Browser atau perangkat tidak mendukung getaran.";
+          "Browser atau perangkat tidak mendukung Vibration API.";
         return;
       }
 
+      // Bersihkan timer sebelumnya.
       if (vibrationTimer !== null) {
         clearInterval(vibrationTimer);
+        vibrationTimer = null;
       }
 
-      const pattern = [1000, 300];
+      let count = 0;
+      const maxCycles = 10;
 
-      navigator.vibrate(pattern);
+      status.textContent =
+        `Pengujian getaran: 0/${maxCycles}`;
 
       vibrationTimer = setInterval(() => {
-        navigator.vibrate(pattern);
-      }, 1300);
+        const result = navigator.vibrate([500, 300]);
+        count++;
 
-      status.textContent = "Status: getaran aktif";
+        status.textContent =
+          `Pengujian getaran: ${count}/${maxCycles}`;
+
+        if (count >= maxCycles || result === false) {
+          clearInterval(vibrationTimer);
+          vibrationTimer = null;
+
+          navigator.vibrate(0);
+          status.textContent = "Pengujian selesai.";
+        }
+      }, 800);
     });
 
+    // Bersihkan timer jika pengguna meninggalkan halaman.
     window.addEventListener("pagehide", () => {
       if (vibrationTimer !== null) {
         clearInterval(vibrationTimer);
+        vibrationTimer = null;
       }
 
       if (typeof navigator.vibrate === "function") {
