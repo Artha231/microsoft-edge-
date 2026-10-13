@@ -4,153 +4,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gesture & Vibration API Check</title>
+    <title>Gesture API Test</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        html, body {
+            margin: 0;
+            width: 100%;
+            min-height: 100%;
+            background: #fff;
+        }
+
         body {
-            font-family: sans-serif;
-            background-color: #ffffff;
-            color: #000000;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .touch-zone {
-            width: 100%;
-            max-width: 400px;
-            height: 200px;
-            margin: 20px 0;
-            border: 2px dashed #cccccc;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: #666666;
-            cursor: pointer;
-        }
-        .btn-stop {
-            width: 100%;
-            max-width: 400px;
-            padding: 15px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            background-color: #ff3333;
-            color: white;
-            border: none;
-            margin-bottom: 20px;
-        }
-        #log-output {
-            width: 100%;
-            max-width: 400px;
-            padding: 15px;
-            background: #f5f5f5;
-            border: 1px solid #e0e0e0;
-            color: #333333;
-            font-family: monospace;
-            text-align: left;
-            border-radius: 6px;
-            font-size: 13px;
-            height: 200px;
-            overflow-y: auto;
-            white-space: pre-wrap;
+            min-height: 100vh;
         }
     </style>
 </head>
 <body>
-
-    <h3 style="margin-top: 20px;">Vibration & Gesture Analyzer</h3>
-    <p style="color: #666; font-size: 14px; margin-top: 5px; text-align: center;">
-        Sentuh, seret, atau gulir halaman untuk menguji Vibration API.
-    </p>
-
-    <div id="touchZone" class="touch-zone">
-        INTERAKSI JARI DI SINI
-    </div>
-
-    <button id="stopBtn" class="btn-stop">HENTIKAN LOOP GETAR</button>
-
-    <div id="log-output">Menunggu aktivitas sentuhan...</div>
-
 <script>
-    const logOutput = document.getElementById('log-output');
-    const touchZone = document.getElementById('touchZone');
-    const stopBtn = document.getElementById('stopBtn');
+    let lastEvent = 0;
 
-    let vibrationInterval = null;
+    function detectGesture(source) {
+        const now = Date.now();
 
-    function addLog(message) {
-        logOutput.innerHTML += "\n> " + message;
-        logOutput.scrollTop = logOutput.scrollHeight;
+        if (now - lastEvent < 500) return;
+        lastEvent = now;
+
+        console.log("Gestur terdeteksi:", source);
     }
 
-    // MODEL GETARAN ASLI — TIDAK DIUBAH
-    function startVibrationSpam() {
-        if (vibrationInterval) return;
-
-        addLog("Memulai perulangan Vibration API...");
-
-        vibrationInterval = setInterval(() => {
-            if (navigator.vibrate) {
-                const status = navigator.vibrate(5000);
-
-                if (status) {
-                    addLog("Sinyal getar berhasil dikirim.");
-                } else {
-                    addLog("⚠️ Browser menolak perintah getar (Aktivasi tidak valid).");
-                    clearInterval(vibrationInterval);
-                    vibrationInterval = null;
-                }
-            } else {
-                addLog("❌ Browser tidak mendukung Vibration API.");
-                clearInterval(vibrationInterval);
-                vibrationInterval = null;
-            }
-        }, 1000);
-    }
-
-    // EVENT ASLI
-    touchZone.addEventListener('pointerup', () => {
-        if (!vibrationInterval) {
-            addLog("Gerakan dilepaskan (Pointerup).");
-            startVibrationSpam();
-        }
-    }, { once: true });
-
-    // TAMBAHAN: EVENT POINTERMOVE
-    touchZone.addEventListener('pointermove', () => {
-        if (!vibrationInterval) {
-            addLog("Gerakan terdeteksi (Pointermove).");
-            startVibrationSpam();
-        }
-    });
-
-    // TAMBAHAN: EVENT SCROLL
-    window.addEventListener('scroll', () => {
-        if (!vibrationInterval) {
-            addLog("Halaman digulir (Scroll).");
-            startVibrationSpam();
-        }
+    window.addEventListener("pointermove", (event) => {
+        detectGesture("pointermove: " + event.pointerType);
     }, { passive: true });
 
-    // TOMBOL BERHENTI ASLI
-    stopBtn.addEventListener('click', () => {
-        if (vibrationInterval) {
-            clearInterval(vibrationInterval);
-            vibrationInterval = null;
-        }
-
-        if (navigator.vibrate) {
-            navigator.vibrate(0);
-        }
-
-        addLog("🛑 Pengujian dihentikan. Getaran direset.");
-    });
+    window.addEventListener("scroll", () => {
+        detectGesture("scroll");
+    }, { passive: true });
 </script>
-
 </body>
 </html>
 ```
