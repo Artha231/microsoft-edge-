@@ -2,867 +2,210 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📡 SW Vibrate — Anti-Gagal Version</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Getar Loop</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
         height: 100%;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
         background: #0d0f14;
         color: #e6e8eb;
         user-select: none;
         -webkit-tap-highlight-color: transparent;
         overflow: hidden;
     }
-    #app {
+    #zone {
         position: fixed;
         inset: 0;
         display: flex;
         flex-direction: column;
-    }
-    .header {
-        padding: 12px 16px;
-        background: #1a1d24;
-        border-bottom: 1px solid #2c313a;
-    }
-    .header h1 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-    .header .sub { font-size: 11px; color: #8b93a1; line-height: 1.5; }
-
-    /* Diagnostic panel */
-    .diag {
-        padding: 8px 12px;
-        background: #12151b;
-        border-bottom: 1px solid #2c313a;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 6px;
-        font-family: ui-monospace, monospace;
-        font-size: 10px;
-    }
-    .diag-item {
-        display: flex;
         align-items: center;
-        gap: 6px;
-    }
-    .dot {
-        width: 8px; height: 8px;
-        border-radius: 50%;
-        background: #444;
-        flex-shrink: 0;
-    }
-    .dot.on  { background: #2ecc71; box-shadow: 0 0 6px #2ecc71; }
-    .dot.off { background: #dc2626; }
-    .dot.warn { background: #f1c40f; }
-    .diag-item .lbl { color: #8b93a1; }
-    .diag-item .val { color: #e6e8eb; font-weight: 700; }
-
-    /* Stats */
-    .stats {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 4px;
-        padding: 8px 12px;
-        background: #12151b;
-        border-bottom: 1px solid #2c313a;
-    }
-    .stat {
-        background: #1a1d24;
-        border: 1px solid #2c313a;
-        border-radius: 6px;
-        padding: 6px 4px;
+        justify-content: center;
         text-align: center;
-        font-family: ui-monospace, monospace;
-    }
-    .stat .v { font-size: 14px; font-weight: 900; line-height: 1.1; }
-    .stat .l { font-size: 8px; color: #8b93a1; text-transform: uppercase; margin-top: 1px; }
-    .stat.ok .v { color: #2ecc71; }
-    .stat.hi .v { color: #ff2020; }
-    .stat.wr .v { color: #f1c40f; }
-    .stat.cy .v { color: #00ffff; }
-
-    /* Buttons */
-    .btn-area {
-        padding: 10px 12px;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 6px;
-        background: #12151b;
-        border-bottom: 1px solid #2c313a;
-    }
-    button {
-        padding: 12px 8px;
-        font-size: 12px;
-        font-weight: 700;
-        border: none;
-        border-radius: 8px;
+        padding: 20px;
         cursor: pointer;
-        color: white;
-        transition: transform .05s;
-        font-family: inherit;
+        background: #0d0f14;
+        transition: background .15s;
     }
-    button:active:not(:disabled) { transform: scale(0.96); }
-    button:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-full { grid-column: 1 / -1; }
-    .btn-setup { background: #2563eb; padding: 15px; font-size: 14px; }
-    .btn-test  { background: #059669; }
-    .btn-fire  { background: #dc2626; }
-    .btn-loop  { background: #ea580c; }
-    .btn-stop  { background: #374151; }
-    .btn-fallback { background: #7c3aed; }
+    #zone.active { background: #2a0000; cursor: default; }
 
-    /* Log */
-    #log {
-        flex: 1;
-        overflow-y: auto;
-        background: #000;
-        padding: 10px 12px;
-        font-family: ui-monospace, monospace;
-        font-size: 10.5px;
-        line-height: 1.55;
-        white-space: pre-wrap;
-        word-break: break-word;
+    .icon {
+        font-size: 100px;
+        margin-bottom: 16px;
     }
-    #log .i  { color: #79c0ff; }
-    #log .ok { color: #3fb950; }
-    #log .wr { color: #d29922; }
-    #log .er { color: #f85149; }
-    #log .hi { color: #d2a8ff; font-weight: 700; }
-    #log .dim { color: #6b7280; }
+    #zone.active .icon { animation: shake .08s infinite; }
+    @keyframes shake {
+        0%   { transform: rotate(-15deg) scale(1.3); }
+        50%  { transform: rotate(15deg) scale(1.4); }
+        100% { transform: rotate(-15deg) scale(1.3); }
+    }
+
+    .title {
+        font-size: 22px;
+        font-weight: 900;
+        letter-spacing: 2px;
+        margin-bottom: 8px;
+    }
+    #zone.active .title { color: #ff2020; text-shadow: 0 0 20px #ff0000; }
+
+    .hint {
+        font-size: 13px;
+        color: #8b93a1;
+        line-height: 1.6;
+        max-width: 300px;
+    }
+    #zone.active .hint { color: #ff6060; }
+
+    .timer {
+        font-family: ui-monospace, monospace;
+        font-size: 56px;
+        font-weight: 900;
+        color: #ff2020;
+        margin: 16px 0;
+        min-height: 64px;
+        letter-spacing: 2px;
+        text-shadow: 0 0 30px #ff0000;
+        font-variant-numeric: tabular-nums;
+    }
+    #zone:not(.active) .timer { color: #333; text-shadow: none; }
+
+    #stopBtn {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 260px;
+        max-width: calc(100% - 40px);
+        padding: 18px;
+        background: #dc2626;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: 900;
+        letter-spacing: 2px;
+        cursor: pointer;
+        display: none;
+        box-shadow: 0 0 25px #ff0000;
+    }
+    #stopBtn.on { display: block; }
+    #stopBtn:active { transform: translateX(-50%) scale(0.96); }
 </style>
 </head>
 <body>
 
-<div id="app">
-    <div class="header">
-        <h1>📡 Service Worker Vibrate — Anti-Gagal</h1>
-        <div class="sub">
-            Auto-detect environment · Fallback berlapis · Diagnostik lengkap
-        </div>
+<div id="zone">
+    <div class="icon" id="icon">👆</div>
+    <div class="title" id="title">KLIK DI MANA SAJA</div>
+    <div class="timer" id="timer">0.0s</div>
+    <div class="hint" id="hint">
+        Sekali klik = getar tanpa henti.<br>
+        Jari boleh dilepas.
     </div>
-
-    <div class="diag">
-        <div class="diag-item">
-            <span class="dot" id="dot-secure"></span>
-            <span class="lbl">Secure:</span>
-            <span class="val" id="val-secure">—</span>
-        </div>
-        <div class="diag-item">
-            <span class="dot" id="dot-sw"></span>
-            <span class="lbl">SW API:</span>
-            <span class="val" id="val-sw">—</span>
-        </div>
-        <div class="diag-item">
-            <span class="dot" id="dot-reg"></span>
-            <span class="lbl">Registered:</span>
-            <span class="val" id="val-reg">—</span>
-        </div>
-        <div class="diag-item">
-            <span class="dot" id="dot-ctrl"></span>
-            <span class="lbl">Controller:</span>
-            <span class="val" id="val-ctrl">—</span>
-        </div>
-        <div class="diag-item">
-            <span class="dot" id="dot-perm"></span>
-            <span class="lbl">Permission:</span>
-            <span class="val" id="val-perm">—</span>
-        </div>
-        <div class="diag-item">
-            <span class="dot" id="dot-notif"></span>
-            <span class="lbl">Notif API:</span>
-            <span class="val" id="val-notif">—</span>
-        </div>
-    </div>
-
-    <div class="stats">
-        <div class="stat hi"> <div class="v" id="s-sent">0</div>     <div class="l">Terkirim</div></div>
-        <div class="stat ok"> <div class="v" id="s-shown">0</div>    <div class="l">Ditampilkan</div></div>
-        <div class="stat wr"> <div class="v" id="s-fail">0</div>     <div class="l">Gagal</div></div>
-        <div class="stat cy"> <div class="v" id="s-hidden">0</div>   <div class="l">Saat Hidden</div></div>
-    </div>
-
-    <div class="btn-area">
-        <button class="btn-setup btn-full" id="btn-setup">⚙ SETUP (Register + Izin)</button>
-        <button class="btn-test" id="btn-test" disabled>🧪 TEST GETAR</button>
-        <button class="btn-fire" id="btn-fire" disabled>💥 FIRE 1 NOTIF</button>
-        <button class="btn-loop" id="btn-loop" disabled>🔁 LOOP 20 NOTIF</button>
-        <button class="btn-stop" id="btn-stop" disabled>■ STOP</button>
-        <button class="btn-fallback btn-full" id="btn-fallback" disabled>🔄 FALLBACK: Notif dari Halaman</button>
-    </div>
-
-    <div id="log">Memuat...</div>
 </div>
+
+<button id="stopBtn">■ STOP GETARAN</button>
 
 <script>
 (() => {
 'use strict';
 
-// ============================================================
-// DOM
-// ============================================================
-const $ = id => document.getElementById(id);
-const logEl     = $('log');
-const dotSecure = $('dot-secure');
-const dotSw     = $('dot-sw');
-const dotReg    = $('dot-reg');
-const dotCtrl   = $('dot-ctrl');
-const dotPerm   = $('dot-perm');
-const dotNotif  = $('dot-notif');
-const valSecure = $('val-secure');
-const valSw     = $('val-sw');
-const valReg    = $('val-reg');
-const valCtrl   = $('val-ctrl');
-const valPerm   = $('val-perm');
-const valNotif  = $('val-notif');
-const sSent     = $('s-sent');
-const sShown    = $('s-shown');
-const sFail     = $('s-fail');
-const sHidden   = $('s-hidden');
-const btnSetup  = $('btn-setup');
-const btnTest   = $('btn-test');
-const btnFire   = $('btn-fire');
-const btnLoop   = $('btn-loop');
-const btnStop   = $('btn-stop');
-const btnFallback = $('btn-fallback');
+const zone    = document.getElementById('zone');
+const icon    = document.getElementById('icon');
+const title   = document.getElementById('title');
+const timer   = document.getElementById('timer');
+const hint    = document.getElementById('hint');
+const stopBtn = document.getElementById('stopBtn');
 
-// ============================================================
-// STATE
-// ============================================================
-const state = {
-    swRegistered: false,
-    hasController: false,
-    permission: 'default',
-    sent: 0,
-    shown: 0,
-    fail: 0,
-    hiddenFires: 0,
-    loopTimer: null,
-    loopCount: 0,
-    loopMax: 20,
-    useFallback: false
-};
+let running = false;
+let startTime = 0;
+let vibTimer = null;
+let uiTimer = null;
 
-// ============================================================
-// LOG
-// ============================================================
-const MAX_LOG = 300;
-function log(text, cls = '') {
-    const span = document.createElement('span');
-    span.className = cls;
-    span.textContent = text + '\n';
-    logEl.appendChild(span);
-    while (logEl.children.length > MAX_LOG) {
-        logEl.removeChild(logEl.firstChild);
+// Fire vibrate tiap 500ms, minta durasi 1000ms.
+// Karena interval (500) < durasi (1000), getar tidak pernah berhenti.
+const INTERVAL = 500;
+const DURATION = 1000;
+
+function start() {
+    if (running) return;
+    if (typeof navigator.vibrate !== 'function') {
+        hint.textContent = 'Browser tidak mendukung getaran.';
+        return;
     }
-    logEl.scrollTop = logEl.scrollHeight;
+
+    running = true;
+    startTime = Date.now();
+
+    zone.classList.add('active');
+    icon.textContent = '📳';
+    title.textContent = 'GETAR AKTIF';
+    hint.innerHTML = 'Getar berjalan tanpa henti.<br>Tekan STOP untuk berhenti.';
+    stopBtn.classList.add('on');
+
+    // Fire langsung sekali
+    navigator.vibrate(DURATION);
+
+    // Loop
+    vibTimer = setInterval(() => {
+        if (!running) return;
+        navigator.vibrate(DURATION);
+    }, INTERVAL);
+
+    // Update timer
+    uiTimer = setInterval(() => {
+        if (!running) return;
+        const sec = ((Date.now() - startTime) / 1000).toFixed(1);
+        timer.textContent = sec + 's';
+    }, 100);
 }
 
-// ============================================================
-// UI HELPERS
-// ============================================================
-function setDot(el, cls) { el.className = 'dot ' + cls; }
+function stop() {
+    if (!running) return;
+    running = false;
 
-function refreshDiag() {
-    // Secure context
-    if (window.isSecureContext) {
-        setDot(dotSecure, 'on');
-        valSecure.textContent = 'YA';
-    } else {
-        setDot(dotSecure, 'off');
-        valSecure.textContent = 'TIDAK';
-    }
+    clearInterval(vibTimer);
+    clearInterval(uiTimer);
+    vibTimer = null;
+    uiTimer = null;
 
-    // SW API
-    if ('serviceWorker' in navigator) {
-        setDot(dotSw, 'on');
-        valSw.textContent = 'ADA';
-    } else {
-        setDot(dotSw, 'off');
-        valSw.textContent = 'TIDAK';
-    }
+    // Matikan getar
+    navigator.vibrate(0);
+    navigator.vibrate([]);
 
-    // Registered
-    if (state.swRegistered) {
-        setDot(dotReg, 'on');
-        valReg.textContent = 'YA';
-    } else {
-        setDot(dotReg, 'warn');
-        valReg.textContent = 'BELUM';
-    }
+    zone.classList.remove('active');
+    icon.textContent = '👆';
+    title.textContent = 'KLIK DI MANA SAJA';
+    hint.innerHTML = 'Sekali klik = getar tanpa henti.<br>Jari boleh dilepas.';
+    stopBtn.classList.remove('on');
 
-    // Controller
-    if (state.hasController) {
-        setDot(dotCtrl, 'on');
-        valCtrl.textContent = 'ADA';
-    } else {
-        setDot(dotCtrl, 'warn');
-        valCtrl.textContent = 'BELUM';
-    }
-
-    // Permission
-    if (state.permission === 'granted') {
-        setDot(dotPerm, 'on');
-        valPerm.textContent = 'OK';
-    } else if (state.permission === 'denied') {
-        setDot(dotPerm, 'off');
-        valPerm.textContent = 'DENIED';
-    } else {
-        setDot(dotPerm, 'warn');
-        valPerm.textContent = 'DEFAULT';
-    }
-
-    // Notification API
-    if ('Notification' in window) {
-        setDot(dotNotif, 'on');
-        valNotif.textContent = 'ADA';
-    } else {
-        setDot(dotNotif, 'off');
-        valNotif.textContent = 'TIDAK';
-    }
-
-    // Stats
-    sSent.textContent = state.sent;
-    sShown.textContent = state.shown;
-    sFail.textContent = state.fail;
-    sHidden.textContent = state.hiddenFires;
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    timer.textContent = elapsed + 's';
 }
 
-// ============================================================
-// SERVICE WORKER SOURCE
-// ============================================================
-// SW ini menerima pesan {cmd:'notify'} dan menampilkan notifikasi
-// dengan properti vibrate. Juga mencoba navigator.vibrate() langsung.
-//
-// Kode SW harus SEDERHANA — tidak boleh throw error, karena error
-// di SW akan mematikan SW dan tidak bisa di-recover tanpa reload.
-
-const SW_SOURCE = `
-'use strict';
-
-self.addEventListener('install', (event) => {
-    console.log('[SW] install');
-    self.skipWaiting();
+// Klik zona untuk mulai
+zone.addEventListener('click', () => {
+    if (!running) start();
 });
 
-self.addEventListener('activate', (event) => {
-    console.log('[SW] activate');
-    event.waitUntil(self.clients.claim());
+// Tombol STOP
+stopBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    stop();
 });
 
-self.addEventListener('message', (event) => {
-    const data = event.data || {};
-    const clientSource = event.source;
-
-    if (data.cmd === 'notify') {
-        const pattern = data.vibrate || [500, 200, 500, 200, 500];
-        const title = data.title || '📡 Vibrate Test';
-        const body = data.body || ('Notif #' + Date.now());
-        const tag = 'vib-' + Date.now();
-
-        // Coba navigator.vibrate() langsung dari SW
-        let directVibrateOk = false;
-        try {
-            if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-                directVibrateOk = navigator.vibrate(pattern);
-            }
-        } catch (e) {
-            directVibrateOk = false;
-        }
-
-        // Tampilkan notifikasi
-        self.registration.showNotification(title, {
-            body: body,
-            tag: tag,
-            vibrate: pattern,
-            silent: false,
-            requireInteraction: false,
-            renotify: false,
-            data: {
-                timestamp: Date.now(),
-                directVibrate: directVibrateOk
-            }
-        }).then(() => {
-            if (clientSource) {
-                clientSource.postMessage({
-                    cmd: 'notified',
-                    ok: true,
-                    directVibrateOk: directVibrateOk,
-                    timestamp: Date.now()
-                });
-            }
-        }).catch(err => {
-            if (clientSource) {
-                clientSource.postMessage({
-                    cmd: 'notified',
-                    ok: false,
-                    error: err.message
-                });
-            }
-        });
-    }
-});
-
-self.addEventListener('notificationclick', (event) => {
-    event.notification.close();
-    event.waitUntil(
-        self.clients.matchAll({ type: 'window' }).then(clients => {
-            if (clients.length > 0) return clients[0].focus();
-            return self.clients.openWindow('/');
-        })
-    );
-});
-`;
-
-// ============================================================
-// SETUP: REGISTER + PERMISSION
-// ============================================================
-async function setup() {
-    log('═══════════════════════════════════', 'hi');
-    log('⚙ SETUP dimulai', 'hi');
-    log('═══════════════════════════════════', 'hi');
-    log('', '');
-
-    // ---- 1. Cek environment ----
-    log('1️⃣ Cek environment:', 'i');
-    log('   Protocol   : ' + location.protocol, 'dim');
-    log('   Host       : ' + location.hostname, 'dim');
-    log('   Secure ctx : ' + (window.isSecureContext ? 'YA' : 'TIDAK'), 
-        window.isSecureContext ? 'ok' : 'er');
-    log('', '');
-
-    if (!window.isSecureContext) {
-        log('❌ Halaman BUKAN secure context.', 'er');
-        log('   Service Worker & Notification hanya berfungsi di:', 'wr');
-        log('   - https://', 'wr');
-        log('   - http://localhost', 'wr');
-        log('   - http://127.0.0.1', 'wr');
-        log('', '');
-        log('   Solusi: buka halaman ini via HTTPS.', 'i');
-        log('   Kalau di GitHub Pages, sudah otomatis HTTPS.', 'i');
-        return;
-    }
-    log('✅ Secure context terpenuhi', 'ok');
-    log('', '');
-
-    // ---- 2. Cek SW API ----
-    log('2️⃣ Cek Service Worker API:', 'i');
-    if (!('serviceWorker' in navigator)) {
-        log('❌ Service Worker TIDAK didukung', 'er');
-        log('   Lanjut ke fallback (notif dari halaman).', 'wr');
-        state.useFallback = true;
-        btnFallback.disabled = false;
-        await requestPermission();
-        return;
-    }
-    log('✅ Service Worker didukung', 'ok');
-    log('', '');
-
-    // ---- 3. Register SW ----
-    log('3️⃣ Register Service Worker:', 'i');
-    let registration = null;
-    try {
-        // Pakai Blob URL — di beberapa browser ini gagal, tapi kita coba dulu
-        const blob = new Blob([SW_SOURCE], { type: 'application/javascript' });
-        const swUrl = URL.createObjectURL(blob);
-        
-        log('   Mencoba register dari Blob URL...', 'dim');
-        log('   ⚠ Blob URL sering ditolak Chrome — coba dulu', 'wr');
-        
-        registration = await navigator.serviceWorker.register(swUrl);
-        state.swRegistered = true;
-        log('✅ SW berhasil didaftarkan!', 'ok');
-        log('   Scope: ' + registration.scope, 'dim');
-    } catch (err) {
-        log('❌ Register dari Blob URL GAGAL: ' + err.message, 'er');
-        log('', '');
-        log('🔄 Mencoba fallback: register dari file /sw.js...', 'wr');
-        log('   (Anda harus punya file sw.js di root domain)', 'dim');
-        log('', '');
-        
-        try {
-            registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-            state.swRegistered = true;
-            log('✅ SW berhasil didaftarkan dari /sw.js!', 'ok');
-            log('   Scope: ' + registration.scope, 'dim');
-        } catch (err2) {
-            log('❌ Fallback /sw.js juga GAGAL: ' + err2.message, 'er');
-            log('', '');
-            log('📋 DIAGNOSIS:', 'hi');
-            log('   Service Worker tidak bisa didaftarkan.', 'wr');
-            log('   Kemungkinan penyebab:', 'wr');
-            log('   a) File /sw.js tidak ada di server', 'dim');
-            log('   b) Blob URL ditolak Chrome (normal)', 'dim');
-            log('   c) Browser dalam mode Incognito', 'dim');
-            log('   d) Extension memblokir SW', 'dim');
-            log('', '');
-            log('   Solusi: pakai FALLBACK (notif dari halaman).', 'i');
-            log('   Fallback tetap bisa memicu notifikasi + getar,', 'i');
-            log('   tapi HANYA saat halaman masih hidup.', 'i');
-            log('', '');
-            
-            state.useFallback = true;
-            btnFallback.disabled = false;
-            
-            // Lanjut ke permission
-            await requestPermission();
-            return;
-        }
-    }
-
-    // Tunggu SW siap
-    try {
-        await navigator.serviceWorker.ready;
-        log('✅ SW ready (aktif)', 'ok');
-    } catch (err) {
-        log('⚠ SW ready timeout: ' + err.message, 'wr');
-    }
-
-    // Cek controller
-    state.hasController = !!navigator.serviceWorker.controller;
-    log('   Controller: ' + (state.hasController ? 'ADA' : 'BELUM'), 
-        state.hasController ? 'ok' : 'wr');
-    log('', '');
-
-    // Kalau belum ada controller, reload sekali
-    if (!state.hasController) {
-        log('4️⃣ Belum ada controller — perlu reload sekali', 'wr');
-        log('   Halaman akan reload otomatis dalam 1 detik...', 'i');
-        log('   Setelah reload, tombol SETUP akan otomatis ke-trigger lagi', 'i');
-        log('', '');
-        log('   💡 Tip: kalau tidak mau reload, klik tombol SETUP lagi', 'dim');
-        
-        // Simpan flag supaya setelah reload otomatis setup
-        try { sessionStorage.setItem('sw_auto_setup', '1'); } catch(e) {}
-        
-        setTimeout(() => location.reload(), 1000);
-        return;
-    }
-
-    // Listen untuk pesan dari SW
-    navigator.serviceWorker.addEventListener('message', (event) => {
-        const data = event.data || {};
-        if (data.cmd === 'notified') {
-            if (data.ok) {
-                state.shown++;
-                log('✅ Notif ditampilkan oleh SW', 'ok');
-                if (data.directVibrateOk) {
-                    log('   🎉 SW navigator.vibrate() = TRUE — getar BERHASIL dari SW!', 'ok');
-                } else {
-                    log('   ⚠ SW navigator.vibrate() = FALSE — tidak didukung di SW', 'wr');
-                    log('   → Notifikasi tetap ditampilkan, tapi getar via properti vibrate', 'dim');
-                }
-                if (document.hidden) {
-                    state.hiddenFires++;
-                    log('   🌙 Ini terjadi saat HIDDEN!', 'hi');
-                }
-            } else {
-                state.fail++;
-                log('❌ SW gagal tampilkan notif: ' + data.error, 'er');
-            }
-            refreshDiag();
-        }
-    });
-
-    // ---- 4. Minta izin notifikasi ----
-    log('4️⃣ Minta izin notifikasi:', 'i');
-    await requestPermission();
-}
-
-// ============================================================
-// REQUEST PERMISSION
-// ============================================================
-async function requestPermission() {
-    if (!('Notification' in window)) {
-        log('❌ Notification API tidak didukung', 'er');
-        return;
-    }
-
-    log('   Status saat ini: ' + Notification.permission, 'dim');
-
-    if (Notification.permission === 'granted') {
-        state.permission = 'granted';
-        log('✅ Izin sudah granted sebelumnya', 'ok');
-        enableButtons();
-        return;
-    }
-
-    if (Notification.permission === 'denied') {
-        state.permission = 'denied';
-        log('❌ Izin DITOLAK sebelumnya', 'er');
-        log('   Buka Settings browser → Site Settings → Notifications', 'wr');
-        log('   untuk reset, lalu refresh halaman ini.', 'wr');
-        refreshDiag();
-        return;
-    }
-
-    log('   Meminta izin (akan muncul prompt)...', 'wr');
-    try {
-        const result = await Notification.requestPermission();
-        state.permission = result;
-        if (result === 'granted') {
-            log('✅ Izin DIBERIKAN', 'ok');
-            enableButtons();
-        } else {
-            log('❌ Izin ' + result.toUpperCase(), 'er');
-        }
-        refreshDiag();
-    } catch (err) {
-        log('❌ Gagal minta izin: ' + err.message, 'er');
-    }
-}
-
-// ============================================================
-// ENABLE BUTTONS
-// ============================================================
-function enableButtons() {
-    btnSetup.disabled = true;
-    btnTest.disabled = false;
-    btnFire.disabled = false;
-    btnLoop.disabled = false;
-    btnStop.disabled = false;
-    if (state.useFallback) btnFallback.disabled = false;
-
-    log('', '');
-    log('✅✅✅ SETUP SELESAI ✅✅✅', 'hi');
-    log('', '');
-    if (state.useFallback) {
-        log('Mode: FALLBACK (notif dari halaman)', 'wr');
-        log('  - Notifikasi tetap muncul', 'i');
-        log('  - Tapi HANYA saat halaman masih hidup', 'i');
-        log('  - Kalau tab ditutup, tidak ada notif', 'i');
-    } else {
-        log('Mode: SERVICE WORKER', 'ok');
-        log('  - Notifikasi via SW', 'i');
-        log('  - Bisa muncul saat tab di background', 'i');
-    }
-    log('', '');
-    log('Tekan TEST GETAR untuk mulai.', 'i');
-    refreshDiag();
-}
-
-// ============================================================
-// SEND NOTIFICATION (SW atau Fallback)
-// ============================================================
-function sendNotification(pattern, label) {
-    state.sent++;
-
-    if (state.useFallback || !state.hasController) {
-        // FALLBACK: pakai Notification langsung dari halaman
-        log(`📤 [${label}] Fallback mode — notif via halaman`, 'wr');
-        
-        if (Notification.permission !== 'granted') {
-            log('❌ Izin notif tidak granted', 'er');
-            state.fail++;
-            refreshDiag();
-            return;
-        }
-
-        try {
-            const n = new Notification('📡 Vibrate Test (Fallback)', {
-                body: `${label} — #${state.sent} — ${new Date().toLocaleTimeString()}`,
-                tag: 'vib-fallback-' + Date.now(),
-                vibrate: pattern,
-                silent: false,
-                requireInteraction: false
-            });
-            
-            n.onshow = () => {
-                state.shown++;
-                log('✅ Notif fallback ditampilkan', 'ok');
-                if (document.hidden) {
-                    state.hiddenFires++;
-                    log('   🌙 Ini terjadi saat HIDDEN!', 'hi');
-                }
-                setTimeout(() => n.close(), 3000);
-                refreshDiag();
-            };
-            
-            n.onerror = (e) => {
-                state.fail++;
-                log('❌ Fallback notif error: ' + (e.message || 'unknown'), 'er');
-                refreshDiag();
-            };
-
-            // Coba navigator.vibrate langsung dari halaman (biasanya berhasil kalau visible)
-            const vibOk = navigator.vibrate && navigator.vibrate(pattern);
-            log('   navigator.vibrate() dari halaman: ' + vibOk, vibOk ? 'ok' : 'wr');
-            
-        } catch (err) {
-            state.fail++;
-            log('❌ Fallback notif gagal: ' + err.message, 'er');
-            refreshDiag();
-        }
-        return;
-    }
-
-    // SW MODE
-    log(`📤 [${label}] Kirim ke SW — vibrate=[${pattern.join(', ')}]`, 'i');
-    if (document.hidden) {
-        log('   🌙 (halaman sedang HIDDEN)', 'wr');
-    }
-
-    navigator.serviceWorker.controller.postMessage({
-        cmd: 'notify',
-        title: '📡 Vibrate Test',
-        body: `${label} — #${state.sent} — ${new Date().toLocaleTimeString()}`,
-        vibrate: pattern
-    });
-    refreshDiag();
-}
-
-// ============================================================
-// BUTTON HANDLERS
-// ============================================================
-function testSingle() {
-    log('🧪 TEST GETAR — pattern [400, 200, 400]', 'hi');
-    sendNotification([400, 200, 400], 'test');
-}
-
-function fireSingle() {
-    log('💥 FIRE 1 NOTIF — pattern [500, 200, 500, 200, 500]', 'hi');
-    sendNotification([500, 200, 500, 200, 500], 'fire');
-}
-
-function startLoop() {
-    if (state.loopTimer) {
-        log('⚠ Loop sudah berjalan', 'wr');
-        return;
-    }
-
-    state.loopCount = 0;
-    log(`🔁 Loop ${state.loopMax} notifikasi (interval 1.5 detik)`, 'hi');
-    log('   📌 Sekarang pindah tab / matikan layar', 'wr');
-    log('   📌 Amati apakah notif muncul & HP bergetar', 'wr');
-    log('', '');
-
-    btnLoop.disabled = true;
-    btnStop.disabled = false;
-
-    state.loopTimer = setInterval(() => {
-        state.loopCount++;
-        if (state.loopCount > state.loopMax) {
-            log(`⏹ Loop selesai (${state.loopMax} notif)`, 'ok');
-            stopLoop();
-            return;
-        }
-        sendNotification(
-            [500, 200, 500, 200, 500],
-            `loop ${state.loopCount}/${state.loopMax}`
-        );
-    }, 1500);
-}
-
-function stopLoop() {
-    if (state.loopTimer) {
-        clearInterval(state.loopTimer);
-        state.loopTimer = null;
-    }
-    btnLoop.disabled = false;
-    btnStop.disabled = true;
-
-    // Tutup semua notifikasi
-    if (state.swRegistered && navigator.serviceWorker.controller) {
-        // Minta SW untuk tutup (via message — kita tidak implement close,
-        // jadi skip, cukup biarkan notif hilang sendiri)
-    }
-    try {
-        // Fallback: tidak bisa enumerate notif dari halaman
-    } catch(e) {}
-}
-
-// ============================================================
-// VISIBILITY
-// ============================================================
+// Auto-stop saat tab disembunyikan
 document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-        log('', '');
-        log('═══════════════════════════════════', 'hi');
-        log('👁 → HIDDEN', 'hi');
-        log('   Waktu: ' + new Date().toLocaleTimeString(), 'i');
-        log('   Notif berikutnya akan muncul di background', 'wr');
-        log('   Amati apakah HP bergetar', 'wr');
-        log('═══════════════════════════════════', 'hi');
-    } else {
-        log('', '');
-        log('═══════════════════════════════════', 'hi');
-        log('👁 → VISIBLE kembali', 'hi');
-        log(`   Hidden fires: ${state.hiddenFires}`, 'i');
-        log('═══════════════════════════════════', 'hi');
-    }
-    refreshDiag();
+    if (document.hidden && running) stop();
 });
 
-// ============================================================
-// AUTO-SETUP setelah reload
-// ============================================================
-try {
-    if (sessionStorage.getItem('sw_auto_setup') === '1') {
-        sessionStorage.removeItem('sw_auto_setup');
-        // Tunggu DOM siap + SW controller ada
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                if (navigator.serviceWorker.controller) {
-                    log('🔄 Auto-setup setelah reload...', 'i');
-                    state.swRegistered = true;
-                    state.hasController = true;
-                    // Langsung minta permission kalau belum granted
-                    if (Notification.permission === 'granted') {
-                        state.permission = 'granted';
-                        enableButtons();
-                    } else {
-                        setup();
-                    }
-                }
-            }, 300);
-        });
-    }
-} catch(e) {}
-
-// ============================================================
-// EVENT BINDINGS
-// ============================================================
-btnSetup.addEventListener('click', setup);
-btnTest.addEventListener('click', testSingle);
-btnFire.addEventListener('click', fireSingle);
-btnLoop.addEventListener('click', startLoop);
-btnStop.addEventListener('click', stopLoop);
-btnFallback.addEventListener('click', () => {
-    state.useFallback = true;
-    log('🔄 Mode fallback diaktifkan', 'wr');
-    enableButtons();
-});
-
-// ============================================================
-// CLEANUP
-// ============================================================
+// Cleanup
 window.addEventListener('beforeunload', () => {
-    if (state.loopTimer) clearInterval(state.loopTimer);
+    if (vibTimer) clearInterval(vibTimer);
+    if (uiTimer) clearInterval(uiTimer);
+    try { navigator.vibrate(0); } catch(_) {}
 });
-
-// ============================================================
-// INIT
-// ============================================================
-logEl.textContent = '';
-log('═══════════════════════════════════', 'hi');
-log('📡 SW VIBRATE — ANTI-GAGAL VERSION', 'hi');
-log('═══════════════════════════════════', 'hi');
-log('', '');
-log('Environment:', 'i');
-log('  Protocol   : ' + location.protocol, 'dim');
-log('  Host       : ' + location.hostname, 'dim');
-log('  Secure ctx : ' + (window.isSecureContext ? 'YA ✅' : 'TIDAK ❌'),
-    window.isSecureContext ? 'ok' : 'er');
-log('  SW API     : ' + ('serviceWorker' in navigator ? 'YA ✅' : 'TIDAK ❌'),
-    'serviceWorker' in navigator ? 'ok' : 'er');
-log('  Notif API  : ' + ('Notification' in window ? 'YA ✅' : 'TIDAK ❌'),
-    'Notification' in window ? 'ok' : 'er');
-log('  Vibrate API: ' + (typeof navigator.vibrate === 'function' ? 'YA ✅' : 'TIDAK ❌'),
-    typeof navigator.vibrate === 'function' ? 'ok' : 'er');
-log('', '');
-log('Klik tombol ⚙ SETUP di atas untuk memulai.', 'i');
-log('', '');
-
-refreshDiag();
 
 })();
 </script>
