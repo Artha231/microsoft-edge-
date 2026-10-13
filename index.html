@@ -1,498 +1,178 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Zero-Click Vibrator via Gesture Hijack</title>
-<style>
-    :root {
-        --bg: #0d0f14;
-        --panel: #161a22;
-        --panel-2: #1f242f;
-        --fg: #e6e8eb;
-        --muted: #8b93a1;
-        --accent: #4f8cff;
-        --ok: #2ecc71;
-        --warn: #f1c40f;
-        --err: #e74c3c;
-        --border: #2c313a;
-        --hijack: #a855f7;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gesture & Vibration Analyzer</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body {
-        margin: 0;
-        padding: 0;
-        background: var(--bg);
-        color: var(--fg);
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-        overscroll-behavior: none;
-        min-height: 100vh;
+
+    body {
+      min-height: 150vh;
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      color: #222;
     }
+
     .container {
-        max-width: 640px;
-        margin: 0 auto;
-        padding: 20px;
+      max-width: 420px;
+      margin: 40px auto;
+      padding: 24px;
+      text-align: center;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px #00000012;
     }
-    h1 { font-size: 19px; margin: 0 0 6px; }
-    p.sub { color: var(--muted); font-size: 13px; margin: 0 0 16px; line-height: 1.5; }
 
-    /* ---- Zona bidik gesture (full-screen hijack area) ---- */
-    #hijackZone {
-        position: relative;
-        background: linear-gradient(135deg, #1a1f2e 0%, #232a3d 100%);
-        border: 2px dashed var(--hijack);
-        border-radius: 12px;
-        padding: 28px 20px;
-        text-align: center;
-        user-select: none;
-        touch-action: manipulation;
-        transition: background .3s, border-color .3s;
-        min-height: 200px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
+    h2 {
+      margin-bottom: 12px;
     }
-    #hijackZone.listening {
-        border-color: var(--ok);
-        background: linear-gradient(135deg, #14261a 0%, #1a3324 100%);
-        animation: pulse 1.6s ease-in-out infinite;
-    }
-    @keyframes pulse {
-        0%, 100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.4); }
-        50%      { box-shadow: 0 0 0 12px rgba(46, 204, 113, 0); }
-    }
-    #hijackZone .icon { font-size: 40px; margin-bottom: 10px; }
-    #hijackZone .title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-    #hijackZone .hint { font-size: 12px; color: var(--muted); line-height: 1.5; }
 
-    /* ---- Gesture chips ---- */
-    .chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin: 14px 0;
-        justify-content: center;
+    p {
+      color: #666;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 18px;
     }
-    .chip {
-        font-size: 11px;
-        padding: 4px 9px;
-        border-radius: 20px;
-        background: var(--panel-2);
-        border: 1px solid var(--border);
-        color: var(--muted);
-        transition: all .2s;
-    }
-    .chip.active { background: var(--hijack); color: white; border-color: var(--hijack); }
-    .chip.fired  { background: var(--ok); color: #06210f; border-color: var(--ok); font-weight: 700; }
 
-    /* ---- Stats ---- */
-    .stats {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 8px;
-        margin: 14px 0;
+    #status {
+      margin-top: 16px;
+      font-size: 14px;
     }
-    .stat {
-        background: var(--panel-2);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        padding: 8px 6px;
-        text-align: center;
-    }
-    .stat .val { font-size: 17px; font-weight: 700; font-family: monospace; }
-    .stat .lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
-    .stat.ok  .val { color: var(--ok); }
-    .stat.warn .val { color: var(--warn); }
-    .stat.err .val { color: var(--err); }
-    .stat.hi  .val { color: var(--hijack); }
 
-    /* ---- Log ---- */
-    #status-log {
-        margin-top: 12px;
-        padding: 12px 14px;
-        background: #05070a;
-        color: #c9d1d9;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        text-align: left;
-        border-radius: 8px;
-        font-size: 11.5px;
-        line-height: 1.55;
-        height: 220px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-        word-break: break-word;
-        border: 1px solid var(--border);
+    #popup {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgb(0 0 0 / 55%);
     }
-    #status-log .t  { color: #6b7280; }
-    #status-log .i  { color: #79c0ff; }
-    #status-log .ok { color: #3fb950; }
-    #status-log .wr { color: #d29922; }
-    #status-log .er { color: #f85149; }
-    #status-log .hi { color: #d2a8ff; font-weight: 600; }
 
-    /* ---- Controls ---- */
-    .controls {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        margin-top: 12px;
+    .popup-content {
+      width: 100%;
+      max-width: 340px;
+      padding: 24px;
+      border-radius: 16px;
+      background: white;
+      text-align: center;
     }
+
+    .popup-content h3 {
+      margin-bottom: 12px;
+    }
+
     button {
-        padding: 11px 12px;
-        font-size: 13px;
-        font-weight: 600;
-        border-radius: 8px;
-        cursor: pointer;
-        border: none;
-        color: white;
-        transition: transform .05s, background .2s;
+      width: 100%;
+      padding: 14px;
+      margin-top: 10px;
+      border: 0;
+      border-radius: 10px;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
     }
-    button:active { transform: scale(0.98); }
-    button:disabled { opacity: .5; cursor: not-allowed; }
-    .btn-arm   { background: #7c3aed; }
-    .btn-arm:hover:not(:disabled)   { background: #6d28d9; }
-    .btn-clear { background: #374151; }
-    .btn-clear:hover:not(:disabled) { background: #4b5563; }
-
-    .note {
-        margin-top: 14px;
-        font-size: 11px;
-        color: var(--muted);
-        border-left: 2px solid var(--border);
-        padding-left: 10px;
-        line-height: 1.6;
-    }
-    .note code { background: var(--panel-2); padding: 1px 4px; border-radius: 3px; }
-</style>
+  </style>
 </head>
-<body>
 
-<div class="container">
-    <h1>🎯 Zero-Click Vibrator <span style="color:var(--muted);font-weight:400;">via Gesture Hijack</span></h1>
-    <p class="sub">
-        Uji apakah getaran (dan API lain yang butuh <em>user activation</em>) bisa dipicu
-        dari <strong>gesture tidak langsung</strong>: scroll, sentuh area kosong, ganti tab, putar layar, dll.
+<body>
+  <main class="container">
+    <h2>Gesture & Vibration Analyzer</h2>
+
+    <p>
+      Geser halaman ke atas atau ke bawah untuk memicu notifikasi.
     </p>
 
-    <div id="hijackZone">
-        <div class="icon">👆</div>
-        <div class="title">Zona Hijack</div>
-        <div class="hint">
-            Tekan <strong>ARM</strong> dulu, lalu:<br>
-            scroll · tap zona ini · ganti tab & balik · putar layar · sentuh mana saja
-        </div>
+    <div id="status" role="status" aria-live="polite">
+      Status: menunggu halaman digeser
     </div>
+  </main>
 
-    <div class="chips" id="chips"></div>
+  <div id="popup" role="dialog"
+       aria-modal="true" aria-labelledby="popupTitle">
+    <div class="popup-content">
+      <h3 id="popupTitle">Pemberitahuan</h3>
 
-    <div class="stats">
-        <div class="stat hi"><div class="val" id="statGesture">0</div><div class="lbl">Gesture</div></div>
-        <div class="stat ok"><div class="val" id="statVibOk">0</div><div class="lbl">Vibrate OK</div></div>
-        <div class="stat err"><div class="val" id="statVibFail">0</div><div class="lbl">Vibrate Fail</div></div>
-        <div class="stat warn"><div class="val" id="statAudio">0</div><div class="lbl">Audio OK</div></div>
+      <p>
+        Gerakan geser terdeteksi.
+        Tekan tombol di bawah untuk menguji getaran.
+      </p>
+
+      <button id="closePopup">Tutup</button>
     </div>
+  </div>
 
-    <div class="controls">
-        <button id="armBtn" class="btn-arm">⚡ ARM (Pasang Hijack)</button>
-        <button id="clearBtn" class="btn-clear">🗑 Bersihkan Log</button>
-    </div>
+  <script>
+    const popup = document.getElementById("popup");
+    const closePopup = document.getElementById("closePopup");
+    const status = document.getElementById("status");
 
-    <h3 style="font-size:12px;color:var(--muted);margin:18px 0 6px;text-transform:uppercase;letter-spacing:.05em;">Konsol Log</h3>
-    <div id="status-log">Belum di-ARM. Tekan tombol ⚡ ARM untuk mulai.</div>
+    let popupShown = false;
+    let vibrationTimer = null;
 
-    <div class="note">
-        <strong>Kenapa ini penting?</strong><br>
-        • <code>navigator.vibrate()</code> sebenarnya <em>tidak</em> butuh user activation di Chrome/Firefox modern —
-          jadi ia akan <span style="color:var(--ok)">selalu</span> berhasil begitu di-ARM, bahkan tanpa gesture apa pun.<br>
-        • API seperti <code>AudioContext.resume()</code>, <code>requestFullscreen()</code>, <code>navigator.wakeLock.request()</code>
-          <em>memang</em> butuh user activation. Baris "Audio OK" mengukur apakah gesture tertentu
-          cukup untuk "menularkan" aktivasi ke API tersebut.<br>
-        • Setiap gesture yang terdeteksi dicatat beserta hasilnya, sehingga Anda bisa melihat
-          gesture mana yang paling andal memicu efek samping.
-    </div>
-</div>
+    function showPopup() {
+      if (popupShown) return;
 
-<script>
-(() => {
-    'use strict';
+      popupShown = true;
+      popup.style.display = "flex";
+      status.textContent = "Status: gerakan geser terdeteksi";
+    }
 
-    const $ = (id) => document.getElementById(id);
-    const logBox      = $('status-log');
-    const armBtn      = $('armBtn');
-    const clearBtn    = $('clearBtn');
-    const hijackZone  = $('hijackZone');
-    const chipsBox    = $('chips');
-    const statGesture = $('statGesture');
-    const statVibOk   = $('statVibOk');
-    const statVibFail = $('statVibFail');
-    const statAudio   = $('statAudio');
-
-    // ---------- State ----------
-    let armed = false;
-    let gestureCount = 0;
-    let vibOk = 0, vibFail = 0, audioOk = 0;
-    let listeners = [];     // daftar {target, type, fn} untuk cleanup
-    let audioCtx = null;
-    let lastFireAt = 0;     // throttle
-    const FIRE_THROTTLE = 150;
-
-    // ---------- Gesture catalog ----------
-    const GESTURES = [
-        'scroll', 'touchstart', 'touchend', 'touchmove',
-        'pointerdown', 'pointermove', 'pointerup',
-        'click', 'dblclick',
-        'keydown', 'keyup',
-        'wheel',
-        'visibilitychange', 'focus', 'blur',
-        'orientationchange', 'resize',
-        'devicemotion', 'deviceorientation',
-        'pageshow', 'pagehide',
-        'mouseover', 'mousemove'
-    ];
-
-    // Buat chip untuk tiap gesture
-    const chipMap = {};
-    GESTURES.forEach(name => {
-        const c = document.createElement('div');
-        c.className = 'chip';
-        c.textContent = name;
-        c.dataset.gesture = name;
-        chipsBox.appendChild(c);
-        chipMap[name] = c;
+    // Munculkan popup ketika halaman benar-benar di-scroll.
+    window.addEventListener("scroll", showPopup, {
+      once: true,
+      passive: true
     });
 
-    // ---------- Logging ----------
-    const MAX_LOG_LINES = 350;
-    let logLines = 0;
-    function ts() { return new Date().toTimeString().slice(0, 8); }
-    function writeLog(text, cls = '') {
-        const span = document.createElement('span');
-        span.className = cls;
-        span.textContent = `[${ts()}] ${text}\n`;
-        logBox.appendChild(span);
-        logLines++;
-        while (logLines > MAX_LOG_LINES && logBox.firstChild) {
-            logBox.removeChild(logBox.firstChild);
-            logLines--;
-        }
-        logBox.scrollTop = logBox.scrollHeight;
-    }
-    function clearLog() {
-        logBox.textContent = '';
-        logLines = 0;
-    }
-
-    function updateStats() {
-        statGesture.textContent = gestureCount;
-        statVibOk.textContent   = vibOk;
-        statVibFail.textContent = vibFail;
-        statAudio.textContent   = audioOk;
-    }
-
-    // ---------- Effect: Vibrate ----------
-    function fireVibrate() {
-        if (typeof navigator.vibrate !== 'function') {
-            vibFail++;
-            return false;
-        }
-        try {
-            // Pola pendek & jelas supaya user tahu gesture-nya kena
-            const ok = navigator.vibrate([60, 40, 60]);
-            if (ok) vibOk++; else vibFail++;
-            return ok;
-        } catch (_) {
-            vibFail++;
-            return false;
-        }
-    }
-
-    // ---------- Effect: Audio (butuh user activation!) ----------
-    async function fireAudio() {
-        try {
-            if (!audioCtx) {
-                const AC = window.AudioContext || window.webkitAudioContext;
-                if (!AC) return false;
-                audioCtx = new AC();
-            }
-            if (audioCtx.state === 'suspended') {
-                await audioCtx.resume();
-            }
-            if (audioCtx.state === 'running') {
-                // Mainkan beep sangat pendek sebagai bukti
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                gain.gain.value = 0.02;
-                osc.frequency.value = 880;
-                osc.connect(gain).connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.05);
-                audioOk++;
-                return true;
-            }
-            return false;
-        } catch (_) {
-            return false;
-        }
-    }
-
-    // ---------- Core: fire effects on gesture ----------
-    async function fireEffects(gestureName) {
-        const now = Date.now();
-        if (now - lastFireAt < FIRE_THROTTLE) return;
-        lastFireAt = now;
-
-        gestureCount++;
-
-        // Mark chip as fired
-        const chip = chipMap[gestureName];
-        if (chip) {
-            chip.classList.add('fired');
-            setTimeout(() => chip.classList.remove('fired'), 800);
-        }
-
-        const vibResult   = fireVibrate();
-        const audioResult = await fireAudio();
-
-        // Snapshot userActivation
-        let uaStr = 'n/a';
-        if (navigator.userActivation) {
-            const ua = navigator.userActivation;
-            uaStr = `isActive=${ua.isActive}, hasBeenActive=${ua.hasBeenActive}`;
-        }
-
-        const vibCls = vibResult ? 'ok' : 'er';
-        const audCls = audioResult ? 'ok' : 'wr';
-        writeLog(
-            `[${gestureName}] vibrate=${vibResult ? 'OK' : 'FAIL'}  audio=${audioResult ? 'OK' : 'FAIL'}  |  ua: ${uaStr}`,
-            vibResult ? 'ok' : 'er'
-        );
-        if (audioResult) writeLog(`  → AudioContext resumed oleh gesture "${gestureName}"`, 'ok');
-
-        updateStats();
-    }
-
-    // ---------- Attach hijack listeners ----------
-    function attachListener(target, type, fn, opts) {
-        target.addEventListener(type, fn, opts);
-        listeners.push({ target, type, fn, opts });
-    }
-
-    function detachAll() {
-        listeners.forEach(({ target, type, fn, opts }) => {
-            try { target.removeEventListener(type, fn, opts); } catch (_) {}
-        });
-        listeners = [];
-    }
-
-    function arm() {
-        if (armed) return;
-        armed = true;
-        armBtn.textContent = '🛑 DISARM';
-        armBtn.classList.remove('btn-arm');
-        armBtn.classList.add('btn-clear');
-        hijackZone.classList.add('listening');
-        hijackZone.querySelector('.icon').textContent = '📡';
-        hijackZone.querySelector('.title').textContent = 'HIJACK AKTIF';
-        hijackZone.querySelector('.hint').innerHTML =
-            'Coba: scroll · tap di sini · ganti tab · putar layar · sentuh mana saja';
-
-        writeLog('=== HIJACK DI-ARM ===', 'hi');
-        writeLog('Setiap gesture berikut akan memicu vibrate + audio:', 'i');
-        writeLog(GESTURES.join(', '), 'i');
-
-        // Cek dukungan awal
-        writeLog(`navigator.vibrate: ${typeof navigator.vibrate === 'function' ? 'OK' : 'TIDAK ADA'}`, 
-                 typeof navigator.vibrate === 'function' ? 'ok' : 'er');
-        if (navigator.userActivation) {
-            writeLog(`userActivation awal: isActive=${navigator.userActivation.isActive}, hasBeenActive=${navigator.userActivation.hasBeenActive}`, 'i');
-        }
-
-        // --- Pasang listener ke berbagai target ---
-
-        // 1. Gesture pointer & sentuh (di zona hijack)
-        attachListener(hijackZone, 'touchstart', () => fireEffects('touchstart'), { passive: true });
-        attachListener(hijackZone, 'touchend',   () => fireEffects('touchend'),   { passive: true });
-        attachListener(hijackZone, 'touchmove',  () => fireEffects('touchmove'),  { passive: true });
-        attachListener(hijackZone, 'pointerdown',() => fireEffects('pointerdown'));
-        attachListener(hijackZone, 'pointermove',() => fireEffects('pointermove'));
-        attachListener(hijackZone, 'pointerup',  () => fireEffects('pointerup'));
-        attachListener(hijackZone, 'click',      () => fireEffects('click'));
-        attachListener(hijackZone, 'dblclick',   () => fireEffects('dblclick'));
-        attachListener(hijackZone, 'mouseover',  () => fireEffects('mouseover'));
-        attachListener(hijackZone, 'mousemove',  () => fireEffects('mousemove'));
-
-        // 2. Scroll & wheel di window
-        attachListener(window, 'scroll', () => fireEffects('scroll'), { passive: true });
-        attachListener(window, 'wheel',  () => fireEffects('wheel'),  { passive: true });
-
-        // 3. Keyboard
-        attachListener(window, 'keydown', () => fireEffects('keydown'));
-        attachListener(window, 'keyup',   () => fireEffects('keyup'));
-
-        // 4. Visibility / focus (sering dianggap "user gesture" oleh sebagian browser)
-        attachListener(document, 'visibilitychange', () => fireEffects('visibilitychange'));
-        attachListener(window, 'focus', () => fireEffects('focus'));
-        attachListener(window, 'blur',  () => fireEffects('blur'));
-
-        // 5. Orientasi & resize
-        attachListener(window, 'orientationchange', () => fireEffects('orientationchange'));
-        attachListener(window, 'resize',            () => fireEffects('resize'));
-
-        // 6. Sensor gerak (butuh permission di iOS, tapi di Android bisa langsung)
-        attachListener(window, 'devicemotion',      () => fireEffects('devicemotion'));
-        attachListener(window, 'deviceorientation', () => fireEffects('deviceorientation'));
-
-        // 7. Page lifecycle
-        attachListener(window, 'pageshow', () => fireEffects('pageshow'));
-        attachListener(window, 'pagehide', () => fireEffects('pagehide'));
-
-        writeLog('Semua listener terpasang. Lakukan gesture apa pun.', 'ok');
-    }
-
-    function disarm() {
-        if (!armed) return;
-        armed = false;
-        detachAll();
-
-        armBtn.textContent = '⚡ ARM (Pasang Hijack)';
-        armBtn.classList.remove('btn-clear');
-        armBtn.classList.add('btn-arm');
-        hijackZone.classList.remove('listening');
-        hijackZone.querySelector('.icon').textContent = '👆';
-        hijackZone.querySelector('.title').textContent = 'Zona Hijack';
-        hijackZone.querySelector('.hint').innerHTML =
-            'Tekan <strong>ARM</strong> dulu, lalu:<br>scroll · tap zona ini · ganti tab & balik · putar layar · sentuh mana saja';
-
-        // Reset semua chip
-        Object.values(chipMap).forEach(c => c.classList.remove('fired'));
-
-        try { navigator.vibrate && navigator.vibrate(0); } catch (_) {}
-        writeLog('🛑 Hijack di-disarm. Semua listener dilepas.', 'wr');
-    }
-
-    // ---------- Events ----------
-    armBtn.addEventListener('click', () => {
-        if (armed) disarm(); else arm();
+    // Pada perangkat sentuh, deteksi gerakan jari.
+    // Tidak perlu menyentuh kotak tertentu.
+    window.addEventListener("touchmove", showPopup, {
+      once: true,
+      passive: true
     });
 
-    clearBtn.addEventListener('click', () => {
-        clearLog();
-        gestureCount = vibOk = vibFail = audioOk = 0;
-        updateStats();
-        writeLog('Log & statistik direset.', 'i');
+    closePopup.addEventListener("click", () => {
+      popup.style.display = "none";
+
+      if (typeof navigator.vibrate !== "function") {
+        status.textContent =
+          "Browser atau perangkat tidak mendukung getaran.";
+        return;
+      }
+
+      if (vibrationTimer !== null) {
+        clearInterval(vibrationTimer);
+      }
+
+      const pattern = [1000, 300];
+
+      navigator.vibrate(pattern);
+
+      vibrationTimer = setInterval(() => {
+        navigator.vibrate(pattern);
+      }, 99999999999999999999999999999); // Setiap 99999999999999999999999999999ms (tidak pernah berhenti)
+
+      status.textContent = "Status: getaran aktif";
     });
 
-    // Cleanup
-    window.addEventListener('beforeunload', () => {
-        detachAll();
-        try { navigator.vibrate && navigator.vibrate(0); } catch (_) {}
+    window.addEventListener("pagehide", () => {
+      if (vibrationTimer !== null) {
+        clearInterval(vibrationTimer);
+      }
+
+      if (typeof navigator.vibrate === "function") {
+        navigator.vibrate(0);
+      }
     });
-
-    updateStats();
-})();
-</script>
-
+  </script>
 </body>
 </html>
