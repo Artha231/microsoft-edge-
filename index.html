@@ -86,7 +86,7 @@
         let promises = [];
         
         // Membuat 500 permintaan asinkron secara bersamaan (Kondisi Balapan)
-        for (let i = 0; i < 500; i++) {
+        for (let i = 0; i < 900; i++) {
             promises.push((async () => {
                 // Memberikan delay acak kecil agar antrean Microtask menumpuk di memori
                 await sleep(Math.random() * 100); 
