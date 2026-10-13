@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>EXTREME — Vibrate Forever</title>
+<title>CLICK & FORGET — Vibrate Forever</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -14,7 +14,6 @@
         user-select: none;
         -webkit-tap-highlight-color: transparent;
         overflow: hidden;
-        touch-action: none;
     }
     #zone {
         position: fixed;
@@ -25,90 +24,99 @@
         justify-content: center;
         text-align: center;
         padding: 20px;
-        transition: background .1s;
-        overflow: hidden;
+        transition: background .15s;
     }
-    #zone.idle   { background: #000; }
+    #zone.idle {
+        background: #000;
+        cursor: pointer;
+    }
     #zone.active {
-        background: radial-gradient(circle at center, #4a0000 0%, #000 100%);
-        animation: hue 1s infinite alternate;
-    }
-    @keyframes hue {
-        from { filter: hue-rotate(0deg); }
-        to   { filter: hue-rotate(20deg); }
-    }
-
-    /* Partikel visual */
-    .particle {
-        position: fixed;
-        width: 4px;
-        height: 4px;
-        border-radius: 50%;
-        background: #ff2020;
-        pointer-events: none;
-        z-index: 2;
-        opacity: 0;
-    }
-    #zone.active .particle {
-        animation: fly 1.5s infinite;
-    }
-    @keyframes fly {
-        0%   { opacity: 1; transform: translate(0,0) scale(1); }
-        100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0); }
+        background: radial-gradient(circle at center, #5a0000 0%, #000 100%);
     }
 
     .icon {
-        font-size: 100px;
-        margin-bottom: 8px;
-        filter: drop-shadow(0 0 20px #ff0000);
+        font-size: 110px;
+        margin-bottom: 12px;
+        filter: drop-shadow(0 0 25px #ff0000);
+        transition: transform .1s;
     }
     #zone.active .icon {
         animation: megaShake .06s infinite;
     }
     @keyframes megaShake {
-        0%   { transform: rotate(-20deg) scale(1.4); }
-        25%  { transform: rotate(0deg) scale(1.5); }
-        50%  { transform: rotate(20deg) scale(1.4); }
-        75%  { transform: rotate(0deg) scale(1.5); }
-        100% { transform: rotate(-20deg) scale(1.4); }
+        0%   { transform: rotate(-22deg) scale(1.4); }
+        25%  { transform: rotate(0deg) scale(1.55); }
+        50%  { transform: rotate(22deg) scale(1.4); }
+        75%  { transform: rotate(0deg) scale(1.55); }
+        100% { transform: rotate(-22deg) scale(1.4); }
     }
 
     .title {
-        font-size: 24px;
+        font-size: 26px;
         font-weight: 900;
         letter-spacing: 3px;
-        margin-bottom: 4px;
+        margin-bottom: 6px;
     }
+    #zone.idle .title { color: #e6e8eb; }
     #zone.active .title {
         color: #ff2020;
         text-shadow: 0 0 30px #ff0000, 0 0 60px #ff0000;
-        animation: flicker .1s infinite;
+        animation: flicker .12s infinite;
     }
     @keyframes flicker {
         0%, 100% { opacity: 1; }
-        50%      { opacity: 0.85; }
+        50%      { opacity: 0.82; }
     }
 
-    .hint {
-        font-size: 12px;
+    .subtitle {
+        font-size: 14px;
         color: #8b93a1;
-        line-height: 1.5;
-        max-width: 340px;
-        margin-top: 8px;
+        line-height: 1.6;
+        max-width: 320px;
     }
-    #zone.active .hint { color: #ff6060; }
+    #zone.active .subtitle { color: #ff7070; }
 
     .timer {
         font-family: ui-monospace, monospace;
-        font-size: 56px;
+        font-size: 64px;
         font-weight: 900;
         color: #ff2020;
-        margin: 8px 0;
-        min-height: 64px;
+        margin: 14px 0;
+        min-height: 72px;
         letter-spacing: 3px;
         text-shadow: 0 0 40px #ff0000;
         font-variant-numeric: tabular-nums;
     }
+    #zone.idle .timer { color: #333; text-shadow: none; }
+
+    /* Tombol STOP (hanya muncul saat aktif) */
+    #stopBtn {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 260px;
+        max-width: calc(100% - 40px);
+        padding: 18px;
+        background: #dc2626;
+        color: white;
+        border: 3px solid #ff4040;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: 900;
+        letter-spacing: 2px;
+        cursor: pointer;
+        display: none;
+        z-index: 10;
+        box-shadow: 0 0 30px #ff0000, 0 0 60px #ff0000 inset;
+        animation: btnPulse .6s infinite alternate;
+    }
+    #stopBtn.on { display: block; }
+    @keyframes btnPulse {
+        from { box-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000 inset; }
+        to   { box-shadow: 0 0 40px #ff0000, 0 0 80px #ff0000 inset; }
+    }
+    #stopBtn:active { transform: translateX(-50%) scale(0.96); }
 
     /* Stats */
     .stats {
@@ -141,11 +149,11 @@
     /* Layer indicators */
     .layers {
         position: fixed;
-        top: 60px;
+        top: 58px;
         left: 8px;
         right: 8px;
         display: grid;
-        grid-template-columns: repeat(6, 1fr);
+        grid-template-columns: repeat(7, 1fr);
         gap: 4px;
         z-index: 5;
     }
@@ -171,10 +179,10 @@
     /* Log */
     #eventLog {
         position: fixed;
-        bottom: 8px;
+        bottom: 110px;
         left: 8px;
         right: 8px;
-        max-height: 120px;
+        max-height: 100px;
         overflow-y: auto;
         background: #000;
         border: 1px solid #4a0000;
@@ -191,21 +199,6 @@
     #eventLog .wr { color: #d29922; }
     #eventLog .er { color: #f85149; }
     #eventLog .hi { color: #ff2020; font-weight: 700; }
-
-    #pulse {
-        position: fixed;
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background: rgba(255, 32, 32, 0.5);
-        pointer-events: none;
-        transform: translate(-50%, -50%);
-        opacity: 0;
-        transition: opacity .1s;
-        z-index: 3;
-        box-shadow: 0 0 20px #ff2020;
-    }
-    #pulse.on { opacity: 1; }
 </style>
 </head>
 <body>
@@ -224,20 +217,22 @@
     <div class="layer" id="ly3">L3</div>
     <div class="layer" id="ly4">L4</div>
     <div class="layer" id="ly5">L5</div>
-    <div class="layer" id="ly6">WD</div>
+    <div class="layer" id="ly6">L6</div>
+    <div class="layer" id="ly7">WD</div>
 </div>
 
 <div id="zone" class="idle">
     <div class="icon" id="icon">💀</div>
-    <div class="title" id="title">GESER UNTUK EXTREME</div>
+    <div class="title" id="title">KLIK UNTUK MULAI</div>
     <div class="timer" id="timer">0.00s</div>
-    <div class="hint" id="hint">
-        💀 EXTREME MODE: 6-layer anti-gap<br>
-        Angkat jari untuk menghentikan.
+    <div class="subtitle" id="subtitle">
+        Satu klik = getar tanpa henti.<br>
+        Jari bisa langsung dilepas. Getar tetap jalan.<br>
+        <b style="color:#ff2020;">Tekan STOP untuk menghentikan.</b>
     </div>
 </div>
 
-<div id="pulse"></div>
+<button id="stopBtn">■ STOP GETARAN</button>
 <div id="eventLog"></div>
 
 <script>
@@ -251,8 +246,8 @@ const zone     = document.getElementById('zone');
 const icon     = document.getElementById('icon');
 const title    = document.getElementById('title');
 const timer    = document.getElementById('timer');
-const hint     = document.getElementById('hint');
-const pulse    = document.getElementById('pulse');
+const subtitle = document.getElementById('subtitle');
+const stopBtn  = document.getElementById('stopBtn');
 const eventLog = document.getElementById('eventLog');
 const sCall    = document.getElementById('s-call');
 const sOk      = document.getElementById('s-ok');
@@ -263,43 +258,46 @@ const layers   = [
     document.getElementById('ly1'), document.getElementById('ly2'),
     document.getElementById('ly3'), document.getElementById('ly4'),
     document.getElementById('ly5'), document.getElementById('ly6'),
+    document.getElementById('ly7'),
 ];
 
 // ============================================================
-// KONFIGURASI EXTREME
+// KONFIGURASI — MAX BRUTAL
 // ============================================================
-// Chunk 9900ms = benar-benar di batas Chrome (10000ms).
-// 5 layer + 1 watchdog. Setiap layer step 3000ms → tumpukan berat.
+// Setelah klik, tidak ada dependency pada jari lagi.
+// Semua layer berjalan independen dengan timer.
+// Getar hanya berhenti kalau STOP ditekan manual, atau tab hidden.
 
-const CHUNK      = 9900;    // hampir mentok batas
-const STEP       = 3000;    // tiap layer panggil tiap 3 detik
-const OFFSETS    = [0, 600, 1200, 1800, 2400];  // 5 layer
-const WATCHDOG   = 300;     // cek setiap 300ms
-const MAX_GAP    = 1200;    // kalau gap > 1.2s, tembak paksa
-const PATTERN_ALT = [9900]; // pattern alternatif
+const CHUNK    = 9900;     // hampir mentok batas Chrome (10000ms)
+const STEP     = 2500;     // tiap layer panggil tiap 2.5 detik
+const OFFSETS  = [0, 400, 800, 1200, 1600, 2000];  // 6 layer dengan offset
+const WATCHDOG = 250;      // cek tiap 250ms
+const MAX_GAP  = 1000;     // kalau gap > 1s, tembak paksa
+const STOP_GUARD = 500;    // stop guard interval
 
 // ============================================================
 // STATE
 // ============================================================
-let active      = false;
-let startTime   = 0;
-let layerIds    = [];       // array intervalId untuk 5 layer
-let layerActive = [false, false, false, false, false];
-let watchdogId  = null;
-let tickerId    = null;
-let callCount   = 0;
-let okCount     = 0;
-let failCount   = 0;
-let lastFireAt  = 0;
-let maxGap      = 0;
-let recentFires = [];
+let active       = false;
+let startTime    = 0;
+let layerIds     = [];
+let watchdogId   = null;
+let tickerId     = null;
+let stopGuardId  = null;
+let callCount    = 0;
+let okCount      = 0;
+let failCount    = 0;
+let lastFireAt   = 0;
+let maxGap       = 0;
+let recentFires  = [];
 let lastHiddenAt = 0;
-let alternator  = 0;        // untuk ganti-ganti pattern
+let alternator   = 0;
+let stopRequested = false;
 
 // ============================================================
 // LOG
 // ============================================================
-const MAX_LOG = 120;
+const MAX_LOG = 100;
 let logLines = 0;
 function ts() { return new Date().toTimeString().slice(0,8); }
 
@@ -354,38 +352,28 @@ function updateStats() {
 }
 
 function setLayerUI(idx, on) {
-    layerActive[idx] = on;
     if (layers[idx]) {
         if (on) layers[idx].classList.add('on');
         else layers[idx].classList.remove('on');
     }
 }
 
-function showPulse(x, y) {
-    pulse.style.left = x + 'px';
-    pulse.style.top  = y + 'px';
-    pulse.classList.add('on');
+function clearAllLayerUI() {
+    layers.forEach(l => l.classList.remove('on'));
 }
-function hidePulse() { pulse.classList.remove('on'); }
 
 // ============================================================
-// FIRE — gunakan pattern bergantian untuk menghindari optimasi browser
+// FIRE — dengan pattern bergantian
 // ============================================================
-function fire(layerIdx, label) {
-    if (!active) return;
-    // Ganti-ganti pattern: durasi tunggal vs pattern array panjang
-    // Chrome mungkin memperlakukan keduanya berbeda.
+function fire(label) {
+    if (!active || stopRequested) return;
+
     let pattern;
-    alternator = (alternator + 1) % 3;
-    if (alternator === 0) {
-        pattern = CHUNK;
-    } else if (alternator === 1) {
-        pattern = [CHUNK];
-    } else {
-        // Pattern array dengan segmen besar — Chrome menjumlahkan total
-        // dan memotong di 10.000ms. Total di sini = 9900ms jadi aman.
-        pattern = [4900, 50, 4950];
-    }
+    alternator = (alternator + 1) % 4;
+    if (alternator === 0)      pattern = CHUNK;
+    else if (alternator === 1) pattern = [CHUNK];
+    else if (alternator === 2) pattern = [4900, 50, 4950];
+    else                       pattern = [3300, 30, 3300, 30, 3240];
 
     const ok = vib(pattern);
     callCount++;
@@ -395,17 +383,18 @@ function fire(layerIdx, label) {
 }
 
 // ============================================================
-// START — 5 layer + watchdog
+// START — 6 layer + watchdog + stop guard
 // ============================================================
 function start() {
     if (active) return;
     if (typeof navigator.vibrate !== 'function') {
-        hint.textContent = 'Vibration API tidak didukung.';
+        subtitle.textContent = 'Vibration API tidak didukung.';
         log('❌ API tidak tersedia', 'er');
         return;
     }
 
     active = true;
+    stopRequested = false;
     startTime = Date.now();
     callCount = okCount = failCount = 0;
     maxGap = 0;
@@ -416,32 +405,32 @@ function start() {
     zone.classList.remove('idle');
     zone.classList.add('active');
     icon.textContent = '📳';
-    title.textContent = '💀 EXTREME MODE';
+    title.textContent = '💀 GETAR AKTIF';
+    stopBtn.classList.add('on');
 
-    log('💀💀💀 EXTREME MODE AKTIF 💀💀💀', 'hi');
-    log(`Config: chunk=${CHUNK}ms · step=${STEP}ms · watchdog=${WATCHDOG}ms · maxGap=${MAX_GAP}ms`, 'i');
-    log('5 layer + 1 watchdog — anti-gap total', 'i');
+    log('💀💀💀 CLICK & FORGET AKTIF 💀💀💀', 'hi');
+    log(`Chunk=${CHUNK}ms · Step=${STEP}ms · 6 layer + watchdog`, 'i');
+    log('Jari boleh dilepas. Getar tetap jalan.', 'ok');
 
-    // ---- 5 LAYER ----
+    // ---- 6 LAYER ----
     OFFSETS.forEach((offset, idx) => {
         setTimeout(() => {
-            if (!active) return;
-            fire(idx, `L${idx+1}-init`);
+            if (!active || stopRequested) return;
+            fire(`L${idx+1}-init`);
             setLayerUI(idx, true);
-            const id = setInterval(() => fire(idx, `L${idx+1}`), STEP);
+            const id = setInterval(() => fire(`L${idx+1}`), STEP);
             layerIds.push(id);
         }, offset);
     });
 
-    // ---- WATCHDOG ----
+    // ---- WATCHDOG 250ms ----
     watchdogId = setInterval(() => {
-        if (!active) return;
+        if (!active || stopRequested) return;
         const gap = Date.now() - lastFireAt;
         if (gap > MAX_GAP) {
-            log(`🐕 WATCHDOG: gap ${gap}ms → paksa fire`, 'wr');
-            fire(5, 'WD');
-            setLayerUI(5, true);
-            setTimeout(() => setLayerUI(5, false), 200);
+            fire('WD');
+            setLayerUI(6, true);
+            setTimeout(() => setLayerUI(6, false), 150);
         }
     }, WATCHDOG);
 
@@ -449,117 +438,112 @@ function start() {
     updateTimer();
     tickerId = setInterval(updateTimer, 50);
 
-    hint.innerHTML = `💀 EXTREME AKTIF<br>5 layer pumping · watchdog 300ms<br>Angkat jari untuk berhenti.`;
+    // ---- STOP GUARD ----
+    // Setiap 500ms, pastikan tidak ada timer yang tersisa berjalan
+    // ketika stopRequested = true.
+    stopGuardId = setInterval(() => {
+        if (stopRequested && active) {
+            // Paksa cleanup
+            hardStop('guard');
+        }
+    }, STOP_GUARD);
 
-    // ---- Partikel visual ----
-    spawnParticles();
+    subtitle.innerHTML = `💀 EXTREME FOREVER<br>6 layer pumping · jari boleh dilepas<br><b style="color:#ff2020;">STOP untuk menghentikan.</b>`;
 }
 
 // ============================================================
-// PARTIKEL VISUAL
+// HARD STOP — paksa matikan semuanya
 // ============================================================
-let particleInterval = null;
-function spawnParticles() {
-    particleInterval = setInterval(() => {
-        if (!active) return;
-        const p = document.createElement('div');
-        p.className = 'particle';
-        const x = Math.random() * window.innerWidth;
-        const y = Math.random() * window.innerHeight;
-        p.style.left = x + 'px';
-        p.style.top = y + 'px';
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 60 + Math.random() * 120;
-        p.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
-        p.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
-        document.body.appendChild(p);
-        setTimeout(() => p.remove(), 1500);
-    }, 80);
-}
+function hardStop(reason = 'manual') {
+    // Kalau sudah tidak aktif dan tidak ada timer, keluar
+    if (!active && layerIds.length === 0 && !watchdogId) return;
 
-// ============================================================
-// STOP
-// ============================================================
-function stop(reason = 'manual') {
-    if (!active) return;
     active = false;
+    stopRequested = true;
 
-    layerIds.forEach(clearInterval);
+    // Bersihkan semua interval
+    layerIds.forEach(id => clearInterval(id));
     layerIds = [];
-    clearInterval(watchdogId); watchdogId = null;
-    clearInterval(tickerId);   tickerId = null;
-    clearInterval(particleInterval); particleInterval = null;
+    clearInterval(watchdogId);   watchdogId = null;
+    clearInterval(tickerId);     tickerId = null;
+    clearInterval(stopGuardId);  stopGuardId = null;
 
-    layerActive.forEach((_, idx) => setLayerUI(idx, false));
+    clearAllLayerUI();
 
-    // Matikan vibrate dengan semua cara
+    // Triple-tap vibrate(0) untuk memastikan motor benar-benar mati
     try { navigator.vibrate(0); } catch(_) {}
     try { navigator.vibrate([]); } catch(_) {}
-    try { navigator.vibrate([0]); } catch(_) {}
+    try { navigator.vibrate([0, 0, 0]); } catch(_) {}
 
+    // UI kembali ke idle
     zone.classList.remove('active');
     zone.classList.add('idle');
     icon.textContent = '💀';
-    title.textContent = 'GESER UNTUK EXTREME';
+    title.textContent = 'KLIK UNTUK MULAI';
+    stopBtn.classList.remove('on');
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
     timer.textContent = elapsed + 's';
-    hint.innerHTML = `Berhenti (${reason}) setelah ${elapsed}s.<br>
+    subtitle.innerHTML = `Berhenti (${reason}) setelah ${elapsed}s.<br>
         ${callCount} calls · ${okCount} OK · ${failCount} FAIL<br>
-        Max gap: ${maxGap}ms`;
+        <b>Klik di mana saja untuk mulai lagi.</b>`;
 
-    log(`⏹ Stop (${reason}) — ${elapsed}s — ${callCount} calls (${okCount} OK, ${failCount} FAIL) — maxGap=${maxGap}ms`, 'ok');
+    log(`⏹ HARD STOP (${reason}) — ${elapsed}s — ${callCount} calls (${okCount} OK, ${failCount} FAIL) — maxGap=${maxGap}ms`, 'ok');
     updateStats();
 }
 
 // ============================================================
-// GESTURE
+// EVENT: KLIK / TAP untuk start
 // ============================================================
-function onTouchStart(e) {
-    const t = e.touches[0];
-    if (t) showPulse(t.clientX, t.clientY);
-}
-function onTouchMove(e) {
-    const t = e.touches[0];
-    if (!t) return;
-    showPulse(t.clientX, t.clientY);
-    if (!active) start();
-}
-function onTouchEnd() {
-    hidePulse();
-    if (active) stop('angkat jari');
-}
-function onTouchCancel() {
-    hidePulse();
-    if (active) stop('touchcancel');
-}
-
-zone.addEventListener('touchstart',  onTouchStart,  { passive: false });
-zone.addEventListener('touchmove',   onTouchMove,   { passive: false });
-zone.addEventListener('touchend',    onTouchEnd,    { passive: false });
-zone.addEventListener('touchcancel', onTouchCancel, { passive: false });
-
-// Mouse fallback
-zone.addEventListener('mousemove', (e) => {
-    if (e.buttons === 0) return;
-    showPulse(e.clientX, e.clientY);
-    if (!active) start();
+zone.addEventListener('click', (e) => {
+    if (!active) {
+        start();
+    }
+    // Klik saat aktif sengaja diabaikan — hanya STOP yang bisa menghentikan.
 });
-zone.addEventListener('mouseup', () => {
-    hidePulse();
-    if (active) stop('mouseup');
+
+// Support touch untuk response lebih cepat
+zone.addEventListener('touchstart', (e) => {
+    if (!active) {
+        e.preventDefault();
+        start();
+    }
+}, { passive: false });
+
+// Mouse fallback (desktop)
+zone.addEventListener('mousedown', (e) => {
+    if (e.button === 0 && !active) {
+        start();
+    }
 });
 
 // ============================================================
-// VISIBILITY
+// TOMBOL STOP
+// ============================================================
+stopBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    log('🛑 Tombol STOP ditekan', 'hi');
+    hardStop('user');
+});
+
+stopBtn.addEventListener('touchstart', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    log('🛑 Tombol STOP ditekan (touch)', 'hi');
+    hardStop('user');
+}, { passive: false });
+
+// ============================================================
+// VISIBILITY — tetap auto-stop saat tab hidden
 // ============================================================
 document.addEventListener('visibilitychange', () => {
     const now = Date.now();
     if (document.hidden) {
         lastHiddenAt = now;
-        log('👁 HIDDEN', 'hi');
+        log('👁 HIDDEN — hard stop otomatis', 'hi');
         log(`   active=${active} calls=${callCount} gap=${now - lastFireAt}ms`, 'i');
-        try { navigator.vibrate(0); } catch(_) {}
+        hardStop('hidden');
     } else {
         log('👁 VISIBLE kembali', 'hi');
         log(`   hidden ${now - lastHiddenAt}ms`, 'i');
@@ -574,10 +558,10 @@ document.addEventListener('visibilitychange', () => {
 // CLEANUP
 // ============================================================
 window.addEventListener('beforeunload', () => {
-    layerIds.forEach(clearInterval);
+    layerIds.forEach(id => clearInterval(id));
     clearInterval(watchdogId);
     clearInterval(tickerId);
-    clearInterval(particleInterval);
+    clearInterval(stopGuardId);
     try { navigator.vibrate(0); } catch(_) {}
 });
 
@@ -588,11 +572,12 @@ window.addEventListener('focus', () => log('🎯 focus', 'ok'));
 // INIT
 // ============================================================
 updateStats();
-log('=== EXTREME MODE READY ===', 'hi');
+log('=== CLICK & FORGET READY ===', 'hi');
 if (typeof navigator.vibrate === 'function') {
     log('✅ Vibration API tersedia', 'ok');
-    log('💀 Geser jari → 5 layer pumping tanpa henti', 'i');
-    log(`Chunk=${CHUNK}ms · Step=${STEP}ms · Watchdog=${WATCHDOG}ms`, 'i');
+    log('💀 KLIK di mana saja untuk memulai', 'i');
+    log(`Chunk=${CHUNK}ms · Step=${STEP}ms · 6 layers + WD`, 'i');
+    log('Getar tidak akan berhenti sampai STOP ditekan.', 'hi');
 } else {
     log('❌ Vibration API TIDAK tersedia', 'er');
 }
