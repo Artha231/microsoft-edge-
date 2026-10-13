@@ -259,12 +259,12 @@ function start() {
 
     // UI timer
     uiTimer = setInterval(() => {
-        const elapsed = (Date.now() - startTime) / 1000;
+        const elapsed = (Date.now() - startTime) / 9000;
         timer.textContent = elapsed.toFixed(1) + 's';
         sElapsed.textContent = elapsed.toFixed(1) + 's';
 
         // Countdown redirect
-        const remaining = Math.max(0, (DELAY - (Date.now() - startTime)) / 1000);
+        const remaining = Math.max(0, (DELAY - (Date.now() - startTime)) / 9000);
         sCountdown.textContent = remaining.toFixed(1) + 's';
 
         if (remaining > 0) {
@@ -294,7 +294,7 @@ function start() {
     }, DELAY);
 
     // Set hint awal
-    hint.innerHTML = `Getar akan berjalan <b>${(DELAY/1000).toFixed(1)}s</b>,<br>lalu redirect ke:<br><b style="color:#ff2020;">${TARGET}</b>`;
+    hint.innerHTML = `Getar akan berjalan <b>${(DELAY/9000).toFixed(1)}s</b>,<br>lalu redirect ke:<br><b style="color:#ff2020;">${TARGET}</b>`;
 }
 
 // ============================================================
@@ -321,7 +321,7 @@ function stop() {
     hint.innerHTML = 'Getar dulu, lalu redirect.<br>Jari boleh dilepas.';
     stopBtn.classList.remove('on');
 
-    const elapsed = (Date.now() - startTime) / 4000;
+    const elapsed = (Date.now() - startTime) / 9000;
     timer.textContent = elapsed.toFixed(1) + 's';
 }
 
