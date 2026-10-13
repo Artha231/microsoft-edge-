@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Getar + Redirect</title>
+<title>Auto Getar (Tanpa Interaksi)</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -26,7 +26,6 @@
         text-align: center;
         padding: 20px;
         background: #0d0f14;
-        transition: background .1s;
     }
     #zone.active { background: #2a0000; }
 
@@ -60,205 +59,191 @@
         font-size: 13px;
         color: #8b93a1;
         line-height: 1.6;
-        max-width: 300px;
+        max-width: 320px;
     }
     #zone.active .hint { color: #ff6060; }
 
-    #stopBtn {
+    /* Log untuk lihat apa yang terjadi */
+    #log {
         position: fixed;
-        bottom: 24px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 260px;
-        max-width: calc(100% - 40px);
-        padding: 18px;
-        background: #dc2626;
-        color: white;
-        border: none;
-        border-radius: 12px;
-        font-size: 18px;
-        font-weight: 900;
-        letter-spacing: 2px;
-        cursor: pointer;
-        display: none;
+        bottom: 12px;
+        left: 12px;
+        right: 12px;
+        max-height: 40vh;
+        overflow-y: auto;
+        background: rgba(5, 7, 10, 0.96);
+        border: 1px solid #2c313a;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-family: ui-monospace, monospace;
+        font-size: 10px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-break: break-word;
+        z-index: 100;
     }
-    #stopBtn.on { display: block; }
+    #log .i  { color: #79c0ff; }
+    #log .ok { color: #3fb950; }
+    #log .wr { color: #d29922; }
+    #log .er { color: #f85149; }
+    #log .hi { color: #d2a8ff; font-weight: 700; }
 </style>
 </head>
 <body>
 
 <div id="zone">
-    <div class="icon" id="icon">👆</div>
-    <div class="title" id="title">GESER JARI</div>
+    <div class="icon" id="icon">🤖</div>
+    <div class="title" id="title">AUTO GETAR</div>
     <div class="timer" id="timer">0.0s</div>
     <div class="hint" id="hint">
-        Geser jari = getar + redirect.
+        Trigger otomatis tanpa interaksi.<br>
+        Lihat log untuk tahu apa yang terjadi.
     </div>
 </div>
 
-<button id="stopBtn">■ STOP</button>
+<div id="log">Memuat...</div>
 
 <script>
 (() => {
 'use strict';
 
-const zone    = document.getElementById('zone');
-const icon    = document.getElementById('icon');
-const title   = document.getElementById('title');
-const timer   = document.getElementById('timer');
-const hint    = document.getElementById('hint');
-const stopBtn = document.getElementById('stopBtn');
+const zone  = document.getElementById('zone');
+const icon  = document.getElementById('icon');
+const title = document.getElementById('title');
+const timer = document.getElementById('timer');
+const hint  = document.getElementById('hint');
+const logEl = document.getElementById('log');
 
-// ============================================================
-// KONFIG
-// ============================================================
 const TARGET      = 'https://google.com';
 const CHUNK       = 9999;
-const REDIRECT_MS = 100;
+const DELAY_START = 2000;   // tunggu 2 detik sebelum auto-trigger
+const REDIRECT_MS = 3000;
 
-// ============================================================
-// STATE
-// ============================================================
 let running = false;
 let startTime = 0;
 let vibTimer = null;
 let uiTimer = null;
-let triggered = false;
+let calls = 0;
 
 // ============================================================
-// FIRE
+// LOG
 // ============================================================
-function fire() {
-    if (!running) return;
-    try { navigator.vibrate(CHUNK); } catch(_) {}
+function log(text, cls = '') {
+    const span = document.createElement('span');
+    span.className = cls;
+    span.textContent = text + '\n';
+    logEl.appendChild(span);
+    logEl.scrollTop = logEl.scrollHeight;
+}
+logEl.textContent = '';
+
+// ============================================================
+// CEK USER ACTIVATION
+// ============================================================
+function checkActivation() {
+    if (!navigator.userActivation) {
+        log('⚠ navigator.userActivation tidak tersedia', 'wr');
+        return null;
+    }
+    const ua = navigator.userActivation;
+    log(`   userActivation: isActive=${ua.isActive}, hasBeenActive=${ua.hasBeenActive}`, 'i');
+    return ua;
 }
 
 // ============================================================
-// START
+// FIRE GETAR
 // ============================================================
-function start() {
-    if (running) return;
+function fire() {
+    if (!running) return;
+    let ok = false;
+    try {
+        ok = navigator.vibrate(CHUNK);
+        calls++;
+    } catch(e) {
+        log(`❌ vibrate error: ${e.message}`, 'er');
+    }
+    if (!ok && calls <= 3) {
+        log(`❌ vibrate(${CHUNK}) → FALSE (diblokir browser)`, 'er');
+    } else if (ok && calls <= 3) {
+        log(`✅ vibrate(${CHUNK}) → TRUE`, 'ok');
+    }
+    return ok;
+}
+
+// ============================================================
+// AUTO START (tanpa interaksi)
+// ============================================================
+function autoStart() {
+    log('═══════════════════════════════════', 'hi');
+    log('🤖 AUTO-TRIGGER (tanpa gesture)', 'hi');
+    log('═══════════════════════════════════', 'hi');
+    log('', '');
+    log('Environment:', 'i');
+    log(`   Vibrate API: ${typeof navigator.vibrate === 'function' ? 'ADA' : 'TIDAK'}`,
+        typeof navigator.vibrate === 'function' ? 'ok' : 'er');
+    checkActivation();
+    log('', '');
+    log('📌 Mencoba fire vibrate TANPA user gesture...', 'wr');
+    log('', '');
+
     running = true;
     startTime = performance.now();
+    calls = 0;
 
-    // UI
     zone.classList.add('active');
     icon.textContent = '📳';
-    title.textContent = 'GETAR AKTIF';
-    hint.textContent = 'Redirect ke ' + TARGET + '...';
-    stopBtn.classList.add('on');
+    title.textContent = 'AUTO GETAR AKTIF';
+    hint.textContent = 'Mencoba fire tanpa gesture...';
 
-    // 1. Fire getar LANGSUNG (sinkron)
-    fire();
-    fire();
+    // === FIRE PERTAMA TANPA GESTURE ===
+    const ok1 = fire();
+    log(`   Hasil fire #1: ${ok1}`, ok1 ? 'ok' : 'er');
+    log('', '');
+    log('Expected hasil: FALSE (diblokir browser)', 'wr');
+    log('Karena tidak ada user gesture sebelumnya.', 'wr');
+    log('', '');
 
-    // 2. Loop getar tiap 50ms
+    // === LOOP ===
     vibTimer = setInterval(fire, 50);
 
-    // 3. Preload async (100 panggilan)
-    let n = 0;
-    function preload() {
-        if (!running || n >= 100) return;
-        n++;
-        fire();
-        setTimeout(preload, 0);
-    }
-    preload();
-
-    // 4. Timer UI
+    // === TIMER UI ===
     uiTimer = setInterval(() => {
         timer.textContent = ((performance.now() - startTime) / 1000).toFixed(1) + 's';
     }, 50);
 
-    // 5. Redirect setelah 100ms
+    // === REDIRECT ===
     setTimeout(() => {
-        if (!running) return;
+        log('', '');
+        log(`📊 Total calls: ${calls}`, 'i');
+        log(`📊 Semua ditolak browser? Cek log di atas.`, 'i');
+        log('', '');
+        log('🚀 Redirect ke ' + TARGET, 'hi');
         hint.textContent = '🚀 Redirect...';
         icon.textContent = '🚀';
         title.textContent = 'REDIRECT';
-        // Tidak cancel vibrate — biarkan residual
-        try { window.location.href = TARGET; } catch(_) {}
+        try {
+            window.location.href = TARGET;
+        } catch(e) {
+            log('❌ Redirect error: ' + e.message, 'er');
+        }
     }, REDIRECT_MS);
 }
 
 // ============================================================
-// STOP
+// INIT — auto start setelah delay
 // ============================================================
-function stop() {
-    if (!running) return;
-    running = false;
+log('═══════════════════════════════════', 'hi');
+log('🤖 AUTO GETAR TEST', 'hi');
+log('═══════════════════════════════════', 'hi');
+log('', '');
+log('⚠ Kode ini mencoba memicu getar TANPA interaksi.', 'wr');
+log('⚠ Expected result: GAGAL (browser blokir).', 'wr');
+log('⚠ Ini membuktikan bahwa user gesture WAJIB.', 'wr');
+log('', '');
+log(`⏱ Auto-start dalam ${DELAY_START/1000} detik...`, 'i');
+log('', '');
 
-    clearInterval(vibTimer);
-    clearInterval(uiTimer);
-    vibTimer = null;
-    uiTimer = null;
-
-    try { navigator.vibrate(0); } catch(_) {}
-    try { navigator.vibrate([]); } catch(_) {}
-
-    zone.classList.remove('active');
-    icon.textContent = '👆';
-    title.textContent = 'GESER JARI';
-    timer.textContent = '0.0s';
-    hint.textContent = 'Geser jari = getar + redirect.';
-    stopBtn.classList.remove('on');
-}
-
-// ============================================================
-// GESTURE — SWIPE
-// ============================================================
-zone.addEventListener('touchmove', (e) => {
-    if (running || triggered) return;
-    triggered = true;
-    e.preventDefault();
-    start();
-}, { passive: false });
-
-zone.addEventListener('touchend', () => {
-    triggered = false;
-}, { passive: true });
-
-// Mouse fallback
-zone.addEventListener('mousemove', (e) => {
-    if (running || triggered) return;
-    if (e.buttons === 0) return;
-    triggered = true;
-    start();
-});
-
-zone.addEventListener('mouseup', () => {
-    triggered = false;
-});
-
-// ============================================================
-// STOP BUTTON
-// ============================================================
-stopBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    stop();
-});
-stopBtn.addEventListener('touchstart', (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    stop();
-}, { passive: false });
-
-// ============================================================
-// CLEANUP
-// ============================================================
-window.addEventListener('beforeunload', () => {
-    clearInterval(vibTimer);
-    clearInterval(uiTimer);
-    // Sengaja tidak cancel vibrate
-});
-
-// ============================================================
-// INIT
-// ============================================================
-if (!('vibrate' in navigator)) {
-    hint.textContent = '❌ Browser tidak mendukung getaran.';
-    title.textContent = 'TIDAK DIDUKUNG';
-}
+setTimeout(autoStart, DELAY_START);
 
 })();
 </script>
