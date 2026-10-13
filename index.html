@@ -2,32 +2,51 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Test Residual Vibrate</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Desktop Chrome Vibrate Test — macOS</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-        height: 100%;
-        font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+        min-height: 100%;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Arial, sans-serif;
         background: #0d0f14;
-        color: #fff;
-        user-select: none;
-        -webkit-tap-highlight-color: transparent;
-        overflow: hidden;
-        touch-action: none;
+        color: #e6e8eb;
+        padding: 20px;
+        line-height: 1.5;
     }
-    #app {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        flex-direction: column;
-        padding: 12px;
-        gap: 8px;
-    }
-    h1 { font-size: 16px; margin-bottom: 4px; }
-    .sub { font-size: 11px; color: #8b93a1; line-height: 1.5; margin-bottom: 8px; }
+    h1 { font-size: 20px; margin-bottom: 8px; }
+    h2 { font-size: 14px; margin: 20px 0 10px; color: #8b93a1; text-transform: uppercase; letter-spacing: .05em; }
+    p.sub { font-size: 13px; color: #8b93a1; line-height: 1.6; margin-bottom: 16px; }
 
-    .test-btn {
+    .env {
+        background: #1a1d24;
+        border: 1px solid #2c313a;
+        border-radius: 10px;
+        padding: 14px;
+        margin-bottom: 16px;
+    }
+    .env-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        font-family: ui-monospace, "SF Mono", monospace;
+        font-size: 12px;
+        border-bottom: 1px solid #2c313a;
+    }
+    .env-row:last-child { border-bottom: none; }
+    .env-row .lbl { color: #8b93a1; }
+    .env-row .val { font-weight: 700; color: #e6e8eb; }
+    .env-row .val.ok { color: #2ecc71; }
+    .env-row .val.err { color: #e74c3c; }
+    .env-row .val.wr { color: #f1c40f; }
+
+    .test-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+    button {
         padding: 14px 12px;
         font-size: 13px;
         font-weight: 700;
@@ -35,31 +54,34 @@
         border-radius: 8px;
         cursor: pointer;
         color: white;
-        text-align: left;
         font-family: inherit;
+        text-align: left;
         transition: transform .05s;
     }
-    .test-btn:active { transform: scale(0.98); }
-    .test-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .test-btn .name { display: block; font-size: 13px; font-weight: 700; }
-    .test-btn .desc { display: block; font-size: 10px; opacity: 0.7; margin-top: 2px; font-weight: 400; }
+    button:active { transform: scale(0.98); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button .n { display: block; font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+    button .d { display: block; font-size: 10px; opacity: 0.75; font-weight: 400; }
 
-    .t1 { background: #2563eb; }
-    .t2 { background: #7c3aed; }
-    .t3 { background: #dc2626; }
-    .t4 { background: #ea580c; }
-    .t5 { background: #059669; }
+    .b1 { background: #2563eb; }
+    .b2 { background: #7c3aed; }
+    .b3 { background: #dc2626; }
+    .b4 { background: #ea580c; }
+    .b5 { background: #059669; }
+    .b6 { background: #be185d; }
+    .b7 { background: #0891b2; }
+    .b8 { background: #374151; }
 
     #log {
-        flex: 1;
-        overflow-y: auto;
         background: #05070a;
         border: 1px solid #2c313a;
-        border-radius: 8px;
-        padding: 10px;
-        font-family: ui-monospace, monospace;
-        font-size: 10px;
-        line-height: 1.55;
+        border-radius: 10px;
+        padding: 14px;
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        font-size: 11.5px;
+        line-height: 1.6;
+        height: 340px;
+        overflow-y: auto;
         white-space: pre-wrap;
         word-break: break-word;
     }
@@ -70,320 +92,493 @@
     #log .hi { color: #d2a8ff; font-weight: 700; }
     #log .dim { color: #6b7280; }
 
-    #stopAll {
-        padding: 12px;
-        background: #374151;
-        color: white;
-        border: none;
-        border-radius: 8px;
+    .verdict {
+        margin-top: 16px;
+        padding: 14px;
+        border-radius: 10px;
         font-size: 13px;
-        font-weight: 700;
-        cursor: pointer;
+        line-height: 1.6;
     }
+    .verdict.pass { background: #14532d; color: #86efac; border: 1px solid #16a34a; }
+    .verdict.fail { background: #7f1d1d; color: #fecaca; border: 1px solid #dc2626; }
+    .verdict.info { background: #1e3a8a; color: #93c5fd; border: 1px solid #2563eb; }
+    .verdict strong { color: #fff; }
 </style>
 </head>
 <body>
 
-<div id="app">
-    <h1>🧪 Test Residual Vibrate</h1>
-    <div class="sub">
-        Pilih test, lalu <b>rasakan getar</b> setelah redirect.<br>
-        Ukur berapa detik getar terasa setelah redirect.
-    </div>
+<h1>🖥️ Desktop Chrome Vibrate Test — macOS</h1>
+<p class="sub">
+    Menguji apakah <code>navigator.vibrate()</code> di desktop Chrome mengembalikan nilai yang benar.
+    Desktop tidak punya motor getar, jadi kita uji <b>return value</b>-nya.
+</p>
 
-    <button class="test-btn t1" onclick="test1()">
-        <span class="name">Test 1: Basic Redirect</span>
-        <span class="desc">vibrate(9999) → redirect instan</span>
+<div class="env">
+    <div class="env-row"><span class="lbl">Platform</span><span class="val" id="e-platform">-</span></div>
+    <div class="env-row"><span class="lbl">User Agent</span><span class="val" id="e-ua" style="font-size:10px;">-</span></div>
+    <div class="env-row"><span class="lbl">Vibrate API</span><span class="val" id="e-vib">-</span></div>
+    <div class="env-row"><span class="lbl">userActivation API</span><span class="val" id="e-ua-api">-</span></div>
+    <div class="env-row"><span class="lbl">hasBeenActive</span><span class="val" id="e-hba">-</span></div>
+    <div class="env-row"><span class="lbl">isActive</span><span class="val" id="e-ia">-</span></div>
+    <div class="env-row"><span class="lbl">Vibrate berfungsi?</span><span class="val" id="e-works">-</span></div>
+</div>
+
+<h2>Test Suite</h2>
+<div class="test-grid">
+    <button class="b1" onclick="testBasic()">
+        <span class="n">1. Basic</span>
+        <span class="d">vibrate(200)</span>
     </button>
-
-    <button class="test-btn t2" onclick="test2()">
-        <span class="name">Test 2: Cancel Explicit</span>
-        <span class="desc">vibrate(9999) + vibrate(0) → redirect</span>
+    <button class="b2" onclick="testArray()">
+        <span class="n">2. Array</span>
+        <span class="d">vibrate([200,100,200])</span>
     </button>
-
-    <button class="test-btn t3" onclick="test3()">
-        <span class="name">Test 3: Preload 100x</span>
-        <span class="desc">100× vibrate(9999) sinkron → redirect</span>
+    <button class="b3" onclick="testHuge()">
+        <span class="n">3. Huge</span>
+        <span class="d">vibrate(99999999)</span>
     </button>
-
-    <button class="test-btn t4" onclick="test4()">
-        <span class="name">Test 4: Delayed Redirect</span>
-        <span class="desc">vibrate(9999) → tunggu 3s → redirect</span>
+    <button class="b4" onclick="testNegative()">
+        <span class="n">4. Negative</span>
+        <span class="d">vibrate(-1)</span>
     </button>
-
-    <button class="test-btn t5" onclick="test5()">
-        <span class="name">Test 5: about:blank</span>
-        <span class="desc">vibrate(9999) → redirect ke about:blank</span>
+    <button class="b5" onclick="testNaN()">
+        <span class="n">5. NaN / Infinity</span>
+        <span class="d">vibrate(NaN)</span>
     </button>
+    <button class="b6" onclick="testObject()">
+        <span class="n">6. Object</span>
+        <span class="d">vibrate({duration:200})</span>
+    </button>
+    <button class="b7" onclick="testNoActivation()">
+        <span class="n">7. Before Gesture</span>
+        <span class="d">Auto test tanpa gesture</span>
+    </button>
+    <button class="b8" onclick="clearLog()">
+        <span class="n">Clear Log</span>
+        <span class="d">Hapus log</span>
+    </button>
+</div>
 
-    <button id="stopAll" onclick="stopAll()">■ STOP GETAR</button>
+<h2>Konsol Log</h2>
+<div id="log">Memuat environment...</div>
 
-    <div id="log"></div>
+<div id="verdict" class="verdict info">
+    <strong>📌 Cara test:</strong> Klik tombol test satu per satu, amati return value-nya.
+    <br><br>
+    <strong>Expected:</strong> Di desktop Chrome, semua panggilan <code>vibrate()</code>
+    mengembalikan <code>true</code> — meskipun tidak ada getaran fisik.
 </div>
 
 <script>
 'use strict';
 
 const logEl = document.getElementById('log');
-const TARGET = 'https://google.com';
+const verdictEl = document.getElementById('verdict');
+const ePlatform = document.getElementById('e-platform');
+const eUa = document.getElementById('e-ua');
+const eVib = document.getElementById('e-vib');
+const eUaApi = document.getElementById('e-ua-api');
+const eHba = document.getElementById('e-hba');
+const eIa = document.getElementById('e-ia');
+const eWorks = document.getElementById('e-works');
 
 // ============================================================
 // LOG
 // ============================================================
+const MAX_LOG = 300;
+let logCount = 0;
 function log(text, cls = '') {
     const span = document.createElement('span');
     span.className = cls;
     span.textContent = text + '\n';
     logEl.appendChild(span);
+    logCount++;
+    while (logCount > MAX_LOG && logEl.firstChild) {
+        logEl.removeChild(logEl.firstChild);
+        logCount--;
+    }
     logEl.scrollTop = logEl.scrollHeight;
 }
-function clearLog() { logEl.textContent = ''; }
+function clearLog() {
+    logEl.textContent = '';
+    logCount = 0;
+    log('Log dibersihkan.', 'dim');
+}
 
-function startTime() {
-    const t = new Date();
-    return t.toTimeString().slice(0,8) + '.' + String(t.getMilliseconds()).padStart(3,'0');
+function ts() {
+    const d = new Date();
+    return d.toTimeString().slice(0,8) + '.' + String(d.getMilliseconds()).padStart(3,'0');
 }
 
 // ============================================================
-// UTIL
+// ENVIRONMENT
 // ============================================================
-function logStart(name, desc, config) {
-    clearLog();
-    log('═══════════════════════════════════', 'hi');
-    log('🧪 ' + name, 'hi');
-    log('═══════════════════════════════════', 'hi');
-    log('📌 ' + desc, 'i');
-    log('');
-    log('Config:', 'i');
-    Object.entries(config).forEach(([k, v]) => {
-        log('   ' + k + ': ' + v, 'dim');
-    });
-    log('');
-    log('⏱ Start: ' + startTime(), 'dim');
-    log('');
-}
+function setupEnvironment() {
+    // Platform
+    const platform = navigator.platform || 'Unknown';
+    const isMac = /Mac/.test(navigator.platform) || /Macintosh/.test(navigator.userAgent);
+    const isWin = /Win/.test(navigator.platform);
+    const isLinux = /Linux/.test(navigator.platform);
+    ePlatform.textContent = platform + (isMac ? ' (macOS)' : isWin ? ' (Windows)' : isLinux ? ' (Linux)' : '');
+    ePlatform.className = 'val ok';
 
-function logEnd(reason) {
-    log('');
-    log('⏱ End: ' + startTime(), 'dim');
-    log('📌 ' + reason, 'wr');
-    log('');
-    log('═══════════════════════════════════', 'hi');
-    log('💡 CARA UKUR:', 'hi');
-    log('   1. Catat waktu saat redirect', 'i');
-    log('   2. Rasakan getar', 'i');
-    log('   3. Catat waktu saat getar berhenti', 'i');
-    log('   4. Selisih = durasi residual', 'i');
-    log('═══════════════════════════════════', 'hi');
-}
+    // User Agent
+    eUa.textContent = navigator.userAgent;
 
-function fire(pattern, label) {
-    let ok = false;
-    try { ok = navigator.vibrate(pattern); } catch(_) {}
-    log(`🔥 ${label}: vibrate(${JSON.stringify(pattern)}) → ${ok}`, ok ? 'ok' : 'er');
-    return ok;
-}
+    // Vibrate API
+    const hasVib = typeof navigator.vibrate === 'function';
+    eVib.textContent = hasVib ? 'ADA' : 'TIDAK ADA';
+    eVib.className = 'val ' + (hasVib ? 'ok' : 'err');
 
-// ============================================================
-// TEST 1: BASIC REDIRECT
-// ============================================================
-function test1() {
-    logStart('Test 1: Basic Redirect',
-        'Fire getar sekali, langsung redirect tanpa cancel',
-        {
-            'Pattern': '[9999]',
-            'Cancel': 'Tidak ada',
-            'Delay redirect': '0ms',
-            'Target': TARGET
-        });
+    // userActivation API
+    const hasUaApi = !!navigator.userActivation;
+    eUaApi.textContent = hasUaApi ? 'ADA' : 'TIDAK ADA';
+    eUaApi.className = 'val ' + (hasUaApi ? 'ok' : 'wr');
 
-    // Fire getar
-    fire([9999], 'init');
+    refreshActivation();
 
-    // Langsung redirect (setelah 1 tick supaya UI update)
-    setTimeout(() => {
-        log('🚀 Redirect ke ' + TARGET, 'hi');
-        logEnd('Redirect dengan getar masih aktif');
-        window.location.href = TARGET;
-    }, 50);
-}
-
-// ============================================================
-// TEST 2: CANCEL EXPLICIT
-// ============================================================
-function test2() {
-    logStart('Test 2: Cancel Explicit',
-        'Fire getar panjang, lalu cancel, baru redirect',
-        {
-            'Pattern': '[9999]',
-            'Cancel': 'vibrate(0) + vibrate([])',
-            'Delay redirect': '100ms setelah cancel',
-            'Target': TARGET
-        });
-
-    // Fire getar panjang
-    fire([9999], 'init');
-
-    // Tunggu 500ms (biar getar mulai)
-    setTimeout(() => {
-        log('500ms passed — cancel getar...', 'i');
-        
-        // Cancel
-        fire(0, 'cancel-1');
-        fire([], 'cancel-2');
-        fire([0,0,0], 'cancel-3');
-        
-        // Tunggu 100ms lagi, baru redirect
-        setTimeout(() => {
-            log('🚀 Redirect ke ' + TARGET, 'hi');
-            logEnd('Redirect SETELAH cancel eksplisit');
-            log('', '');
-            log('⚠️ Kalau getar TETAP terasa >2 detik:', 'wr');
-            log('   → Cancel tidak sampai ke Android kernel', 'wr');
-            log('⚠️ Kalau getar berhenti cepat:', 'ok');
-            log('   → Cancel berhasil', 'ok');
-            window.location.href = TARGET;
-        }, 100);
-    }, 500);
-}
-
-// ============================================================
-// TEST 3: PRELOAD 100x
-// ============================================================
-function test3() {
-    logStart('Test 3: Preload 100x',
-        'Fire 100 panggilan getar sinkron sebelum redirect',
-        {
-            'Pattern': '[9999]',
-            'Jumlah panggilan': '100',
-            'Cancel': 'Tidak',
-            'Target': TARGET
-        });
-
-    // Fire 100x sinkron
-    let okCount = 0;
-    for (let i = 0; i < 100; i++) {
-        try {
-            if (navigator.vibrate([9999])) okCount++;
-        } catch(_) {}
+    // Cek desktop tanpa getar
+    const isDesktop = !/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    if (isDesktop) {
+        eWorks.textContent = 'TIDAK (desktop tidak punya motor getar)';
+        eWorks.className = 'val wr';
+    } else {
+        eWorks.textContent = 'MUNGKIN (perangkat mobile)';
+        eWorks.className = 'val ok';
     }
-    log(`🔥 Fire 100x sinkron — ${okCount} return true`, 'ok');
-    log(`   Chrome akan overwrite → hanya terakhir tersimpan`, 'dim');
-    log(`   Tapi 100 panggilan terlihat oleh renderer`, 'dim');
+}
 
-    setTimeout(() => {
-        log('🚀 Redirect ke ' + TARGET, 'hi');
-        logEnd('Redirect dengan 100 preload');
-        window.location.href = TARGET;
-    }, 50);
+function refreshActivation() {
+    if (!navigator.userActivation) {
+        eHba.textContent = 'N/A';
+        eIa.textContent = 'N/A';
+        return;
+    }
+    const ua = navigator.userActivation;
+    eHba.textContent = ua.hasBeenActive;
+    eHba.className = 'val ' + (ua.hasBeenActive ? 'ok' : 'wr');
+    eIa.textContent = ua.isActive;
+    eIa.className = 'val ' + (ua.isActive ? 'ok' : 'wr');
+}
+
+// Refresh activation setiap 200ms (karena transient activation berubah cepat)
+setInterval(refreshActivation, 200);
+
+// ============================================================
+// VERDICT
+// ============================================================
+function setVerdict(type, html) {
+    verdictEl.className = 'verdict ' + type;
+    verdictEl.innerHTML = html;
 }
 
 // ============================================================
-// TEST 4: DELAYED REDIRECT
+// TEST 1: BASIC
 // ============================================================
-function test4() {
-    logStart('Test 4: Delayed Redirect',
-        'Fire getar, tunggu 3 detik, baru redirect',
-        {
-            'Pattern': '[9999]',
-            'Delay redirect': '3000ms',
-            'Cancel': 'Tidak',
-            'Target': TARGET
-        });
+function testBasic() {
+    log('');
+    log('═══════════════════════════════════════', 'hi');
+    log('🧪 TEST 1: vibrate(200)', 'hi');
+    log('═══════════════════════════════════════', 'hi');
+    log('');
+    log('⏱ Timestamp: ' + ts(), 'dim');
 
-    // Fire getar
-    fire([9999], 'init');
+    if (typeof navigator.vibrate !== 'function') {
+        log('❌ navigator.vibrate tidak tersedia', 'er');
+        return;
+    }
 
-    // Countdown
-    let countdown = 3;
-    log(`⏱ Redirect dalam ${countdown} detik...`, 'i');
-    
-    const interval = setInterval(() => {
-        countdown--;
-        if (countdown > 0) {
-            log(`⏱ ${countdown}...`, 'i');
-        } else {
-            clearInterval(interval);
-            log('🚀 Redirect sekarang!', 'hi');
-            logEnd('Redirect setelah 3 detik delay');
-            window.location.href = TARGET;
-        }
-    }, 1000);
-}
-
-// ============================================================
-// TEST 5: ABOUT:BLANK
-// ============================================================
-function test5() {
-    logStart('Test 5: about:blank',
-        'Redirect ke about:blank (tanpa network)',
-        {
-            'Pattern': '[9999]',
-            'Target': 'about:blank',
-            'Cancel': 'Tidak',
-            'Delay': '50ms'
-        });
-
-    fire([9999], 'init');
-
-    setTimeout(() => {
-        log('🚀 Redirect ke about:blank', 'hi');
-        logEnd('Redirect ke about:blank — tanpa network latency');
+    try {
+        const result = navigator.vibrate(200);
+        log(`📞 navigator.vibrate(200)`, 'i');
+        log(`📤 Return value: ${result} (typeof: ${typeof result})`, result ? 'ok' : 'er');
         log('', '');
-        log('💡 Perbandingan:', 'i');
-        log('   - about:blank = unload INSTAN', 'i');
-        log('   - google.com = unload + network load', 'i');
-        log('   Kalau about:blank getar berhenti cepat:', 'ok');
-        log('   → Masalahnya di network latency', 'ok');
-        log('   Kalau about:blank juga getar lama:', 'wr');
-        log('   → Masalahnya di Chrome Android bridge', 'wr');
-        window.location.href = 'about:blank';
-    }, 50);
+
+        if (result === true) {
+            log('✅ Return TRUE', 'ok');
+            log('   → Browser menerima perintah', 'dim');
+            log('', '');
+            log('🔍 PERTANYAAN: Apakah ada getaran fisik?', 'wr');
+            log('   Desktop Mac TIDAK punya motor getar.', 'wr');
+            log('   Jadi tidak akan ada getaran fisik.', 'wr');
+            log('   Tapi return value tetap TRUE.', 'wr');
+            log('', '');
+            log('💡 Kesimpulan test ini:', 'hi');
+            log('   Return TRUE = "accepted by browser API"', 'i');
+            log('   Return TRUE ≠ "hardware executed"', 'i');
+            log('   → Di desktop, return value TIDAK akurat', 'wr');
+        } else if (result === false) {
+            log('❌ Return FALSE', 'er');
+            log('   → Browser menolak perintah', 'dim');
+            log('   → Kemungkinan: belum ada user gesture', 'wr');
+            log('   → Coba klik halaman dulu, lalu test lagi', 'i');
+        } else {
+            log(`⚠ Return value tidak terduga: ${result}`, 'wr');
+        }
+    } catch (e) {
+        log('❌ Error: ' + e.message, 'er');
+    }
+    refreshActivation();
 }
 
 // ============================================================
-// STOP ALL
+// TEST 2: ARRAY
 // ============================================================
-function stopAll() {
-    try { navigator.vibrate(0); } catch(_) {}
-    try { navigator.vibrate([]); } catch(_) {}
+function testArray() {
+    log('');
+    log('═══════════════════════════════════════', 'hi');
+    log('🧪 TEST 2: vibrate([200, 100, 200])', 'hi');
+    log('═══════════════════════════════════════', 'hi');
+    log('');
+    log('⏱ Timestamp: ' + ts(), 'dim');
+
+    const pattern = [200, 100, 200];
+    try {
+        const result = navigator.vibrate(pattern);
+        log(`📞 navigator.vibrate([${pattern.join(', ')}])`, 'i');
+        log(`📤 Return value: ${result}`, result ? 'ok' : 'er');
+        log('', '');
+        log('💡 Pattern array = kontrol TIMING', 'i');
+        log('   getar 200ms, jeda 100ms, getar 200ms', 'i');
+        log('   Bukan kontrol kekuatan/amplitudo', 'i');
+        log('', '');
+        if (result === true) {
+            log('✅ Return TRUE — API menerima pattern', 'ok');
+            log('   Di desktop: tidak ada getar fisik', 'wr');
+            log('   Di mobile: getar sesuai pattern', 'ok');
+        }
+    } catch (e) {
+        log('❌ Error: ' + e.message, 'er');
+    }
+    refreshActivation();
+}
+
+// ============================================================
+// TEST 3: HUGE
+// ============================================================
+function testHuge() {
+    log('');
+    log('═══════════════════════════════════════', 'hi');
+    log('🧪 TEST 3: vibrate(99999999)', 'hi');
+    log('═══════════════════════════════════════', 'hi');
+    log('');
+    log('⏱ Timestamp: ' + ts(), 'dim');
+    log('📌 Nilai ekstrem: 99999999ms (~27 jam)', 'wr');
+
+    try {
+        const result = navigator.vibrate(99999999);
+        log(`📞 navigator.vibrate(99999999)`, 'i');
+        log(`📤 Return value: ${result}`, result ? 'ok' : 'er');
+        log('', '');
+        log('💡 Chrome akan memotong nilai ini:', 'i');
+        log('   Max: 10000ms (10 detik)', 'i');
+        log('   Jadi meskipun kita minta 27 jam,', 'i');
+        log('   Chrome hanya akan mengeksekusi 10 detik', 'i');
+        log('   (kalau di mobile dengan motor getar)', 'i');
+        log('', '');
+        log('🔬 Test pembuktian:', 'hi');
+        log('   Di desktop, return value TRUE palsu', 'wr');
+        log('   Tidak ada cara cek "benar-benar getar"', 'wr');
+    } catch (e) {
+        log('❌ Error: ' + e.message, 'er');
+    }
+    refreshActivation();
+}
+
+// ============================================================
+// TEST 4: NEGATIVE
+// ============================================================
+function testNegative() {
+    log('');
+    log('═══════════════════════════════════════', 'hi');
+    log('🧪 TEST 4: vibrate(-1)', 'hi');
+    log('═══════════════════════════════════════', 'hi');
+    log('');
+    log('⏱ Timestamp: ' + ts(), 'dim');
+
+    try {
+        const result = navigator.vibrate(-1);
+        log(`📞 navigator.vibrate(-1)`, 'i');
+        log(`📤 Return value: ${result}`, result ? 'wr' : 'ok');
+        log('', '');
+        log('💡 WebIDL konversi:', 'i');
+        log('   -1 → 0 (unsigned)', 'i');
+        log('   0ms → tidak ada getar', 'i');
+        log('', '');
+        if (result === true) {
+            log('⚠ Return TRUE — aneh', 'wr');
+            log('   -1 dikonversi ke 0, tapi return TRUE?', 'wr');
+            log('   Ini edge case WebIDL', 'wr');
+        } else {
+            log('✅ Return FALSE — normal', 'ok');
+        }
+    } catch (e) {
+        log('❌ Error: ' + e.message, 'er');
+    }
+    refreshActivation();
+}
+
+// ============================================================
+// TEST 5: NaN / INFINITY
+// ============================================================
+function testNaN() {
+    log('');
+    log('═══════════════════════════════════════', 'hi');
+    log('🧪 TEST 5: NaN / Infinity', 'hi');
+    log('═══════════════════════════════════════', 'hi');
+    log('');
+    log('⏱ Timestamp: ' + ts(), 'dim');
+
+    const tests = [
+        { label: 'vibrate(NaN)', fn: () => navigator.vibrate(NaN) },
+        { label: 'vibrate(Infinity)', fn: () => navigator.vibrate(Infinity) },
+        { label: 'vibrate(-Infinity)', fn: () => navigator.vibrate(-Infinity) },
+        { label: 'vibrate(undefined)', fn: () => navigator.vibrate(undefined) },
+        { label: 'vibrate(null)', fn: () => navigator.vibrate(null) },
+    ];
+
+    tests.forEach(t => {
+        try {
+            const r = t.fn();
+            log(`📞 ${t.label}`, 'i');
+            log(`📤 Return: ${r}`, r ? 'wr' : 'ok');
+        } catch (e) {
+            log(`📞 ${t.label} → ❌ ${e.message}`, 'er');
+        }
+    });
+
     log('', '');
-    log('🛑 STOP — getar dimatikan manual', 'wr');
+    log('💡 Analisis:', 'hi');
+    log('   NaN → 0 → tidak getar', 'i');
+    log('   Infinity → 10000 (dipotong)', 'i');
+    log('   undefined → 0 → tidak getar', 'i');
+    log('   null → 0 → tidak getar', 'i');
+    refreshActivation();
+}
+
+// ============================================================
+// TEST 6: OBJECT
+// ============================================================
+function testObject() {
+    log('');
+    log('═══════════════════════════════════════', 'hi');
+    log('🧪 TEST 6: Object (bukan number/array)', 'hi');
+    log('═══════════════════════════════════════', 'hi');
+    log('');
+    log('⏱ Timestamp: ' + ts(), 'dim');
+
+    const obj = { duration: 200, intensity: 'high' };
+    log('📌 Object: ' + JSON.stringify(obj), 'dim');
+
+    try {
+        const result = navigator.vibrate(obj);
+        log(`📞 navigator.vibrate({duration: 200, intensity: 'high'})`, 'i');
+        log(`📤 Return value: ${result}`, result ? 'wr' : 'ok');
+        log('', '');
+        log('💡 Kenapa?', 'hi');
+        log('   Spesifikasi W3C hanya terima:', 'i');
+        log('     - Number', 'i');
+        log('     - Array of Number', 'i');
+        log('   Object → NaN → 0 → tidak valid', 'i');
+        log('   Properti "intensity" DIABAIKAN', 'er');
+        log('   Properti "duration" juga DIABAIKAN', 'er');
+        log('', '');
+        log('📌 MITOS TERBUKTI:', 'hi');
+        log('   vibrate({intensity: "high"}) TIDAK BISA', 'er');
+        log('   kontrol kekuatan getar', 'er');
+    } catch (e) {
+        log('❌ Error: ' + e.message, 'er');
+    }
+    refreshActivation();
+}
+
+// ============================================================
+// TEST 7: BEFORE GESTURE
+// ============================================================
+function testNoActivation() {
+    log('');
+    log('═══════════════════════════════════════', 'hi');
+    log('🧪 TEST 7: Sebelum User Gesture', 'hi');
+    log('═══════════════════════════════════════', 'hi');
+    log('');
+    log('⏱ Timestamp: ' + ts(), 'dim');
+    log('');
+    log('📌 Catatan: Test ini tetap butuh klik tombol', 'wr');
+    log('   Jadi sebenarnya sudah ada gesture.', 'wr');
+    log('   Tapi kita cek status userActivation:', 'i');
+
+    if (navigator.userActivation) {
+        const ua = navigator.userActivation;
+        log(`   hasBeenActive: ${ua.hasBeenActive}`, ua.hasBeenActive ? 'ok' : 'wr');
+        log(`   isActive: ${ua.isActive}`, ua.isActive ? 'ok' : 'wr');
+    }
+    log('');
+
+    // Coba fire tanpa cancel
+    const r = navigator.vibrate(200);
+    log(`📞 vibrate(200) → ${r}`, r ? 'ok' : 'er');
+    log('');
+    log('💡 Di desktop:', 'hi');
+    log('   Return TRUE meskipun tidak ada gesture', 'wr');
+    log('   Karena desktop tidak terapkan sticky check', 'wr');
+    log('', '');
+    log('💡 Di mobile (Chrome Android):', 'hi');
+    log('   Return FALSE jika belum ada gesture', 'ok');
+    log('   Return TRUE setelah gesture', 'ok');
+    log('   Ini perlindungan anti-iklan nakal', 'ok');
 }
 
 // ============================================================
 // INIT
 // ============================================================
-log('═══════════════════════════════════', 'hi');
-log('🧪 RESIDUAL VIBRATE TEST SUITE', 'hi');
-log('═══════════════════════════════════', 'hi');
+setupEnvironment();
+
+log('═══════════════════════════════════════', 'hi');
+log('🖥️  DESKTOP CHROME VIBRATE TEST', 'hi');
+log('═══════════════════════════════════════', 'hi');
 log('');
 log('Environment:', 'i');
-log('   Vibrate API: ' + (typeof navigator.vibrate === 'function' ? 'ADA' : 'TIDAK'), 
+log('   Platform: ' + navigator.platform, 'dim');
+log('   UA: ' + navigator.userAgent.slice(0, 80) + '...', 'dim');
+log('   vibrate API: ' + (typeof navigator.vibrate === 'function' ? 'ADA' : 'TIDAK'), 
     typeof navigator.vibrate === 'function' ? 'ok' : 'er');
-log('   Protocol: ' + location.protocol, 'dim');
-log('   Host: ' + location.hostname, 'dim');
-if (navigator.userActivation) {
-    const ua = navigator.userActivation;
-    log('   userActivation: isActive=' + ua.isActive + ', hasBeenActive=' + ua.hasBeenActive, 'dim');
-}
+log('   userActivation API: ' + (navigator.userActivation ? 'ADA' : 'TIDAK'),
+    navigator.userActivation ? 'ok' : 'wr');
 log('');
-log('📌 Pilih test di atas:', 'hi');
-log('   Setelah redirect, RASUKAN getar', 'i');
-log('   Ukur berapa detik getar terasa setelah redirect', 'i');
-log('   Bandingkan hasil antar test', 'i');
+log('📌 Instruksi:', 'hi');
+log('   Klik tombol test di atas satu per satu', 'i');
+log('   Amati return value-nya', 'i');
+log('   Bandingkan hasilnya', 'i');
 log('');
-log('💡 Rekomendasi urutan test:', 'wr');
-log('   1. Test 1 (baseline)', 'i');
-log('   2. Test 2 (cancel explicit)', 'i');
-log('   3. Test 4 (delayed)', 'i');
-log('   4. Test 5 (about:blank)', 'i');
-log('   5. Test 3 (preload 100x)', 'i');
+log('⚠️ PENTING:', 'wr');
+log('   Desktop Chrome SELALU return TRUE', 'wr');
+log('   meskipun tidak ada getaran fisik.', 'wr');
+log('   Karena return value = "API accepted"', 'wr');
+log('   BUKAN "hardware executed".', 'wr');
 log('');
-log('⚠️ CATATAN: Setelah redirect, halaman ini hilang.', 'wr');
-log('   Refresh untuk kembali ke menu test.', 'wr');
+log('🎯 Pelajaran:', 'hi');
+log('   Return value vibrate() TIDAK RELIABLE', 'i');
+log('   untuk mendeteksi apakah getar benar-benar', 'i');
+log('   terjadi di perangkat fisik.', 'i');
 log('');
 
+// Test otomatis setelah 500ms
+setTimeout(() => {
+    log('🔄 Auto test: vibrate(100)...', 'i');
+    const r = navigator.vibrate(100);
+    log(`📤 Return: ${r}`, r ? 'ok' : 'er');
+    if (r === true) {
+        setVerdict('info', `
+            <strong>📊 Verdict Awal:</strong> vibrate(100) return <b>TRUE</b>.<br><br>
+            <strong>Di desktop Mac:</strong> TRUE = "API accepted by browser"<br>
+            <strong>Di mobile:</strong> TRUE = "vibration queued to hardware"<br><br>
+            <b>Kesimpulan:</b> Return value <b>tidak bisa dipercaya</b> untuk mendeteksi getaran fisik.
+            Test dengan motor getar hanya bisa dilakukan di <b>HP Android</b>.
+        `);
+    }
+}, 500);
+
+}();
 </script>
 
 </body>
