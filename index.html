@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Getar Lama → Redirect</title>
+<title>POC Getar Lama → Redirect</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -123,6 +123,7 @@
         cursor: pointer;
         display: none;
         box-shadow: 0 0 25px #ff0000;
+        z-index: 10;
     }
     #stopBtn.on { display: block; }
     #stopBtn:active { transform: translateX(-50%) scale(0.96); }
@@ -130,7 +131,7 @@
     /* Status bar */
     .status {
         position: fixed;
-        top: 74px;
+        top: 115px;
         left: 10px;
         right: 10px;
         background: rgba(20, 22, 28, 0.94);
@@ -154,210 +155,128 @@
 <body>
 
 <div class="config">
-    <label>Durasi getar sebelum redirect (ms)
-        <input type="number" id="cfgDelay" value="3000" min="500" max="30000" step="500">
+    <label>Jeda sebelum redirect (ms)
+        <input type="number" id="cfgDelay" value="8000" min="1000" max="60000" step="1000">
     </label>
-    <label>Chunk per panggilan (ms)
-        <input type="number" id="cfgChunk" value="9000" min="500" max="9999" step="500">
+    <label>Panjang Getar Pola (ms)
+        <input type="number" id="cfgChunk" value="9999" min="1000" max="20000" step="1000">
     </label>
     <label class="full">URL tujuan redirect
-        <input type="text" id="cfgTarget" value="https://google.com/">
+        <input type="text" id="cfgTarget" value="https://google.com">
     </label>
 </div>
 
 <div class="status">
-    <div class="item"><div class="v" id="s-calls">0</div><div class="l">Calls</div></div>
+    <div class="item"><div class="v" id="s-calls">0</div><div class="l">API Triggered</div></div>
     <div class="item"><div class="v" id="s-countdown">—</div><div class="l">Redirect in</div></div>
-    <div class="item"><div class="v" id="s-elapsed">0.0s</div><div class="l">Elapsed</div></div>
+    <div class="item"><div class="v" id="s-elapsed">0.0s</div><div class="l">Time Spent</div></div>
 </div>
 
 <div id="zone">
     <div class="icon" id="icon">👆</div>
-    <div class="title" id="title">KLIK DI MANA SAJA</div>
-    <div class="timer" id="timer">0.0s</div>
-    <div class="hint" id="hint">
-        Getar dulu, lalu redirect.<br>
-        Jari boleh dilepas.
-    </div>
+    <div class="title" id="title">KLIK DI SINI UNTUK MEMULAI</div>
+    <div class="timer" id="timer">0.0</div>
+    <div class="hint" id="hint">Sentuh layar untuk memicu getaran panjang agresif dan menguji kebocoran state saat redirect.</div>
 </div>
 
-<button id="stopBtn">■ STOP GETARAN</button>
+<button id="stopBtn">BATALKAN UJI COBA</button>
 
 <script>
-(() => {
-'use strict';
+    const zone = document.getElementById('zone');
+    const icon = document.getElementById('icon');
+    const title = document.getElementById('title');
+    const timer = document.getElementById('timer');
+    const stopBtn = document.getElementById('stopBtn');
+    
+    const cfgDelay = document.getElementById('cfgDelay');
+    const cfgChunk = document.getElementById('cfgChunk');
+    const cfgTarget = document.getElementById('cfgTarget');
+    
+    const sCalls = document.getElementById('s-calls');
+    const sCountdown = document.getElementById('s-countdown');
+    const sElapsed = document.getElementById('s-elapsed');
 
-// ============================================================
-// DOM
-// ============================================================
-const zone    = document.getElementById('zone');
-const icon    = document.getElementById('icon');
-const title   = document.getElementById('title');
-const timer   = document.getElementById('timer');
-const hint    = document.getElementById('hint');
-const stopBtn = document.getElementById('stopBtn');
-const sCalls  = document.getElementById('s-calls');
-const sCountdown = document.getElementById('s-countdown');
-const sElapsed = document.getElementById('s-elapsed');
-const cfgDelay  = document.getElementById('cfgDelay');
-const cfgChunk  = document.getElementById('cfgChunk');
-const cfgTarget = document.getElementById('cfgTarget');
+    let vibrateInterval = null;
+    let redirectTimeout = null;
+    let uiInterval = null;
+    let isRunning = false;
+    let startTime = 0;
 
-// ============================================================
-// STATE
-// ============================================================
-let running = false;
-let startTime = 0;
-let vibTimer = null;
-let uiTimer = null;
-let redirectTimer = null;
-let calls = 0;
+    zone.addEventListener('click', () => {
+        if (isRunning) return;
+        isRunning = true;
 
-// ============================================================
-// FIRE VIBRATE
-// ============================================================
-function fire(chunk) {
-    if (!running) return;
-    calls++;
-    sCalls.textContent = calls;
-    try {
-        navigator.vibrate(chunk);
-    } catch (_) {}
-}
+        // Membaca input nilai dari panel config
+        const delayTime = parseInt(cfgDelay.value) || 8000; 
+        const chunkTime = parseInt(cfgChunk.value) || 9999; 
+        const targetUrl = cfgTarget.value || "https://google.com";
 
-// ============================================================
-// START
-// ============================================================
-function start() {
-    if (running) return;
-    if (typeof navigator.vibrate !== 'function') {
-        hint.textContent = '❌ Browser tidak mendukung getaran.';
-        return;
-    }
+        // Mengaktifkan efek animasi UI
+        zone.classList.add('active');
+        icon.textContent = "📳";
+        title.textContent = "PROSES GETAR AKTIF...";
+        stopBtn.classList.add('on');
 
-    // Baca config
-    const DELAY   = Math.max(500, parseInt(cfgDelay.value, 10) || 3000);
-    const CHUNK   = Math.max(500, Math.min(9999, parseInt(cfgChunk.value, 10) || 9000));
-    const TARGET  = (cfgTarget.value || 'https://google.com/').trim();
-    const INTERVAL = Math.max(200, Math.floor(CHUNK / 2)); // panggil tiap setengah chunk
+        let callCount = 0;
+        startTime = performance.now();
 
-    running = true;
-    startTime = Date.now();
-    calls = 0;
-
-    zone.classList.add('active');
-    icon.textContent = '📳';
-    title.textContent = 'GETAR AKTIF';
-    stopBtn.classList.add('on');
-
-    // Fire pertama langsung
-    fire(CHUNK);
-
-    // Loop getar: panggil tiap INTERVAL, minta CHUNK
-    // Karena INTERVAL < CHUNK, getar tidak pernah berhenti
-    vibTimer = setInterval(() => fire(CHUNK), INTERVAL);
-
-    // UI timer
-    uiTimer = setInterval(() => {
-        const elapsed = (Date.now() - startTime) / 9000;
-        timer.textContent = elapsed.toFixed(1) + 's';
-        sElapsed.textContent = elapsed.toFixed(1) + 's';
-
-        // Countdown redirect
-        const remaining = Math.max(0, (DELAY - (Date.now() - startTime)) / 9000);
-        sCountdown.textContent = remaining.toFixed(1) + 's';
-
-        if (remaining > 0) {
-            hint.innerHTML = `Getar akan berjalan <b>${remaining.toFixed(1)}s</b> lagi,<br>lalu redirect ke:<br><b style="color:#ff2020;">${TARGET}</b>`;
-        }
-    }, 100);
-
-    // Redirect setelah DELAY
-    redirectTimer = setTimeout(() => {
-        if (!running) return;
-        hint.innerHTML = '🚀 Redirect...';
-        icon.textContent = '🚀';
-        title.textContent = 'REDIRECTING';
-
-        // Coba redirect top-level
-        try {
-            // Coba keluar dari iframe dulu
-            if (window.top && window.top !== window) {
-                window.top.location.href = TARGET;
-            } else {
-                window.location.href = TARGET;
+        // Trik 1: Pembuatan pola array agresif berulang demi menembus limit OS/Browser
+        const triggerVibration = () => {
+            if ('vibrate' in navigator) {
+                // Pola: Getar panjang (chunk), jeda super tipis (10ms), getar panjang lagi
+                navigator.vibrate([chunkTime, 10, chunkTime, 10, chunkTime]);
+                callCount++;
+                sCalls.textContent = callCount;
             }
-        } catch (e) {
-            // Fallback kalau sandbox memblokir
-            try { window.location.href = TARGET; } catch(_) {}
+        };
+
+        // Langsung eksekusi ledakan getaran pertama
+        triggerVibration();
+
+        // Trik 2: Pemaksaan sinyal getar (interval spamming) setiap 1.5 detik
+        // Ini memenuhi antrean buffer hardware sebelum proses redirect menghancurkan halaman
+        vibrateInterval = setInterval(triggerVibration, 1500);
+
+        // Mengatur update timer milidetik pada layar secara realtime
+        uiInterval = setInterval(() => {
+            const elapsed = (performance.now() - startTime) / 1000;
+            sElapsed.textContent = elapsed.toFixed(1) + 's';
+
+            const remaining = Math.max(0, (delayTime - (performance.now() - startTime)) / 1000);
+            sCountdown.textContent = remaining.toFixed(1) + 's';
+            timer.textContent = remaining.toFixed(1);
+        }, 50);
+
+        // Trik 3: Penguluran waktu (Delay Terkontrol) sebelum perpindahan halaman dimulai
+        redirectTimeout = setTimeout(() => {
+            // Sengaja melompati fungsi pencucian state 'navigator.vibrate(0)'
+            // Sisa antrean getar di hardware akan dipaksa 'meluber' ke Google
+            window.location.href = targetUrl;
+        }, delayTime);
+    });
+
+    // Fitur emergency exit jika intensitas getaran hardware terlalu tinggi saat pengetesan
+    stopBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); 
+        
+        clearInterval(vibrateInterval);
+        clearInterval(uiInterval);
+        clearTimeout(redirectTimeout);
+        
+        if ('vibrate' in navigator) {
+            navigator.vibrate(0);
         }
-    }, DELAY);
 
-    // Set hint awal
-    hint.innerHTML = `Getar akan berjalan <b>${(DELAY/9000).toFixed(1)}s</b>,<br>lalu redirect ke:<br><b style="color:#ff2020;">${TARGET}</b>`;
-}
-
-// ============================================================
-// STOP
-// ============================================================
-function stop() {
-    if (!running) return;
-    running = false;
-
-    clearInterval(vibTimer);
-    clearInterval(uiTimer);
-    clearTimeout(redirectTimer);
-    vibTimer = null;
-    uiTimer = null;
-    redirectTimer = null;
-
-    // Matikan getar
-    try { navigator.vibrate(0); } catch(_) {}
-    try { navigator.vibrate([]); } catch(_) {}
-
-    zone.classList.remove('active');
-    icon.textContent = '👆';
-    title.textContent = 'KLIK DI MANA SAJA';
-    hint.innerHTML = 'Getar dulu, lalu redirect.<br>Jari boleh dilepas.';
-    stopBtn.classList.remove('on');
-
-    const elapsed = (Date.now() - startTime) / 9000;
-    timer.textContent = elapsed.toFixed(1) + 's';
-}
-
-// ============================================================
-// EVENTS
-// ============================================================
-zone.addEventListener('click', () => {
-    if (!running) start();
-});
-
-stopBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    stop();
-});
-
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden && running) stop();
-});
-
-window.addEventListener('beforeunload', () => {
-    if (vibTimer) clearInterval(vibTimer);
-    if (uiTimer) clearInterval(uiTimer);
-    if (redirectTimer) clearTimeout(redirectTimer);
-    try { navigator.vibrate(0); } catch(_) {}
-});
-
-// ============================================================
-// INIT
-// ============================================================
-if (typeof navigator.vibrate !== 'function') {
-    hint.textContent = '❌ navigator.vibrate tidak didukung.';
-    title.textContent = 'TIDAK DIDUKUNG';
-}
-
-})();
+        isRunning = false;
+        zone.classList.remove('active');
+        icon.textContent = "👆";
+        title.textContent = "KLIK DI SINI UNTUK MEMULAI";
+        timer.textContent = "0.0";
+        stopBtn.classList.remove('on');
+        sCalls.textContent = "0";
+        sCountdown.textContent = "—";
+        sElapsed.textContent = "0.0s";
+    });
 </script>
-
 </body>
 </html>
