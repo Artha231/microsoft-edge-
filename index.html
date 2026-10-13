@@ -2,181 +2,550 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Iframe Vibrate Policy Test</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tab Switching — Vibrate Behavior Test</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: #121214;
-    color: #e6e8eb;
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    padding: 20px;
-    min-height: 100vh;
-  }
-  h2 { margin-bottom: 16px; font-size: 18px; }
-  .test-block {
-    background: #1e1e24;
-    border-radius: 10px;
-    padding: 14px;
-    margin-bottom: 14px;
-    border: 1px solid #2c313a;
-  }
-  .test-block h3 {
-    font-size: 13px;
-    color: #8b93a1;
-    margin-bottom: 8px;
-    font-family: monospace;
-  }
-  iframe {
-    width: 100%;
-    height: 160px;
-    border: 1px solid #2c313a;
-    border-radius: 8px;
-    background: #0d0f14;
-  }
-  .result {
-    margin-top: 8px;
-    font-family: monospace;
-    font-size: 11px;
-    color: #00ff66;
-    background: #05070a;
-    padding: 8px;
-    border-radius: 6px;
-    white-space: pre-wrap;
-    min-height: 40px;
-  }
-  .no-allow iframe {
-    border-color: #dc2626;
-  }
-  .with-allow iframe {
-    border-color: #16a34a;
-  }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+        height: 100%;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #0d0f14;
+        color: #e6e8eb;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        overflow: hidden;
+        touch-action: none;
+    }
+    #zone {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 24px;
+        transition: background .3s;
+    }
+    #zone.idle    { background: #0d0f14; }
+    #zone.active  { background: #1a0f0f; }
+    #zone.hidden  { background: #0f1a1f; } /* saat tab disembunyikan */
+
+    .icon {
+        font-size: 64px;
+        margin-bottom: 12px;
+        transition: transform .3s;
+    }
+    #zone.active .icon { animation: shake .4s infinite; }
+    @keyframes shake {
+        0%, 100% { transform: rotate(0deg); }
+        25%      { transform: rotate(-8deg); }
+        75%      { transform: rotate(8deg); }
+    }
+
+    .title {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+    .hint {
+        font-size: 13px;
+        color: #8b93a1;
+        line-height: 1.6;
+        max-width: 340px;
+    }
+    #zone.active .hint { color: #f87171; }
+
+    .timer {
+        font-family: ui-monospace, monospace;
+        font-size: 40px;
+        font-weight: 700;
+        color: #f87171;
+        margin: 12px 0 4px;
+        min-height: 46px;
+        letter-spacing: 1px;
+        text-shadow: 0 0 16px rgba(248, 113, 113, 0.4);
+    }
+
+    /* Statistik grid */
+    .stats {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        font-family: ui-monospace, monospace;
+        font-size: 10px;
+        z-index: 5;
+    }
+    .stat {
+        background: rgba(30, 30, 36, 0.85);
+        border: 1px solid #2c313a;
+        border-radius: 6px;
+        padding: 5px 6px;
+        text-align: center;
+    }
+    .stat .v { font-size: 14px; font-weight: 700; }
+    .stat .l { color: #8b93a1; text-transform: uppercase; letter-spacing: .04em; margin-top: 1px; }
+    .stat.ok  .v { color: #2ecc71; }
+    .stat.err .v { color: #e74c3c; }
+    .stat.warn .v { color: #f1c40f; }
+    .stat.hi  .v { color: #a855f7; }
+
+    /* Event log */
+    #eventLog {
+        position: fixed;
+        bottom: 12px;
+        left: 12px;
+        right: 12px;
+        max-height: 180px;
+        overflow-y: auto;
+        background: #05070a;
+        border: 1px solid #2c313a;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-family: ui-monospace, monospace;
+        font-size: 10.5px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        z-index: 5;
+    }
+    #eventLog .t  { color: #6b7280; }
+    #eventLog .i  { color: #79c0ff; }
+    #eventLog .ok { color: #3fb950; }
+    #eventLog .wr { color: #d29922; }
+    #eventLog .er { color: #f85149; }
+    #eventLog .hi { color: #d2a8ff; font-weight: 600; }
+
+    /* Pulse indikator jari */
+    #pulse {
+        position: fixed;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: rgba(248, 113, 113, 0.3);
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+        opacity: 0;
+        transition: opacity .15s;
+        z-index: 3;
+    }
+    #pulse.on { opacity: 1; }
+
+    /* Overlay saat tab disembunyikan */
+    #hiddenBanner {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 26, 31, 0.95);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        font-family: ui-monospace, monospace;
+        color: #8b93a1;
+        text-align: center;
+        padding: 20px;
+        font-size: 13px;
+    }
+    #hiddenBanner.on { display: flex; }
 </style>
 </head>
 <body>
 
-<h2>🧪 Iframe Vibrate Policy Test</h2>
-
-<!-- Test 1: Without allow="vibrate" -->
-<div class="test-block no-allow">
-  <h3>Test A: iframe tanpa allow="vibrate" (cross-origin)</h3>
-  <iframe id="if-noallow" 
-          src="https://example.com"
-          sandbox="allow-scripts allow-same-origin allow-forms">
-  </iframe>
-  <div class="result" id="log-a">Menunggu...</div>
+<!-- Statistik -->
+<div class="stats">
+    <div class="stat hi">   <div class="v" id="s-call">0</div> <div class="l">Panggilan</div></div>
+    <div class="stat ok">   <div class="v" id="s-ok">0</div>   <div class="l">OK</div></div>
+    <div class="stat err">  <div class="v" id="s-fail">0</div> <div class="l">Fail</div></div>
+    <div class="stat warn"> <div class="v" id="s-hid">0</div>  <div class="l">Hidden</div></div>
 </div>
 
-<!-- Test 2: With allow="vibrate" -->
-<div class="test-block with-allow">
-  <h3>Test B: iframe dengan allow="vibrate" (cross-origin)</h3>
-  <iframe id="if-allow" 
-          src="https://example.com"
-          allow="vibrate"
-          sandbox="allow-scripts allow-same-origin allow-forms">
-  </iframe>
-  <div class="result" id="log-b">Menunggu...</div>
+<!-- Zona utama -->
+<div id="zone" class="idle">
+    <div class="icon" id="icon">👋</div>
+    <div class="title" id="title">Geser jari di layar</div>
+    <div class="timer" id="timer"></div>
+    <div class="hint" id="hint">
+        Gerakkan jari untuk memulai getaran.<br>
+        Lalu <b>pindah tab</b> atau <b>keluar aplikasi</b> untuk menguji perilaku.
+    </div>
 </div>
 
-<!-- Test 3: Same-origin iframe via srcdoc -->
-<div class="test-block with-allow">
-  <h3>Test C: iframe same-origin (srcdoc) + allow="vibrate"</h3>
-  <iframe id="if-same" 
-          srcdoc="<html><body style='background:#0d0f14;color:#e6e8eb;font-family:monospace;padding:10px;'>
-            <button id='vibBtn' style='padding:8px 16px;background:#2563eb;color:white;border:none;border-radius:6px;'>Tap & Vibrate</button>
-            <div id='log' style='margin-top:8px;font-size:10px;color:#00ff66;'>idle</div>
-            <script>
-              const log = document.getElementById('log');
-              function tryVib(label) {
-                if (typeof navigator.vibrate !== 'function') {
-                  log.textContent = label + ': API tidak ada';
-                  return;
-                }
-                const ok = navigator.vibrate([80, 40, 80]);
-                log.textContent = label + ': ' + (ok ? 'OK' : 'FAIL');
-              }
-              // Coba sebelum gesture
-              window.addEventListener('load', () => tryVib('load'));
-              document.getElementById('vibBtn').addEventListener('click', () => tryVib('click'));
-              setTimeout(() => tryVib('after-2s'), 2000);
-            <\/script>
-          <\/body><\/html>"
-          allow="vibrate">
-  </iframe>
-  <div class="result" id="log-c">Menunggu...</div>
+<!-- Indikator jari -->
+<div id="pulse"></div>
+
+<!-- Overlay saat tab disembunyikan (murni visual untuk ketika kembali) -->
+<div id="hiddenBanner">
+    Tab tidak terlihat.<br>
+    Getaran seharusnya sudah berhenti.
 </div>
+
+<!-- Log event -->
+<div id="eventLog"></div>
 
 <script>
-// Test A: Tanpa allow="vibrate"
-// Kita tidak bisa inject script ke cross-origin iframe, jadi kita hanya
-// bisa memantau apakah iframe memuat dan console error terkait vibrate.
-// Untuk tujuan demonstrasi, kita buat iframe srcdoc sebagai pengganti.
+(() => {
+'use strict';
 
-const ifA = document.getElementById('if-noallow');
-const ifB = document.getElementById('if-allow');
-const ifC = document.getElementById('if-same');
-const logA = document.getElementById('log-a');
-const logB = document.getElementById('log-b');
-const logC = document.getElementById('log-c');
+// ============================================================
+// DOM
+// ============================================================
+const zone      = document.getElementById('zone');
+const icon      = document.getElementById('icon');
+const title     = document.getElementById('title');
+const timer     = document.getElementById('timer');
+const hint      = document.getElementById('hint');
+const pulse     = document.getElementById('pulse');
+const eventLog  = document.getElementById('eventLog');
+const hiddenBanner = document.getElementById('hiddenBanner');
 
-// Ganti Test A dengan srcdoc (same-origin simulation tanpa allow)
-ifA.srcdoc = `<html><body style="background:#0d0f14;color:#e6e8eb;font-family:monospace;padding:10px;">
-<button id="vibBtn" style="padding:8px 16px;background:#dc2626;color:white;border:none;border-radius:6px;">Tap (no allow)</button>
-<div id="log" style="margin-top:8px;font-size:10px;color:#00ff66;">idle</div>
-<script>
-const log = document.getElementById('log');
-function tryVib(label) {
-  if (typeof navigator.vibrate !== 'function') {
-    log.textContent = label + ': API tidak ada';
-    return;
-  }
-  const ok = navigator.vibrate([80, 40, 80]);
-  log.textContent = label + ': ' + (ok ? 'OK' : 'FAIL');
-  parent.postMessage({test:'A', label, ok}, '*');
+const sCall = document.getElementById('s-call');
+const sOk   = document.getElementById('s-ok');
+const sFail = document.getElementById('s-fail');
+const sHid  = document.getElementById('s-hid');
+
+// ============================================================
+// KONFIGURASI
+// ============================================================
+const CHUNK_MS   = 9000;
+const OVERLAP_MS = 2000;
+const INTERVAL   = CHUNK_MS - OVERLAP_MS;  // 7000
+
+// ============================================================
+// STATE
+// ============================================================
+let active        = false;
+let startTime     = 0;
+let intervalId    = null;
+let tickerId      = null;
+let callCount     = 0;
+let okCount       = 0;
+let failCount     = 0;
+let hiddenCount   = 0;
+
+// Pelacakan untuk membuktikan apa yang terjadi
+let lastFireAt           = 0;
+let lastFireBeforeHide   = 0;
+let activeWhenHidden     = false;
+let startedAtHidden      = false;
+let lastHiddenAt         = 0;
+let lastVisibleAt        = 0;
+
+// ============================================================
+// LOGGING
+// ============================================================
+const MAX_LOG = 200;
+let logLines = 0;
+function ts() { return new Date().toTimeString().slice(0, 8); }
+
+function log(text, cls = '') {
+    const span = document.createElement('span');
+    span.className = cls;
+    span.textContent = `[${ts()}] ${text}\n`;
+    eventLog.appendChild(span);
+    logLines++;
+    while (logLines > MAX_LOG && eventLog.firstChild) {
+        eventLog.removeChild(eventLog.firstChild);
+        logLines--;
+    }
+    eventLog.scrollTop = eventLog.scrollHeight;
 }
-window.addEventListener('load', () => tryVib('load'));
-document.getElementById('vibBtn').addEventListener('click', () => tryVib('click'));
-setTimeout(() => tryVib('after-2s'), 2000);
-<\/script></body></html>`;
 
-// Test B: Dengan allow="vibrate"
-ifB.srcdoc = `<html><body style="background:#0d0f14;color:#e6e8eb;font-family:monospace;padding:10px;">
-<button id="vibBtn" style="padding:8px 16px;background:#16a34a;color:white;border:none;border-radius:6px;">Tap (allow)</button>
-<div id="log" style="margin-top:8px;font-size:10px;color:#00ff66;">idle</div>
-<script>
-const log = document.getElementById('log');
-function tryVib(label) {
-  if (typeof navigator.vibrate !== 'function') {
-    log.textContent = label + ': API tidak ada';
-    return;
-  }
-  const ok = navigator.vibrate([80, 40, 80]);
-  log.textContent = label + ': ' + (ok ? 'OK' : 'FAIL');
-  parent.postMessage({test:'B', label, ok}, '*');
+// ============================================================
+// VIBRATE WRAPPER
+// ============================================================
+function vib(pattern) {
+    if (typeof navigator.vibrate !== 'function') return false;
+    try {
+        const result = navigator.vibrate(pattern);
+        lastFireAt = Date.now();
+        return result;
+    } catch (_) {
+        return false;
+    }
 }
-window.addEventListener('load', () => tryVib('load'));
-document.getElementById('vibBtn').addEventListener('click', () => tryVib('click'));
-setTimeout(() => tryVib('after-2s'), 2000);
-<\/script></body></html>`;
 
-// Kumpulkan hasil dari iframe
-window.addEventListener('message', (e) => {
-  const d = e.data;
-  if (!d || !d.test) return;
-  const logEl = d.test === 'A' ? logA : (d.test === 'B' ? logB : logC);
-  const line = `[${d.label}] vibrate=${d.ok ? 'OK' : 'FAIL'}\n`;
-  logEl.textContent += line;
-  console.log(`Test ${d.test}:`, d);
+// ============================================================
+// UI
+// ============================================================
+function updateTimer() {
+    if (!active) return;
+    const sec = ((Date.now() - startTime) / 1000).toFixed(1);
+    timer.textContent = sec + 's';
+}
+
+function updateStats() {
+    sCall.textContent = callCount;
+    sOk.textContent   = okCount;
+    sFail.textContent = failCount;
+    sHid.textContent  = hiddenCount;
+}
+
+function updateHint() {
+    if (active) {
+        const sec = ((Date.now() - startTime) / 1000).toFixed(0);
+        hint.innerHTML = `Aktif — ${sec}s<br>
+            Coba: pindah tab · tekan tombol home · buka app lain`;
+    } else {
+        hint.innerHTML = `Gerakkan jari untuk memulai getaran.<br>
+            Lalu <b>pindah tab</b> atau <b>keluar aplikasi</b> untuk menguji.`;
+    }
+}
+
+function showPulse(x, y) {
+    pulse.style.left = x + 'px';
+    pulse.style.top  = y + 'px';
+    pulse.classList.add('on');
+}
+function hidePulse() { pulse.classList.remove('on'); }
+
+// ============================================================
+// FIRE
+// ============================================================
+function fire(label = 'loop') {
+    if (!active) return;
+    const ok = vib(CHUNK_MS);
+    callCount++;
+    if (ok) okCount++; else failCount++;
+    lastFireAt = Date.now();
+    updateStats();
+    // Log hanya saat ok=false supaya tidak spam
+    if (!ok) log(`⚠ fire(${label}) → FAIL`, 'wr');
+}
+
+// ============================================================
+// START
+// ============================================================
+function start() {
+    if (active) return;
+    if (typeof navigator.vibrate !== 'function') {
+        hint.textContent = 'Vibration API tidak didukung.';
+        log('❌ navigator.vibrate tidak tersedia', 'er');
+        return;
+    }
+
+    active = true;
+    startTime = Date.now();
+    callCount = okCount = failCount = 0;
+    updateStats();
+
+    zone.classList.remove('idle', 'hidden');
+    zone.classList.add('active');
+    icon.textContent = '📳';
+    title.textContent = 'Getaran Aktif';
+
+    log('▶ Getaran dimulai', 'hi');
+    log(`Konfigurasi: chunk=${CHUNK_MS}ms, interval=${INTERVAL}ms`, 'i');
+
+    fire('init');
+    intervalId = setInterval(() => fire('loop'), INTERVAL);
+
+    updateTimer();
+    tickerId = setInterval(() => {
+        updateTimer();
+        updateHint();
+    }, 200);
+
+    updateHint();
+}
+
+// ============================================================
+// STOP
+// ============================================================
+function stop(reason = 'manual') {
+    if (!active) return;
+    active = false;
+
+    clearInterval(intervalId); intervalId = null;
+    clearInterval(tickerId);   tickerId = null;
+
+    try { navigator.vibrate(0); } catch (_) {}
+
+    zone.classList.remove('active', 'hidden');
+    zone.classList.add('idle');
+    icon.textContent = '👋';
+    title.textContent = 'Geser jari di layar';
+
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    timer.textContent = elapsed + 's';
+    hint.innerHTML = `Berhenti (${reason}) setelah ${elapsed}s.<br>
+        ${callCount} panggilan (${okCount} OK, ${failCount} fail).<br>
+        Geser lagi untuk memulai.`;
+
+    log(`⏹ Stop (${reason}) setelah ${elapsed}s — ${callCount} call, ${okCount} OK, ${failCount} fail`, 'ok');
+}
+
+// ============================================================
+// GESTURE DETECTION
+// ============================================================
+function onTouchStart(e) {
+    const t = e.touches[0];
+    if (t) showPulse(t.clientX, t.clientY);
+}
+function onTouchMove(e) {
+    const t = e.touches[0];
+    if (!t) return;
+    showPulse(t.clientX, t.clientY);
+    if (!active) start();
+}
+function onTouchEnd() {
+    hidePulse();
+    if (active) stop('angkat jari');
+}
+function onTouchCancel() {
+    hidePulse();
+    if (active) stop('touchcancel');
+}
+
+zone.addEventListener('touchstart',  onTouchStart,  { passive: false });
+zone.addEventListener('touchmove',   onTouchMove,   { passive: false });
+zone.addEventListener('touchend',    onTouchEnd,    { passive: false });
+zone.addEventListener('touchcancel', onTouchCancel, { passive: false });
+
+// Mouse fallback untuk desktop
+zone.addEventListener('mousemove', (e) => {
+    if (e.buttons === 0) return;
+    showPulse(e.clientX, e.clientY);
+    if (!active) start();
+});
+zone.addEventListener('mouseup', () => {
+    hidePulse();
+    if (active) stop('mouseup');
 });
 
-// Untuk Test C, kita tidak bisa akses langsung, jadi hanya info umum
-logC.textContent = 'Lihat hasil di dalam iframe di atas.\nPerhatikan perilaku load vs click.';
+// ============================================================
+// INTI TEST: visibilitychange
+// ============================================================
+document.addEventListener('visibilitychange', () => {
+    const now = Date.now();
+    const hidden = document.hidden;
 
-// Info umum tentang cross-origin restriction
-console.log(`Cross-origin iframe vibrate policy:
-- Default: BLOCKED
-- With allow="vibrate": allowed AFTER user gesture
-- Same-origin: typically allowed after gesture, may vary by Chrome version`);
+    if (hidden) {
+        // === Halaman disembunyikan ===
+        hiddenCount++;
+        updateStats();
+        lastHiddenAt = now;
+        activeWhenHidden = active;
+
+        log('═'.repeat(30), 'hi');
+        log('👁 visibilitychange → HIDDEN', 'hi');
+        log(`   active sebelum hide = ${active}`, 'i');
+        log(`   callCount sebelum hide = ${callCount}`, 'i');
+        log(`   waktu sejak fire terakhir = ${now - lastFireAt}ms`, 'i');
+
+        // Cek: apakah vibrate benar-benar berhenti?
+        // Kita coba panggil vibrate(0) untuk memastikan — ini tidak akan
+        // mengganggu pola yang sedang berjalan karena halaman hidden.
+        try { navigator.vibrate(0); } catch(_) {}
+
+        if (active) {
+            // Simpan waktu sebelum stop
+            lastFireBeforeHide = lastFireAt;
+
+            // Jeda pendek untuk observasi, lalu stop
+            setTimeout(() => {
+                if (document.hidden) {
+                    log('   → getaran seharusnya sudah berhenti (spesifikasi)', 'wr');
+                }
+            }, 500);
+        }
+
+        // Tampilkan banner (hanya terlihat saat kembali)
+        hiddenBanner.classList.add('on');
+    } else {
+        // === Halaman kembali terlihat ===
+        lastVisibleAt = now;
+        hiddenBanner.classList.remove('on');
+
+        log('👁 visibilitychange → VISIBLE', 'hi');
+        log(`   durasi hidden = ${(now - lastHiddenAt)}ms`, 'i');
+        log(`   active saat kembali = ${active}`, 'i');
+        log(`   callCount saat kembali = ${callCount}`, 'i');
+
+        // Cek userActivation — apakah sticky activation masih ada?
+        if (navigator.userActivation) {
+            const ua = navigator.userActivation;
+            log(`   userActivation: isActive=${ua.isActive}, hasBeenActive=${ua.hasBeenActive}`,
+                ua.hasBeenActive ? 'ok' : 'wr');
+        }
+
+        // Test: apakah vibrate masih bisa dipanggil?
+        if (typeof navigator.vibrate === 'function') {
+            const testOk = vib([30]);
+            log(`   test vibrate([30]) setelah visible → ${testOk ? 'OK' : 'FAIL'}`,
+                testOk ? 'ok' : 'er');
+
+            // Matikan lagi supaya tidak mengganggu
+            try { navigator.vibrate(0); } catch(_) {}
+        }
+
+        // Apakah getaran kita dilanjutkan otomatis?
+        if (active) {
+            const gap = now - lastFireAt;
+            log(`   getaran aktif — gap sejak fire terakhir = ${gap}ms`, 'i');
+            if (gap > INTERVAL + 2000) {
+                log('   ⚠ timer di-pause saat hidden (gap > interval)', 'wr');
+                log('   → getaran TIDAK dilanjutkan otomatis', 'wr');
+            }
+        } else {
+            log('   getaran tidak aktif saat kembali (normal)', 'i');
+        }
+    }
+});
+
+// ============================================================
+// SUPPORT: pagehide / pageshow (untuk app switching di mobile)
+// ============================================================
+window.addEventListener('pagehide', (e) => {
+    log('📄 pagehide — halaman akan disembunyikan/di-unload', 'hi');
+    log(`   persisted = ${e.persisted}`, 'i');
+});
+
+window.addEventListener('pageshow', (e) => {
+    log('📄 pageshow — halaman kembali aktif', 'hi');
+    log(`   persisted = ${e.persisted}`, 'i');
+});
+
+// ============================================================
+// FOCUS / BLUR (untuk app switching)
+// ============================================================
+window.addEventListener('focus', () => {
+    log('🎯 window focus', 'ok');
+});
+window.addEventListener('blur', () => {
+    log('💤 window blur', 'wr');
+});
+
+// ============================================================
+// CLEANUP
+// ============================================================
+window.addEventListener('beforeunload', () => {
+    if (intervalId) clearInterval(intervalId);
+    if (tickerId)   clearInterval(tickerId);
+    try { navigator.vibrate(0); } catch(_) {}
+});
+
+// ============================================================
+// INIT
+// ============================================================
+updateStats();
+updateHint();
+
+log('=== READY ===', 'hi');
+log('Instruksi:', 'i');
+log('1. Geser jari → getaran mulai', 'i');
+log('2. Pindah tab atau tekan home', 'i');
+log('3. Kembali ke halaman ini', 'i');
+log('4. Amati log untuk melihat perilaku', 'i');
+if (typeof navigator.vibrate !== 'function') {
+    log('❌ Vibration API tidak tersedia di browser ini', 'er');
+} else {
+    log('✅ Vibration API tersedia', 'ok');
+}
+
+})();
 </script>
 
 </body>
