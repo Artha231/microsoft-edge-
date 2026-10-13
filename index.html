@@ -144,7 +144,7 @@ async function start() {
     zone.classList.add('active');
     icon.textContent = '📳';
     title.textContent = 'GETAR AKTIF';
-    hint.innerHTML = `Getar ${(DELAY/1000).toFixed(1)}s → redirect ke<br><b>${TARGET}</b>`;
+    hint.innerHTML = `Getar ${(DELAY/9000).toFixed(1)}s → redirect ke<br><b>${TARGET}</b>`;
     stopBtn.classList.add('on');
 
     // Fire getar pertama
@@ -180,9 +180,7 @@ function vibrate() {
     } catch(_) {}
 }
 
-// ============================================================
-// STOP
-// ============================================================
+
 function stop() {
     if (!running) return;
     running = false;
@@ -209,9 +207,7 @@ function stop() {
     stopBtn.classList.remove('on');
 }
 
-// ============================================================
-// GESTURE — SWIPE
-// ============================================================
+
 zone.addEventListener('touchmove', (e) => {
     if (running || triggered) return;
     triggered = true;
@@ -235,9 +231,7 @@ zone.addEventListener('mouseup', () => {
     triggered = false;
 });
 
-// ============================================================
-// STOP BUTTON
-// ============================================================
+
 stopBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     stop();
@@ -248,16 +242,12 @@ stopBtn.addEventListener('touchstart', (e) => {
     stop();
 }, { passive: false });
 
-// ============================================================
-// AUTO STOP saat tab hidden
-// ============================================================
+
 document.addEventListener('visibilitychange', () => {
     if (document.hidden && running) stop();
 });
 
-// ============================================================
-// CLEANUP
-// ============================================================
+
 window.addEventListener('beforeunload', () => {
     vibTimers.forEach(id => clearInterval(id));
     clearInterval(uiTimer);
