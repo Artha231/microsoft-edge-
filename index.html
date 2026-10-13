@@ -2,211 +2,298 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Getar Loop</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amplitude Test — Mitos atau Fakta?</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-        height: 100%;
         font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
         background: #0d0f14;
         color: #e6e8eb;
-        user-select: none;
-        -webkit-tap-highlight-color: transparent;
-        overflow: hidden;
+        padding: 16px;
+        min-height: 100vh;
     }
-    #zone {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        padding: 20px;
-        cursor: pointer;
-        background: #0d0f14;
-        transition: background .15s;
+    h1 { font-size: 18px; margin-bottom: 8px; }
+    p.sub { font-size: 12px; color: #8b93a1; line-height: 1.6; margin-bottom: 16px; }
+    .box {
+        background: #1a1d24;
+        border: 1px solid #2c313a;
+        border-radius: 10px;
+        padding: 14px;
+        margin-bottom: 12px;
     }
-    #zone.active { background: #2a0000; cursor: default; }
-
-    .icon {
-        font-size: 100px;
-        margin-bottom: 16px;
-    }
-    #zone.active .icon { animation: shake .08s infinite; }
-    @keyframes shake {
-        0%   { transform: rotate(-15deg) scale(1.3); }
-        50%  { transform: rotate(15deg) scale(1.4); }
-        100% { transform: rotate(-15deg) scale(1.3); }
-    }
-
-    .title {
-        font-size: 22px;
-        font-weight: 900;
-        letter-spacing: 2px;
-        margin-bottom: 8px;
-    }
-    #zone.active .title { color: #ff2020; text-shadow: 0 0 20px #ff0000; }
-
-    .hint {
-        font-size: 13px;
+    .box h3 {
+        font-size: 12px;
         color: #8b93a1;
-        line-height: 1.6;
-        max-width: 300px;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 10px;
     }
-    #zone.active .hint { color: #ff6060; }
-
-    .timer {
-        font-family: ui-monospace, monospace;
-        font-size: 56px;
-        font-weight: 900;
-        color: #ff2020;
-        margin: 16px 0;
-        min-height: 64px;
-        letter-spacing: 2px;
-        text-shadow: 0 0 30px #ff0000;
-        font-variant-numeric: tabular-nums;
-    }
-    #zone:not(.active) .timer { color: #333; text-shadow: none; }
-
-    #stopBtn {
-        position: fixed;
-        bottom: 24px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 260px;
-        max-width: calc(100% - 40px);
-        padding: 18px;
-        background: #dc2626;
-        color: white;
+    button {
+        width: 100%;
+        padding: 12px;
+        font-size: 13px;
+        font-weight: 700;
         border: none;
-        border-radius: 12px;
-        font-size: 18px;
-        font-weight: 900;
-        letter-spacing: 2px;
+        border-radius: 8px;
         cursor: pointer;
-        display: none;
-        box-shadow: 0 0 25px #ff0000;
+        color: white;
+        margin-bottom: 6px;
+        background: #2563eb;
+        font-family: inherit;
+        text-align: left;
     }
-    #stopBtn.on { display: block; }
-    #stopBtn:active { transform: translateX(-50%) scale(0.96); }
+    button:active { transform: scale(0.98); }
+    button.weak   { background: #374151; }
+    button.med    { background: #7c3aed; }
+    button.strong { background: #dc2626; }
+    button.custom { background: #059669; }
+
+    #log {
+        margin-top: 12px;
+        padding: 12px;
+        background: #05070a;
+        border: 1px solid #2c313a;
+        border-radius: 8px;
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+        line-height: 1.6;
+        height: 320px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    #log .i  { color: #79c0ff; }
+    #log .ok { color: #3fb950; }
+    #log .wr { color: #d29922; }
+    #log .er { color: #f85149; }
+    #log .hi { color: #d2a8ff; font-weight: 700; }
+    .verdict {
+        padding: 10px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        text-align: center;
+        margin-top: 10px;
+    }
+    .verdict.bad { background: #7f1d1d; color: #fecaca; }
 </style>
 </head>
 <body>
 
-<div id="zone">
-    <div class="icon" id="icon">👆</div>
-    <div class="title" id="title">KLIK DI MANA SAJA</div>
-    <div class="timer" id="timer">0.0s</div>
-    <div class="hint" id="hint">
-        Sekali klik = getar tanpa henti.<br>
-        Jari boleh dilepas.
-    </div>
+<h1>🔬 Test: Apakah bisa kontrol kekuatan getar?</h1>
+<p class="sub">
+    Klik tiap tombol dan rasakan getarnya. Kalau <b>semua terasa sama</b>, berarti amplitudo
+    <b>tidak bisa dikontrol</b> — mitos terkonfirmasi.
+</p>
+
+<div class="box">
+    <h3>Cara yang umum diklaim "bisa" kontrol amplitudo</h3>
+    <button class="weak"   onclick="testWeak()">1. Durasi pendek — "getar lemah" (50ms)</button>
+    <button class="med"    onclick="testMed()">2. Durasi sedang — "getar sedang" (300ms)</button>
+    <button class="strong" onclick="testStrong()">3. Durasi panjang — "getar kuat" (2000ms)</button>
+    <button class="custom" onclick="testObject()">4. Object: vibrate({duration: 200, intensity: 'high'})</button>
+    <button class="custom" onclick="testArray()">5. Array: vibrate([200, 100, 200])</button>
+    <button class="custom" onclick="testNegative()">6. Nilai ekstrem: vibrate(-1) / vibrate(NaN)</button>
+    <button class="custom" onclick="testString()">7. String: vibrate("500")</button>
+    <button class="custom" onclick="testFloat()">8. Float: vibrate(123.456)</button>
+    <button class="custom" onclick="testAll()">🔥 SEMUA (bandingkan langsung)</button>
 </div>
 
-<button id="stopBtn">■ STOP GETARAN</button>
+<div id="log">Siap. Klik tombol untuk test satu per satu.
+
+Amati apakah ada perbedaan kekuatan getar antara durasi pendek vs panjang.</div>
 
 <script>
 (() => {
 'use strict';
 
-const zone    = document.getElementById('zone');
-const icon    = document.getElementById('icon');
-const title   = document.getElementById('title');
-const timer   = document.getElementById('timer');
-const hint    = document.getElementById('hint');
-const stopBtn = document.getElementById('stopBtn');
+const logEl = document.getElementById('log');
 
-let running = false;
-let startTime = 0;
-let vibTimer = null;
-let uiTimer = null;
+function log(text, cls = '') {
+    const span = document.createElement('span');
+    span.className = cls;
+    span.textContent = text + '\n';
+    logEl.appendChild(span);
+    logEl.scrollTop = logEl.scrollHeight;
+}
 
-// Fire vibrate tiap 500ms, minta durasi 1000ms.
-// Karena interval (500) < durasi (1000), getar tidak pernah berhenti.
-const INTERVAL = 500;
-const DURATION = 1000;
+function clearLog() {
+    logEl.textContent = '';
+}
 
-function start() {
-    if (running) return;
-    if (typeof navigator.vibrate !== 'function') {
-        hint.textContent = 'Browser tidak mendukung getaran.';
-        return;
+// ============================================================
+// TEST SUITE
+// ============================================================
+
+function testWeak() {
+    clearLog();
+    log('▶ TEST 1: Durasi pendek (50ms)', 'hi');
+    log('   Klaim: getar "lemah" karena durasi pendek', 'i');
+    log('   Faktanya: getar hanya singkat, bukan lemah', 'wr');
+    log('', '');
+    const ok = navigator.vibrate(50);
+    log('   navigator.vibrate(50) → ' + ok, ok ? 'ok' : 'er');
+    log('   Rasakan: apakah getarnya "lemah" atau cuma "pendek"?', 'i');
+}
+
+function testMed() {
+    clearLog();
+    log('▶ TEST 2: Durasi sedang (300ms)', 'hi');
+    log('', '');
+    const ok = navigator.vibrate(300);
+    log('   navigator.vibrate(300) → ' + ok, ok ? 'ok' : 'er');
+    log('   Rasakan: apakah kekuatannya berbeda dari test 1?', 'i');
+}
+
+function testStrong() {
+    clearLog();
+    log('▶ TEST 3: Durasi panjang (2000ms)', 'hi');
+    log('   Klaim: getar "kuat" karena durasi panjang', 'i');
+    log('   Faktanya: getar hanya panjang, bukan kuat', 'wr');
+    log('', '');
+    const ok = navigator.vibrate(2000);
+    log('   navigator.vibrate(2000) → ' + ok, ok ? 'ok' : 'er');
+    log('   Rasakan: apakah kekuatannya berbeda dari test 1 & 2?', 'i');
+}
+
+function testObject() {
+    clearLog();
+    log('▶ TEST 4: Object dengan properti intensity', 'hi');
+    log('   Klaim: vibrate({duration: 200, intensity: "high"})', 'i');
+    log('', '');
+    
+    try {
+        const ok = navigator.vibrate({ duration: 200, intensity: 'high' });
+        log('   navigator.vibrate({duration: 200, intensity: "high"})', 'i');
+        log('   → return: ' + ok, ok ? 'ok' : 'er');
+        if (ok) {
+            log('   ⚠ Kok bisa return true? Object di-coerce jadi NaN', 'wr');
+            log('   → NaN → 0 → tidak getar', 'wr');
+        }
+    } catch (err) {
+        log('   ❌ Error: ' + err.message, 'er');
     }
-
-    running = true;
-    startTime = Date.now();
-
-    zone.classList.add('active');
-    icon.textContent = '📳';
-    title.textContent = 'GETAR AKTIF';
-    hint.innerHTML = 'Getar berjalan tanpa henti.<br>Tekan STOP untuk berhenti.';
-    stopBtn.classList.add('on');
-
-    // Fire langsung sekali
-    navigator.vibrate(DURATION);
-
-    // Loop
-    vibTimer = setInterval(() => {
-        if (!running) return;
-        navigator.vibrate(DURATION);
-    }, INTERVAL);
-
-    // Update timer
-    uiTimer = setInterval(() => {
-        if (!running) return;
-        const sec = ((Date.now() - startTime) / 1000).toFixed(1);
-        timer.textContent = sec + 's';
-    }, 100);
+    log('', '');
+    log('   Faktanya: spesifikasi W3C hanya menerima number atau array of number.', 'wr');
+    log('   Properti "intensity" diabaikan sepenuhnya.', 'er');
+    log('   Object akan dikonversi ke NaN → tidak ada getaran.', 'er');
 }
 
-function stop() {
-    if (!running) return;
-    running = false;
-
-    clearInterval(vibTimer);
-    clearInterval(uiTimer);
-    vibTimer = null;
-    uiTimer = null;
-
-    // Matikan getar
-    navigator.vibrate(0);
-    navigator.vibrate([]);
-
-    zone.classList.remove('active');
-    icon.textContent = '👆';
-    title.textContent = 'KLIK DI MANA SAJA';
-    hint.innerHTML = 'Sekali klik = getar tanpa henti.<br>Jari boleh dilepas.';
-    stopBtn.classList.remove('on');
-
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    timer.textContent = elapsed + 's';
+function testArray() {
+    clearLog();
+    log('▶ TEST 5: Array pattern', 'hi');
+    log('   navigator.vibrate([200, 100, 200])', 'i');
+    log('', '');
+    const ok = navigator.vibrate([200, 100, 200]);
+    log('   → return: ' + ok, ok ? 'ok' : 'er');
+    log('   Rasakan: getar 200ms, jeda 100ms, getar 200ms', 'i');
+    log('   Ini BUKAN kontrol amplitudo — ini kontrol timing.', 'wr');
 }
 
-// Klik zona untuk mulai
-zone.addEventListener('click', () => {
-    if (!running) start();
-});
+function testNegative() {
+    clearLog();
+    log('▶ TEST 6: Nilai ekstrem', 'hi');
+    log('', '');
+    
+    const r1 = navigator.vibrate(-1);
+    log('   vibrate(-1)     → ' + r1, r1 ? 'wr' : 'ok');
+    
+    const r2 = navigator.vibrate(NaN);
+    log('   vibrate(NaN)    → ' + r2, r2 ? 'wr' : 'ok');
+    
+    const r3 = navigator.vibrate(Infinity);
+    log('   vibrate(Infinity) → ' + r3, r3 ? 'wr' : 'ok');
+    
+    const r4 = navigator.vibrate(-Infinity);
+    log('   vibrate(-Infinity) → ' + r4, r4 ? 'wr' : 'ok');
+    
+    log('', '');
+    log('   Semua nilai aneh di-convert oleh WebIDL:', 'i');
+    log('   - Nilai negatif → getar 0ms (langsung berhenti)', 'wr');
+    log('   - NaN → getar 0ms', 'wr');
+    log('   - Infinity → dipotong ke 10000ms', 'wr');
+    log('   Tidak ada satupun yang "menguatkan" getar.', 'er');
+}
 
-// Tombol STOP
-stopBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    stop();
-});
+function testString() {
+    clearLog();
+    log('▶ TEST 7: String "500"', 'hi');
+    log('', '');
+    
+    try {
+        const ok = navigator.vibrate('500');
+        log('   navigator.vibrate("500") → ' + ok, ok ? 'ok' : 'er');
+        log('   → String di-coerce jadi number 500', 'i');
+        log('   → Sama saja seperti vibrate(500)', 'i');
+    } catch (err) {
+        log('   ❌ Error: ' + err.message, 'er');
+    }
+}
 
-// Auto-stop saat tab disembunyikan
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden && running) stop();
-});
+function testFloat() {
+    clearLog();
+    log('▶ TEST 8: Float 123.456', 'hi');
+    log('', '');
+    
+    const ok = navigator.vibrate(123.456);
+    log('   navigator.vibrate(123.456) → ' + ok, ok ? 'ok' : 'er');
+    log('   → WebIDL akan convert ke unsigned long: 123', 'i');
+    log('   → Desimal dibulatkan, tidak ada kontrol halus', 'i');
+}
 
-// Cleanup
-window.addEventListener('beforeunload', () => {
-    if (vibTimer) clearInterval(vibTimer);
-    if (uiTimer) clearInterval(uiTimer);
-    try { navigator.vibrate(0); } catch(_) {}
-});
+function testAll() {
+    clearLog();
+    log('═══════════════════════════════════════════', 'hi');
+    log('🔥 TEST SEMUA — BANDINGKAN LANGSUNG', 'hi');
+    log('═══════════════════════════════════════════', 'hi');
+    log('', '');
+    log('Urutan getar:', 'i');
+    log('  1. 50ms     (klaim: "lemah")', 'i');
+    log('  2. 300ms    (klaim: "sedang")', 'i');
+    log('  3. 1000ms   (klaim: "kuat")', 'i');
+    log('  4. 5000ms   (klaim: "super kuat")', 'i');
+    log('', '');
+    log('Amati: apakah ada PERBEDAAN KEKUATAN?', 'hi');
+    log('Atau hanya perbedaan DURASI?', 'hi');
+    log('', '');
+    
+    navigator.vibrate([50, 500, 300, 500, 1000, 500, 5000]);
+    
+    log('   Pattern: [50, 500, 300, 500, 1000, 500, 5000]', 'i');
+    log('   → Getar 50ms, jeda 500ms', 'i');
+    log('   → Getar 300ms, jeda 500ms', 'i');
+    log('   → Getar 1000ms, jeda 500ms', 'i');
+    log('   → Getar 5000ms', 'i');
+    log('', '');
+    log('Kalau semua terasa SAMA KUAT (hanya beda panjang),', 'ok');
+    log('berarti amplitudo TIDAK BISA dikontrol via JS.', 'ok');
+    log('', '');
+    log('═══════════════════════════════════════════', 'hi');
+    log('📌 KESIMPULAN:', 'hi');
+    log('═══════════════════════════════════════════', 'hi');
+    log('navigator.vibrate() hanya bisa kontrol:', 'ok');
+    log('  ✅ KAPAN getar mulai', 'ok');
+    log('  ✅ BERAPA LAMA getar', 'ok');
+    log('  ✅ POLA on/off', 'ok');
+    log('', '');
+    log('navigator.vibrate() TIDAK BISA kontrol:', 'er');
+    log('  ❌ SEBERAPA KUAT getar (amplitudo)', 'er');
+    log('  ❌ FREKUENSI getar (Hz)', 'er');
+    log('  ❌ JENIS getar (buzz vs click)', 'er');
+    log('', '');
+    log('Untuk kontrol amplitudo, harus pakai:', 'wr');
+    log('  → Android native: Vibrator.vibrate(VibrationEffect.createOneShot(ms, amplitude))', 'wr');
+    log('  → iOS: CoreHaptics dengan CHHapticEngine', 'wr');
+    log('  → Web: TIDAK BISA', 'er');
+}
 
+// ============================================================
+// INIT
+// ============================================================
+if (typeof navigator.vibrate !== 'function') {
+    logEl.textContent = '❌ navigator.vibrate tidak didukung di browser ini.';
+}
 })();
 </script>
 
