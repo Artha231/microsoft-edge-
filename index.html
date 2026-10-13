@@ -3,146 +3,154 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-    <title>Gesture & Vibration Analyzer</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gesture & Vibration API Check</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body {
             font-family: sans-serif;
-            background: white;
-            color: black;
+            background-color: #ffffff;
+            color: #000000;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-
-        h3, p {
-            text-align: center;
-            margin-bottom: 12px;
-        }
-
         .touch-zone {
             width: 100%;
             max-width: 400px;
             height: 200px;
-            margin: 20px auto;
-            border: 2px dashed #aaa;
+            margin: 20px 0;
+            border: 2px dashed #cccccc;
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            text-align: center;
-            color: #555;
-            touch-action: pan-y;
+            font-weight: bold;
+            color: #666666;
+            cursor: pointer;
         }
-
+        .btn-stop {
+            width: 100%;
+            max-width: 400px;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            background-color: #ff3333;
+            color: white;
+            border: none;
+            margin-bottom: 20px;
+        }
         #log-output {
             width: 100%;
             max-width: 400px;
-            height: 200px;
-            margin: auto;
-            padding: 12px;
-            overflow-y: auto;
-            overflow-wrap: anywhere;
-            white-space: pre-wrap;
-            font: 13px monospace;
+            padding: 15px;
             background: #f5f5f5;
-            border: 1px solid #ddd;
-        }
-
-        .spacer {
-            height: 1000px;
-            padding-top: 30px;
-            text-align: center;
-            color: #777;
+            border: 1px solid #e0e0e0;
+            color: #333333;
+            font-family: monospace;
+            text-align: left;
+            border-radius: 6px;
+            font-size: 13px;
+            height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
         }
     </style>
 </head>
-
 <body>
-    <h3>Gesture & Vibration Analyzer</h3>
 
-    <p style="font-size:14px;color:#666">
-        Gerakkan jari di area pengujian atau gulir halaman.
+    <h3 style="margin-top: 20px;">Vibration & Gesture Analyzer</h3>
+    <p style="color: #666; font-size: 14px; margin-top: 5px; text-align: center;">
+        Sentuh, seret, atau gulir halaman untuk menguji Vibration API.
     </p>
 
     <div id="touchZone" class="touch-zone">
-        GERAKKAN JARI DI SINI
+        INTERAKSI JARI DI SINI
     </div>
 
-    <div id="log-output" aria-live="polite">
-Menunggu pointermove atau scroll...
-    </div>
+    <button id="stopBtn" class="btn-stop">HENTIKAN LOOP GETAR</button>
 
-    <div class="spacer">
-        Gulir halaman untuk menguji event scroll.
-    </div>
+    <div id="log-output">Menunggu aktivitas sentuhan...</div>
 
 <script>
-    const touchZone = document.getElementById("touchZone");
-    const logOutput = document.getElementById("log-output");
+    const logOutput = document.getElementById('log-output');
+    const touchZone = document.getElementById('touchZone');
+    const stopBtn = document.getElementById('stopBtn');
 
-    let lastVibration = 0;
-    let lastMoveLog = 0;
+    let vibrationInterval = null;
 
     function addLog(message) {
-        const line = document.createElement("div");
-        line.textContent = "> " + message;
-        logOutput.appendChild(line);
-
-        // Batasi jumlah baris log.
-        while (logOutput.children.length > 50) {
-            logOutput.removeChild(logOutput.firstChild);
-        }
-
+        logOutput.innerHTML += "\n> " + message;
         logOutput.scrollTop = logOutput.scrollHeight;
     }
 
-    function tryVibration(source) {
-        const now = Date.now();
+    // MODEL GETARAN ASLI — TIDAK DIUBAH
+    function startVibrationSpam() {
+        if (vibrationInterval) return;
 
-        // Batasi percobaan maksimal sekali setiap 2 detik.
-        if (now - lastVibration < 2000) return;
+        addLog("Memulai perulangan Vibration API...");
 
-        lastVibration = now;
+        vibrationInterval = setInterval(() => {
+            if (navigator.vibrate) {
+                const status = navigator.vibrate(5000);
 
-        if (typeof navigator.vibrate !== "function") {
-            addLog(source + ": Vibration API tidak didukung.");
-            return;
-        }
-
-        const result = navigator.vibrate(150);
-
-        addLog(
-            source + ": " +
-            (result
-                ? "Permintaan getaran dikirim."
-                : "Permintaan getaran ditolak.")
-        );
+                if (status) {
+                    addLog("Sinyal getar berhasil dikirim.");
+                } else {
+                    addLog("⚠️ Browser menolak perintah getar (Aktivasi tidak valid).");
+                    clearInterval(vibrationInterval);
+                    vibrationInterval = null;
+                }
+            } else {
+                addLog("❌ Browser tidak mendukung Vibration API.");
+                clearInterval(vibrationInterval);
+                vibrationInterval = null;
+            }
+        }, 1000);
     }
 
-    touchZone.addEventListener("pointermove", (event) => {
-        const now = Date.now();
-
-        // Hindari menulis log pada setiap frame gerakan.
-        if (now - lastMoveLog > 500) {
-            lastMoveLog = now;
-            addLog("pointermove terdeteksi: " + event.pointerType);
+    // EVENT ASLI
+    touchZone.addEventListener('pointerup', () => {
+        if (!vibrationInterval) {
+            addLog("Gerakan dilepaskan (Pointerup).");
+            startVibrationSpam();
         }
+    }, { once: true });
 
-        tryVibration("pointermove");
+    // TAMBAHAN: EVENT POINTERMOVE
+    touchZone.addEventListener('pointermove', () => {
+        if (!vibrationInterval) {
+            addLog("Gerakan terdeteksi (Pointermove).");
+            startVibrationSpam();
+        }
     });
 
-    window.addEventListener("scroll", () => {
-        addLog("Event scroll terdeteksi.");
-        tryVibration("scroll");
+    // TAMBAHAN: EVENT SCROLL
+    window.addEventListener('scroll', () => {
+        if (!vibrationInterval) {
+            addLog("Halaman digulir (Scroll).");
+            startVibrationSpam();
+        }
     }, { passive: true });
+
+    // TOMBOL BERHENTI ASLI
+    stopBtn.addEventListener('click', () => {
+        if (vibrationInterval) {
+            clearInterval(vibrationInterval);
+            vibrationInterval = null;
+        }
+
+        if (navigator.vibrate) {
+            navigator.vibrate(0);
+        }
+
+        addLog("🛑 Pengujian dihentikan. Getaran direset.");
+    });
 </script>
+
 </body>
 </html>
 ```
