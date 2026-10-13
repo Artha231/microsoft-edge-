@@ -4,13 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gesture API Test</title>
+    <title>Gesture & Vibration API Test</title>
+
     <style>
-        html, body {
+        * {
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
             width: 100%;
             min-height: 100%;
-            background: #fff;
+            background: #ffffff;
         }
 
         body {
@@ -19,26 +25,52 @@
     </style>
 </head>
 <body>
+
 <script>
-    let lastEvent = 0;
+    let lastGesture = 0;
 
     function detectGesture(source) {
         const now = Date.now();
 
-        if (now - lastEvent < 500) return;
-        lastEvent = now;
+        // Membatasi log agar tidak berlebihan.
+        if (now - lastGesture < 1000) return;
 
+        lastGesture = now;
         console.log("Gestur terdeteksi:", source);
     }
 
+    function testVibration() {
+        if (typeof navigator.vibrate !== "function") {
+            console.log("Vibration API tidak didukung browser ini.");
+            return false;
+        }
+
+        const result = navigator.vibrate(200);
+
+        console.log(
+            result
+                ? "Permintaan getaran dikirim."
+                : "Permintaan getaran ditolak."
+        );
+
+        return result;
+    }
+
+    // Deteksi gerakan pointer di seluruh halaman.
     window.addEventListener("pointermove", (event) => {
         detectGesture("pointermove: " + event.pointerType);
     }, { passive: true });
 
+    // Deteksi ketika halaman digulir.
     window.addEventListener("scroll", () => {
         detectGesture("scroll");
     }, { passive: true });
+
+    // Fungsi pengujian dapat dipanggil secara eksplisit
+    // dari DevTools browser saat diperlukan.
+    window.testVibration = testVibration;
 </script>
+
 </body>
 </html>
 ```
