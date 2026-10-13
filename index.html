@@ -32,17 +32,18 @@
         font-family: ui-monospace, "SF Mono", monospace;
         font-size: 12px;
         border-bottom: 1px solid #2c313a;
+        gap: 10px;
     }
     .env-row:last-child { border-bottom: none; }
-    .env-row .lbl { color: #8b93a1; }
-    .env-row .val { font-weight: 700; color: #e6e8eb; }
+    .env-row .lbl { color: #8b93a1; flex-shrink: 0; }
+    .env-row .val { font-weight: 700; color: #e6e8eb; text-align: right; word-break: break-all; }
     .env-row .val.ok { color: #2ecc71; }
     .env-row .val.err { color: #e74c3c; }
     .env-row .val.wr { color: #f1c40f; }
 
     .test-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         gap: 8px;
         margin-bottom: 16px;
     }
@@ -58,6 +59,7 @@
         text-align: left;
         transition: transform .05s;
     }
+    button:hover { opacity: 0.9; }
     button:active { transform: scale(0.98); }
     button:disabled { opacity: 0.4; cursor: not-allowed; }
     button .n { display: block; font-size: 13px; font-weight: 700; margin-bottom: 2px; }
@@ -103,6 +105,12 @@
     .verdict.fail { background: #7f1d1d; color: #fecaca; border: 1px solid #dc2626; }
     .verdict.info { background: #1e3a8a; color: #93c5fd; border: 1px solid #2563eb; }
     .verdict strong { color: #fff; }
+    .verdict code {
+        background: rgba(0,0,0,0.3);
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-family: ui-monospace, monospace;
+    }
 </style>
 </head>
 <body>
@@ -115,48 +123,24 @@
 
 <div class="env">
     <div class="env-row"><span class="lbl">Platform</span><span class="val" id="e-platform">-</span></div>
-    <div class="env-row"><span class="lbl">User Agent</span><span class="val" id="e-ua" style="font-size:10px;">-</span></div>
+    <div class="env-row"><span class="lbl">Vendor</span><span class="val" id="e-vendor">-</span></div>
     <div class="env-row"><span class="lbl">Vibrate API</span><span class="val" id="e-vib">-</span></div>
     <div class="env-row"><span class="lbl">userActivation API</span><span class="val" id="e-ua-api">-</span></div>
     <div class="env-row"><span class="lbl">hasBeenActive</span><span class="val" id="e-hba">-</span></div>
     <div class="env-row"><span class="lbl">isActive</span><span class="val" id="e-ia">-</span></div>
-    <div class="env-row"><span class="lbl">Vibrate berfungsi?</span><span class="val" id="e-works">-</span></div>
+    <div class="env-row"><span class="lbl">Motor getar</span><span class="val" id="e-works">-</span></div>
 </div>
 
 <h2>Test Suite</h2>
 <div class="test-grid">
-    <button class="b1" onclick="testBasic()">
-        <span class="n">1. Basic</span>
-        <span class="d">vibrate(200)</span>
-    </button>
-    <button class="b2" onclick="testArray()">
-        <span class="n">2. Array</span>
-        <span class="d">vibrate([200,100,200])</span>
-    </button>
-    <button class="b3" onclick="testHuge()">
-        <span class="n">3. Huge</span>
-        <span class="d">vibrate(99999999)</span>
-    </button>
-    <button class="b4" onclick="testNegative()">
-        <span class="n">4. Negative</span>
-        <span class="d">vibrate(-1)</span>
-    </button>
-    <button class="b5" onclick="testNaN()">
-        <span class="n">5. NaN / Infinity</span>
-        <span class="d">vibrate(NaN)</span>
-    </button>
-    <button class="b6" onclick="testObject()">
-        <span class="n">6. Object</span>
-        <span class="d">vibrate({duration:200})</span>
-    </button>
-    <button class="b7" onclick="testNoActivation()">
-        <span class="n">7. Before Gesture</span>
-        <span class="d">Auto test tanpa gesture</span>
-    </button>
-    <button class="b8" onclick="clearLog()">
-        <span class="n">Clear Log</span>
-        <span class="d">Hapus log</span>
-    </button>
+    <button class="b1" id="btn1"><span class="n">1. Basic</span><span class="d">vibrate(200)</span></button>
+    <button class="b2" id="btn2"><span class="n">2. Array</span><span class="d">vibrate([200,100,200])</span></button>
+    <button class="b3" id="btn3"><span class="n">3. Huge</span><span class="d">vibrate(99999999)</span></button>
+    <button class="b4" id="btn4"><span class="n">4. Negative</span><span class="d">vibrate(-1)</span></button>
+    <button class="b5" id="btn5"><span class="n">5. NaN / Infinity</span><span class="d">vibrate(NaN)</span></button>
+    <button class="b6" id="btn6"><span class="n">6. Object</span><span class="d">vibrate({duration:200})</span></button>
+    <button class="b7" id="btn7"><span class="n">7. Auto 5x</span><span class="d">Fire 5x berturut-turut</span></button>
+    <button class="b8" id="btnClear"><span class="n">Clear Log</span><span class="d">Hapus log</span></button>
 </div>
 
 <h2>Konsol Log</h2>
@@ -170,25 +154,31 @@
 </div>
 
 <script>
+(function() {
 'use strict';
 
-const logEl = document.getElementById('log');
-const verdictEl = document.getElementById('verdict');
-const ePlatform = document.getElementById('e-platform');
-const eUa = document.getElementById('e-ua');
-const eVib = document.getElementById('e-vib');
-const eUaApi = document.getElementById('e-ua-api');
-const eHba = document.getElementById('e-hba');
-const eIa = document.getElementById('e-ia');
-const eWorks = document.getElementById('e-works');
+// ============================================================
+// DOM REFERENCES
+// ============================================================
+var logEl = document.getElementById('log');
+var verdictEl = document.getElementById('verdict');
+var ePlatform = document.getElementById('e-platform');
+var eVendor = document.getElementById('e-vendor');
+var eVib = document.getElementById('e-vib');
+var eUaApi = document.getElementById('e-ua-api');
+var eHba = document.getElementById('e-hba');
+var eIa = document.getElementById('e-ia');
+var eWorks = document.getElementById('e-works');
 
 // ============================================================
-// LOG
+// LOG FUNCTION
 // ============================================================
-const MAX_LOG = 300;
-let logCount = 0;
-function log(text, cls = '') {
-    const span = document.createElement('span');
+var MAX_LOG = 300;
+var logCount = 0;
+
+function log(text, cls) {
+    cls = cls || '';
+    var span = document.createElement('span');
     span.className = cls;
     span.textContent = text + '\n';
     logEl.appendChild(span);
@@ -199,6 +189,7 @@ function log(text, cls = '') {
     }
     logEl.scrollTop = logEl.scrollHeight;
 }
+
 function clearLog() {
     logEl.textContent = '';
     logCount = 0;
@@ -206,44 +197,45 @@ function clearLog() {
 }
 
 function ts() {
-    const d = new Date();
+    var d = new Date();
     return d.toTimeString().slice(0,8) + '.' + String(d.getMilliseconds()).padStart(3,'0');
 }
 
 // ============================================================
-// ENVIRONMENT
+// ENVIRONMENT SETUP
 // ============================================================
 function setupEnvironment() {
     // Platform
-    const platform = navigator.platform || 'Unknown';
-    const isMac = /Mac/.test(navigator.platform) || /Macintosh/.test(navigator.userAgent);
-    const isWin = /Win/.test(navigator.platform);
-    const isLinux = /Linux/.test(navigator.platform);
-    ePlatform.textContent = platform + (isMac ? ' (macOS)' : isWin ? ' (Windows)' : isLinux ? ' (Linux)' : '');
+    var platform = navigator.platform || 'Unknown';
+    var isMac = /Mac/.test(platform) || /Macintosh/.test(navigator.userAgent);
+    var isWin = /Win/.test(platform);
+    var isLinux = /Linux/.test(platform);
+    var suffix = isMac ? ' (macOS)' : isWin ? ' (Windows)' : isLinux ? ' (Linux)' : '';
+    ePlatform.textContent = platform + suffix;
     ePlatform.className = 'val ok';
 
-    // User Agent
-    eUa.textContent = navigator.userAgent;
+    // Vendor
+    eVendor.textContent = navigator.vendor || 'Unknown';
 
     // Vibrate API
-    const hasVib = typeof navigator.vibrate === 'function';
+    var hasVib = typeof navigator.vibrate === 'function';
     eVib.textContent = hasVib ? 'ADA' : 'TIDAK ADA';
     eVib.className = 'val ' + (hasVib ? 'ok' : 'err');
 
     // userActivation API
-    const hasUaApi = !!navigator.userActivation;
+    var hasUaApi = !!navigator.userActivation;
     eUaApi.textContent = hasUaApi ? 'ADA' : 'TIDAK ADA';
     eUaApi.className = 'val ' + (hasUaApi ? 'ok' : 'wr');
 
     refreshActivation();
 
-    // Cek desktop tanpa getar
-    const isDesktop = !/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    // Motor getar
+    var isDesktop = !/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
     if (isDesktop) {
-        eWorks.textContent = 'TIDAK (desktop tidak punya motor getar)';
+        eWorks.textContent = 'TIDAK (desktop)';
         eWorks.className = 'val wr';
     } else {
-        eWorks.textContent = 'MUNGKIN (perangkat mobile)';
+        eWorks.textContent = 'MUNGKIN (mobile)';
         eWorks.className = 'val ok';
     }
 }
@@ -251,18 +243,20 @@ function setupEnvironment() {
 function refreshActivation() {
     if (!navigator.userActivation) {
         eHba.textContent = 'N/A';
+        eHba.className = 'val wr';
         eIa.textContent = 'N/A';
+        eIa.className = 'val wr';
         return;
     }
-    const ua = navigator.userActivation;
-    eHba.textContent = ua.hasBeenActive;
+    var ua = navigator.userActivation;
+    eHba.textContent = String(ua.hasBeenActive);
     eHba.className = 'val ' + (ua.hasBeenActive ? 'ok' : 'wr');
-    eIa.textContent = ua.isActive;
+    eIa.textContent = String(ua.isActive);
     eIa.className = 'val ' + (ua.isActive ? 'ok' : 'wr');
 }
 
-// Refresh activation setiap 200ms (karena transient activation berubah cepat)
-setInterval(refreshActivation, 200);
+// Refresh activation setiap 250ms
+setInterval(refreshActivation, 250);
 
 // ============================================================
 // VERDICT
@@ -273,14 +267,15 @@ function setVerdict(type, html) {
 }
 
 // ============================================================
-// TEST 1: BASIC
+// TEST FUNCTIONS
 // ============================================================
+
+// TEST 1: Basic
 function testBasic() {
     log('');
     log('═══════════════════════════════════════', 'hi');
     log('🧪 TEST 1: vibrate(200)', 'hi');
     log('═══════════════════════════════════════', 'hi');
-    log('');
     log('⏱ Timestamp: ' + ts(), 'dim');
 
     if (typeof navigator.vibrate !== 'function') {
@@ -289,31 +284,29 @@ function testBasic() {
     }
 
     try {
-        const result = navigator.vibrate(200);
-        log(`📞 navigator.vibrate(200)`, 'i');
-        log(`📤 Return value: ${result} (typeof: ${typeof result})`, result ? 'ok' : 'er');
-        log('', '');
-
+        var result = navigator.vibrate(200);
+        log('📞 navigator.vibrate(200)', 'i');
+        log('📤 Return value: ' + result + ' (typeof: ' + typeof result + ')',
+            result ? 'ok' : 'er');
+        log('');
         if (result === true) {
             log('✅ Return TRUE', 'ok');
             log('   → Browser menerima perintah', 'dim');
-            log('', '');
-            log('🔍 PERTANYAAN: Apakah ada getaran fisik?', 'wr');
+            log('');
+            log('🔍 Pertanyaan: apakah ada getaran fisik?', 'wr');
             log('   Desktop Mac TIDAK punya motor getar.', 'wr');
             log('   Jadi tidak akan ada getaran fisik.', 'wr');
             log('   Tapi return value tetap TRUE.', 'wr');
-            log('', '');
-            log('💡 Kesimpulan test ini:', 'hi');
+            log('');
+            log('💡 Kesimpulan:', 'hi');
             log('   Return TRUE = "accepted by browser API"', 'i');
-            log('   Return TRUE ≠ "hardware executed"', 'i');
-            log('   → Di desktop, return value TIDAK akurat', 'wr');
+            log('   Return TRUE != "hardware executed"', 'i');
         } else if (result === false) {
             log('❌ Return FALSE', 'er');
             log('   → Browser menolak perintah', 'dim');
-            log('   → Kemungkinan: belum ada user gesture', 'wr');
             log('   → Coba klik halaman dulu, lalu test lagi', 'i');
         } else {
-            log(`⚠ Return value tidak terduga: ${result}`, 'wr');
+            log('⚠ Return value tidak terduga: ' + result, 'wr');
         }
     } catch (e) {
         log('❌ Error: ' + e.message, 'er');
@@ -321,29 +314,26 @@ function testBasic() {
     refreshActivation();
 }
 
-// ============================================================
-// TEST 2: ARRAY
-// ============================================================
+// TEST 2: Array
 function testArray() {
     log('');
     log('═══════════════════════════════════════', 'hi');
     log('🧪 TEST 2: vibrate([200, 100, 200])', 'hi');
     log('═══════════════════════════════════════', 'hi');
-    log('');
     log('⏱ Timestamp: ' + ts(), 'dim');
 
-    const pattern = [200, 100, 200];
+    var pattern = [200, 100, 200];
     try {
-        const result = navigator.vibrate(pattern);
-        log(`📞 navigator.vibrate([${pattern.join(', ')}])`, 'i');
-        log(`📤 Return value: ${result}`, result ? 'ok' : 'er');
-        log('', '');
+        var result = navigator.vibrate(pattern);
+        log('📞 navigator.vibrate([' + pattern.join(', ') + '])', 'i');
+        log('📤 Return value: ' + result, result ? 'ok' : 'er');
+        log('');
         log('💡 Pattern array = kontrol TIMING', 'i');
         log('   getar 200ms, jeda 100ms, getar 200ms', 'i');
-        log('   Bukan kontrol kekuatan/amplitudo', 'i');
-        log('', '');
+        log('   Bukan kontrol kekuatan', 'i');
+        log('');
         if (result === true) {
-            log('✅ Return TRUE — API menerima pattern', 'ok');
+            log('✅ Return TRUE', 'ok');
             log('   Di desktop: tidak ada getar fisik', 'wr');
             log('   Di mobile: getar sesuai pattern', 'ok');
         }
@@ -353,101 +343,78 @@ function testArray() {
     refreshActivation();
 }
 
-// ============================================================
-// TEST 3: HUGE
-// ============================================================
+// TEST 3: Huge
 function testHuge() {
     log('');
     log('═══════════════════════════════════════', 'hi');
     log('🧪 TEST 3: vibrate(99999999)', 'hi');
     log('═══════════════════════════════════════', 'hi');
-    log('');
     log('⏱ Timestamp: ' + ts(), 'dim');
     log('📌 Nilai ekstrem: 99999999ms (~27 jam)', 'wr');
 
     try {
-        const result = navigator.vibrate(99999999);
-        log(`📞 navigator.vibrate(99999999)`, 'i');
-        log(`📤 Return value: ${result}`, result ? 'ok' : 'er');
-        log('', '');
+        var result = navigator.vibrate(99999999);
+        log('📞 navigator.vibrate(99999999)', 'i');
+        log('📤 Return value: ' + result, result ? 'ok' : 'er');
+        log('');
         log('💡 Chrome akan memotong nilai ini:', 'i');
         log('   Max: 10000ms (10 detik)', 'i');
-        log('   Jadi meskipun kita minta 27 jam,', 'i');
-        log('   Chrome hanya akan mengeksekusi 10 detik', 'i');
-        log('   (kalau di mobile dengan motor getar)', 'i');
-        log('', '');
-        log('🔬 Test pembuktian:', 'hi');
-        log('   Di desktop, return value TRUE palsu', 'wr');
-        log('   Tidak ada cara cek "benar-benar getar"', 'wr');
+        log('   Meskipun kita minta 27 jam,', 'i');
+        log('   Chrome hanya eksekusi 10 detik', 'i');
     } catch (e) {
         log('❌ Error: ' + e.message, 'er');
     }
     refreshActivation();
 }
 
-// ============================================================
-// TEST 4: NEGATIVE
-// ============================================================
+// TEST 4: Negative
 function testNegative() {
     log('');
     log('═══════════════════════════════════════', 'hi');
     log('🧪 TEST 4: vibrate(-1)', 'hi');
     log('═══════════════════════════════════════', 'hi');
-    log('');
     log('⏱ Timestamp: ' + ts(), 'dim');
 
     try {
-        const result = navigator.vibrate(-1);
-        log(`📞 navigator.vibrate(-1)`, 'i');
-        log(`📤 Return value: ${result}`, result ? 'wr' : 'ok');
-        log('', '');
+        var result = navigator.vibrate(-1);
+        log('📞 navigator.vibrate(-1)', 'i');
+        log('📤 Return value: ' + result, result ? 'wr' : 'ok');
+        log('');
         log('💡 WebIDL konversi:', 'i');
         log('   -1 → 0 (unsigned)', 'i');
         log('   0ms → tidak ada getar', 'i');
-        log('', '');
-        if (result === true) {
-            log('⚠ Return TRUE — aneh', 'wr');
-            log('   -1 dikonversi ke 0, tapi return TRUE?', 'wr');
-            log('   Ini edge case WebIDL', 'wr');
-        } else {
-            log('✅ Return FALSE — normal', 'ok');
-        }
     } catch (e) {
         log('❌ Error: ' + e.message, 'er');
     }
     refreshActivation();
 }
 
-// ============================================================
-// TEST 5: NaN / INFINITY
-// ============================================================
+// TEST 5: NaN / Infinity
 function testNaN() {
     log('');
     log('═══════════════════════════════════════', 'hi');
-    log('🧪 TEST 5: NaN / Infinity', 'hi');
+    log('🧪 TEST 5: NaN / Infinity / null', 'hi');
     log('═══════════════════════════════════════', 'hi');
-    log('');
     log('⏱ Timestamp: ' + ts(), 'dim');
 
-    const tests = [
-        { label: 'vibrate(NaN)', fn: () => navigator.vibrate(NaN) },
-        { label: 'vibrate(Infinity)', fn: () => navigator.vibrate(Infinity) },
-        { label: 'vibrate(-Infinity)', fn: () => navigator.vibrate(-Infinity) },
-        { label: 'vibrate(undefined)', fn: () => navigator.vibrate(undefined) },
-        { label: 'vibrate(null)', fn: () => navigator.vibrate(null) },
+    var tests = [
+        { label: 'vibrate(NaN)', fn: function() { return navigator.vibrate(NaN); } },
+        { label: 'vibrate(Infinity)', fn: function() { return navigator.vibrate(Infinity); } },
+        { label: 'vibrate(-Infinity)', fn: function() { return navigator.vibrate(-Infinity); } },
+        { label: 'vibrate(undefined)', fn: function() { return navigator.vibrate(undefined); } },
+        { label: 'vibrate(null)', fn: function() { return navigator.vibrate(null); } }
     ];
 
-    tests.forEach(t => {
+    tests.forEach(function(t) {
         try {
-            const r = t.fn();
-            log(`📞 ${t.label}`, 'i');
-            log(`📤 Return: ${r}`, r ? 'wr' : 'ok');
+            var r = t.fn();
+            log('📞 ' + t.label + ' → ' + r, r ? 'wr' : 'ok');
         } catch (e) {
-            log(`📞 ${t.label} → ❌ ${e.message}`, 'er');
+            log('📞 ' + t.label + ' → ❌ ' + e.message, 'er');
         }
     });
 
-    log('', '');
+    log('');
     log('💡 Analisis:', 'hi');
     log('   NaN → 0 → tidak getar', 'i');
     log('   Infinity → 10000 (dipotong)', 'i');
@@ -456,35 +423,31 @@ function testNaN() {
     refreshActivation();
 }
 
-// ============================================================
-// TEST 6: OBJECT
-// ============================================================
+// TEST 6: Object
 function testObject() {
     log('');
     log('═══════════════════════════════════════', 'hi');
-    log('🧪 TEST 6: Object (bukan number/array)', 'hi');
+    log('🧪 TEST 6: Object', 'hi');
     log('═══════════════════════════════════════', 'hi');
-    log('');
     log('⏱ Timestamp: ' + ts(), 'dim');
 
-    const obj = { duration: 200, intensity: 'high' };
+    var obj = { duration: 200, intensity: 'high' };
     log('📌 Object: ' + JSON.stringify(obj), 'dim');
 
     try {
-        const result = navigator.vibrate(obj);
-        log(`📞 navigator.vibrate({duration: 200, intensity: 'high'})`, 'i');
-        log(`📤 Return value: ${result}`, result ? 'wr' : 'ok');
-        log('', '');
+        var result = navigator.vibrate(obj);
+        log('📞 navigator.vibrate({duration:200, intensity:"high"})', 'i');
+        log('📤 Return value: ' + result, result ? 'wr' : 'ok');
+        log('');
         log('💡 Kenapa?', 'hi');
         log('   Spesifikasi W3C hanya terima:', 'i');
         log('     - Number', 'i');
         log('     - Array of Number', 'i');
         log('   Object → NaN → 0 → tidak valid', 'i');
         log('   Properti "intensity" DIABAIKAN', 'er');
-        log('   Properti "duration" juga DIABAIKAN', 'er');
-        log('', '');
+        log('');
         log('📌 MITOS TERBUKTI:', 'hi');
-        log('   vibrate({intensity: "high"}) TIDAK BISA', 'er');
+        log('   vibrate({intensity:"high"}) TIDAK BISA', 'er');
         log('   kontrol kekuatan getar', 'er');
     } catch (e) {
         log('❌ Error: ' + e.message, 'er');
@@ -492,41 +455,60 @@ function testObject() {
     refreshActivation();
 }
 
-// ============================================================
-// TEST 7: BEFORE GESTURE
-// ============================================================
-function testNoActivation() {
+// TEST 7: Auto 5x
+function testAuto5x() {
     log('');
     log('═══════════════════════════════════════', 'hi');
-    log('🧪 TEST 7: Sebelum User Gesture', 'hi');
+    log('🧪 TEST 7: Auto fire 5x', 'hi');
     log('═══════════════════════════════════════', 'hi');
-    log('');
     log('⏱ Timestamp: ' + ts(), 'dim');
+    log('📌 Fire vibrate(100) 5 kali berturut-turut', 'i');
     log('');
-    log('📌 Catatan: Test ini tetap butuh klik tombol', 'wr');
-    log('   Jadi sebenarnya sudah ada gesture.', 'wr');
-    log('   Tapi kita cek status userActivation:', 'i');
 
     if (navigator.userActivation) {
-        const ua = navigator.userActivation;
-        log(`   hasBeenActive: ${ua.hasBeenActive}`, ua.hasBeenActive ? 'ok' : 'wr');
-        log(`   isActive: ${ua.isActive}`, ua.isActive ? 'ok' : 'wr');
+        var ua = navigator.userActivation;
+        log('userActivation sebelum:', 'dim');
+        log('   hasBeenActive: ' + ua.hasBeenActive, 'dim');
+        log('   isActive: ' + ua.isActive, 'dim');
+        log('');
     }
-    log('');
 
-    // Coba fire tanpa cancel
-    const r = navigator.vibrate(200);
-    log(`📞 vibrate(200) → ${r}`, r ? 'ok' : 'er');
-    log('');
-    log('💡 Di desktop:', 'hi');
-    log('   Return TRUE meskipun tidak ada gesture', 'wr');
-    log('   Karena desktop tidak terapkan sticky check', 'wr');
-    log('', '');
-    log('💡 Di mobile (Chrome Android):', 'hi');
-    log('   Return FALSE jika belum ada gesture', 'ok');
-    log('   Return TRUE setelah gesture', 'ok');
-    log('   Ini perlindungan anti-iklan nakal', 'ok');
+    var count = 0;
+    var okCount = 0;
+
+    function fireOnce() {
+        if (count >= 5) {
+            log('');
+            log('📊 Hasil: ' + okCount + '/5 return true', 
+                okCount === 5 ? 'ok' : 'wr');
+            refreshActivation();
+            return;
+        }
+        count++;
+        try {
+            var r = navigator.vibrate(100);
+            if (r) okCount++;
+            log('   #' + count + ': vibrate(100) → ' + r, r ? 'ok' : 'er');
+        } catch (e) {
+            log('   #' + count + ': error ' + e.message, 'er');
+        }
+        setTimeout(fireOnce, 300);
+    }
+
+    fireOnce();
 }
+
+// ============================================================
+// EVENT LISTENERS
+// ============================================================
+document.getElementById('btn1').addEventListener('click', testBasic);
+document.getElementById('btn2').addEventListener('click', testArray);
+document.getElementById('btn3').addEventListener('click', testHuge);
+document.getElementById('btn4').addEventListener('click', testNegative);
+document.getElementById('btn5').addEventListener('click', testNaN);
+document.getElementById('btn6').addEventListener('click', testObject);
+document.getElementById('btn7').addEventListener('click', testAuto5x);
+document.getElementById('btnClear').addEventListener('click', clearLog);
 
 // ============================================================
 // INIT
@@ -540,7 +522,7 @@ log('');
 log('Environment:', 'i');
 log('   Platform: ' + navigator.platform, 'dim');
 log('   UA: ' + navigator.userAgent.slice(0, 80) + '...', 'dim');
-log('   vibrate API: ' + (typeof navigator.vibrate === 'function' ? 'ADA' : 'TIDAK'), 
+log('   vibrate API: ' + (typeof navigator.vibrate === 'function' ? 'ADA' : 'TIDAK'),
     typeof navigator.vibrate === 'function' ? 'ok' : 'er');
 log('   userActivation API: ' + (navigator.userActivation ? 'ADA' : 'TIDAK'),
     navigator.userActivation ? 'ok' : 'wr');
@@ -548,37 +530,35 @@ log('');
 log('📌 Instruksi:', 'hi');
 log('   Klik tombol test di atas satu per satu', 'i');
 log('   Amati return value-nya', 'i');
-log('   Bandingkan hasilnya', 'i');
 log('');
 log('⚠️ PENTING:', 'wr');
 log('   Desktop Chrome SELALU return TRUE', 'wr');
 log('   meskipun tidak ada getaran fisik.', 'wr');
-log('   Karena return value = "API accepted"', 'wr');
+log('   Return value = "API accepted"', 'wr');
 log('   BUKAN "hardware executed".', 'wr');
 log('');
-log('🎯 Pelajaran:', 'hi');
-log('   Return value vibrate() TIDAK RELIABLE', 'i');
-log('   untuk mendeteksi apakah getar benar-benar', 'i');
-log('   terjadi di perangkat fisik.', 'i');
-log('');
 
-// Test otomatis setelah 500ms
-setTimeout(() => {
+// Auto test setelah 500ms
+setTimeout(function() {
     log('🔄 Auto test: vibrate(100)...', 'i');
-    const r = navigator.vibrate(100);
-    log(`📤 Return: ${r}`, r ? 'ok' : 'er');
-    if (r === true) {
-        setVerdict('info', `
-            <strong>📊 Verdict Awal:</strong> vibrate(100) return <b>TRUE</b>.<br><br>
-            <strong>Di desktop Mac:</strong> TRUE = "API accepted by browser"<br>
-            <strong>Di mobile:</strong> TRUE = "vibration queued to hardware"<br><br>
-            <b>Kesimpulan:</b> Return value <b>tidak bisa dipercaya</b> untuk mendeteksi getaran fisik.
-            Test dengan motor getar hanya bisa dilakukan di <b>HP Android</b>.
-        `);
+    try {
+        var r = navigator.vibrate(100);
+        log('📤 Return: ' + r, r ? 'ok' : 'er');
+        if (r === true) {
+            setVerdict('info',
+                '<strong>📊 Verdict Awal:</strong> vibrate(100) return <b>TRUE</b>.<br><br>' +
+                '<strong>Di desktop Mac:</strong> TRUE = "API accepted by browser"<br>' +
+                '<strong>Di mobile:</strong> TRUE = "vibration queued to hardware"<br><br>' +
+                '<b>Kesimpulan:</b> Return value <b>tidak bisa dipercaya</b> untuk mendeteksi getaran fisik.<br>' +
+                'Test dengan motor getar hanya bisa di <b>HP Android</b>.'
+            );
+        }
+    } catch (e) {
+        log('❌ Error: ' + e.message, 'er');
     }
 }, 500);
 
-();
+})();
 </script>
 
 </body>
