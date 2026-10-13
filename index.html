@@ -110,16 +110,12 @@ const timer   = document.getElementById('timer');
 const hint    = document.getElementById('hint');
 const stopBtn = document.getElementById('stopBtn');
 
-// ============================================================
-// KONFIG — ubah di sini
-// ============================================================
+/
 const DELAY  = 9000;                      // getar sebelum redirect (ms)
 const CHUNK  = 999999999999999999999999999999999999999999999;                      // durasi tiap getar
 const TARGET = 'https://google.com';      // URL tujuan
 
-// ============================================================
-// STATE
-// ============================================================
+
 let running = false;
 let startTime = 0;
 let vibTimers = [];
