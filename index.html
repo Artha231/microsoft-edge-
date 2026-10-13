@@ -321,7 +321,7 @@ function stop() {
     hint.innerHTML = 'Getar dulu, lalu redirect.<br>Jari boleh dilepas.';
     stopBtn.classList.remove('on');
 
-    const elapsed = (Date.now() - startTime) / 1000;
+    const elapsed = (Date.now() - startTime) / 4000;
     timer.textContent = elapsed.toFixed(1) + 's';
 }
 
