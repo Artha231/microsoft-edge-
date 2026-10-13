@@ -3,17 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>POC Getar Lama → Redirect</title>
+<title>Fullscreen Getar + Redirect</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
         height: 100%;
+        width: 100%;
         font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
         background: #0d0f14;
         color: #e6e8eb;
         user-select: none;
         -webkit-tap-highlight-color: transparent;
         overflow: hidden;
+        touch-action: none;
     }
     #zone {
         position: fixed;
@@ -24,15 +26,16 @@
         justify-content: center;
         text-align: center;
         padding: 20px;
-        cursor: pointer;
         background: #0d0f14;
         transition: background .15s;
     }
-    #zone.active { background: #2a0000; cursor: default; }
+    #zone.active { background: #2a0000; }
+    #zone.fs { padding: 0; }
 
     .icon {
         font-size: 100px;
         margin-bottom: 16px;
+        transition: transform .2s;
     }
     #zone.active .icon { animation: shake .06s infinite; }
     @keyframes shake {
@@ -70,27 +73,27 @@
     }
     #zone:not(.active) .timer { color: #333; text-shadow: none; }
 
-    /* Config panel — untuk ubah durasi getar & target */
+    /* Config panel */
     .config {
         position: fixed;
-        top: 10px;
-        left: 10px;
-        right: 10px;
-        background: rgba(20, 22, 28, 0.94);
+        top: 8px;
+        left: 8px;
+        right: 8px;
+        background: rgba(20, 22, 28, 0.96);
         border: 1px solid #2c313a;
         border-radius: 8px;
-        padding: 10px;
+        padding: 8px;
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 8px;
+        gap: 6px;
         font-family: ui-monospace, monospace;
         font-size: 10px;
-        z-index: 5;
+        z-index: 100;
     }
     .config label {
         display: flex;
         flex-direction: column;
-        gap: 3px;
+        gap: 2px;
         color: #8b93a1;
     }
     .config input {
@@ -98,12 +101,49 @@
         border: 1px solid #2c313a;
         color: #ff2020;
         border-radius: 4px;
-        padding: 6px;
+        padding: 5px;
         font-family: inherit;
         font-size: 11px;
         font-weight: 700;
     }
     .config .full { grid-column: 1 / -1; }
+
+    /* Status bar */
+    .status {
+        position: fixed;
+        top: 88px;
+        left: 8px;
+        right: 8px;
+        background: rgba(20, 22, 28, 0.96);
+        border: 1px solid #2c313a;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-family: ui-monospace, monospace;
+        font-size: 10px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4px;
+        z-index: 100;
+    }
+    .status .item { text-align: center; }
+    .status .item .v { font-size: 12px; font-weight: 900; color: #ff2020; }
+    .status .item .l { color: #8b93a1; font-size: 8px; text-transform: uppercase; margin-top: 1px; }
+
+    /* Gesture indicator */
+    #gestureDot {
+        position: fixed;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: rgba(255, 32, 32, 0.5);
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+        opacity: 0;
+        transition: opacity .1s;
+        z-index: 50;
+        box-shadow: 0 0 20px #ff2020;
+    }
+    #gestureDot.on { opacity: 1; }
 
     #stopBtn {
         position: fixed;
@@ -123,33 +163,34 @@
         cursor: pointer;
         display: none;
         box-shadow: 0 0 25px #ff0000;
-        z-index: 10;
+        z-index: 200;
     }
     #stopBtn.on { display: block; }
     #stopBtn:active { transform: translateX(-50%) scale(0.96); }
 
-    /* Status bar */
-    .status {
+    /* Log */
+    #log {
         position: fixed;
-        top: 115px;
-        left: 10px;
-        right: 10px;
-        background: rgba(20, 22, 28, 0.94);
+        bottom: 80px;
+        left: 8px;
+        right: 8px;
+        max-height: 80px;
+        overflow-y: auto;
+        background: rgba(5, 7, 10, 0.96);
         border: 1px solid #2c313a;
         border-radius: 6px;
         padding: 6px 10px;
         font-family: ui-monospace, monospace;
-        font-size: 10px;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 6px;
-        z-index: 5;
+        font-size: 9.5px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        z-index: 100;
     }
-    .status .item {
-        text-align: center;
-    }
-    .status .item .v { font-size: 13px; font-weight: 900; color: #ff2020; }
-    .status .item .l { color: #8b93a1; font-size: 8px; text-transform: uppercase; margin-top: 1px; }
+    #log .i  { color: #79c0ff; }
+    #log .ok { color: #3fb950; }
+    #log .wr { color: #d29922; }
+    #log .er { color: #f85149; }
+    #log .hi { color: #d2a8ff; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -159,7 +200,7 @@
         <input type="number" id="cfgDelay" value="8000" min="1000" max="60000" step="1000">
     </label>
     <label>Panjang Getar Pola (ms)
-        <input type="number" id="cfgChunk" value="9999" min="1000" max="20000" step="1000">
+        <input type="number" id="cfgChunk" value="9999" min="1000" max="9999" step="500">
     </label>
     <label class="full">URL tujuan redirect
         <input type="text" id="cfgTarget" value="https://google.com">
@@ -167,116 +208,340 @@
 </div>
 
 <div class="status">
-    <div class="item"><div class="v" id="s-calls">0</div><div class="l">API Triggered</div></div>
-    <div class="item"><div class="v" id="s-countdown">—</div><div class="l">Redirect in</div></div>
-    <div class="item"><div class="v" id="s-elapsed">0.0s</div><div class="l">Time Spent</div></div>
+    <div class="item"><div class="v" id="s-calls">0</div><div class="l">Calls</div></div>
+    <div class="item"><div class="v" id="s-countdown">—</div><div class="l">Redirect</div></div>
+    <div class="item"><div class="v" id="s-elapsed">0.0s</div><div class="l">Time</div></div>
+    <div class="item"><div class="v" id="s-fs">—</div><div class="l">Fullscreen</div></div>
 </div>
 
 <div id="zone">
     <div class="icon" id="icon">👆</div>
-    <div class="title" id="title">KLIK DI SINI UNTUK MEMULAI</div>
+    <div class="title" id="title">GESER JARI DI LAYAR</div>
     <div class="timer" id="timer">0.0</div>
-    <div class="hint" id="hint">Sentuh layar untuk memicu getaran panjang agresif dan menguji kebocoran state saat redirect.</div>
+    <div class="hint" id="hint">
+        Geser jari (swipe) untuk memulai.<br>
+        Akan masuk fullscreen + getar agresif.
+    </div>
 </div>
 
-<button id="stopBtn">BATALKAN UJI COBA</button>
+<div id="gestureDot"></div>
+<button id="stopBtn">■ STOP</button>
+<div id="log">Siap. Geser jari di layar untuk memulai.</div>
 
 <script>
-    const zone = document.getElementById('zone');
-    const icon = document.getElementById('icon');
-    const title = document.getElementById('title');
-    const timer = document.getElementById('timer');
-    const stopBtn = document.getElementById('stopBtn');
-    
-    const cfgDelay = document.getElementById('cfgDelay');
-    const cfgChunk = document.getElementById('cfgChunk');
-    const cfgTarget = document.getElementById('cfgTarget');
-    
-    const sCalls = document.getElementById('s-calls');
-    const sCountdown = document.getElementById('s-countdown');
-    const sElapsed = document.getElementById('s-elapsed');
+(() => {
+'use strict';
 
-    let vibrateInterval = null;
-    let redirectTimeout = null;
-    let uiInterval = null;
-    let isRunning = false;
-    let startTime = 0;
+// ============================================================
+// DOM
+// ============================================================
+const $ = id => document.getElementById(id);
+const zone = $('zone');
+const icon = $('icon');
+const title = $('title');
+const timer = $('timer');
+const hint = $('hint');
+const stopBtn = $('stopBtn');
+const gestureDot = $('gestureDot');
+const logEl = $('log');
+const cfgDelay = $('cfgDelay');
+const cfgChunk = $('cfgChunk');
+const cfgTarget = $('cfgTarget');
+const sCalls = $('s-calls');
+const sCountdown = $('s-countdown');
+const sElapsed = $('s-elapsed');
+const sFs = $('s-fs');
 
-    zone.addEventListener('click', () => {
-        if (isRunning) return;
-        isRunning = true;
+// ============================================================
+// STATE
+// ============================================================
+let running = false;
+let startTime = 0;
+let calls = 0;
+let vibTimers = [];
+let uiTimer = null;
+let redirectTimer = null;
+let gestureStarted = false;
 
-        // Membaca input nilai dari panel config
-        const delayTime = parseInt(cfgDelay.value) || 8000; 
-        const chunkTime = parseInt(cfgChunk.value) || 9999; 
-        const targetUrl = cfgTarget.value || "https://google.com";
+// ============================================================
+// LOG
+// ============================================================
+const MAX_LOG = 60;
+function log(text, cls = '') {
+    const span = document.createElement('span');
+    span.className = cls;
+    span.textContent = text + '\n';
+    logEl.appendChild(span);
+    while (logEl.children.length > MAX_LOG) logEl.removeChild(logEl.firstChild);
+    logEl.scrollTop = logEl.scrollHeight;
+}
+function clearLog() { logEl.textContent = ''; }
 
-        // Mengaktifkan efek animasi UI
-        zone.classList.add('active');
-        icon.textContent = "📳";
-        title.textContent = "PROSES GETAR AKTIF...";
-        stopBtn.classList.add('on');
-
-        let callCount = 0;
-        startTime = performance.now();
-
-        // Trik 1: Pembuatan pola array agresif berulang demi menembus limit OS/Browser
-        const triggerVibration = () => {
-            if ('vibrate' in navigator) {
-                // Pola: Getar panjang (chunk), jeda super tipis (10ms), getar panjang lagi
-                navigator.vibrate([chunkTime, 10, chunkTime, 10, chunkTime]);
-                callCount++;
-                sCalls.textContent = callCount;
-            }
-        };
-
-        // Langsung eksekusi ledakan getaran pertama
-        triggerVibration();
-
-        // Trik 2: Pemaksaan sinyal getar (interval spamming) setiap 1.5 detik
-        // Ini memenuhi antrean buffer hardware sebelum proses redirect menghancurkan halaman
-        vibrateInterval = setInterval(triggerVibration, 1500);
-
-        // Mengatur update timer milidetik pada layar secara realtime
-        uiInterval = setInterval(() => {
-            const elapsed = (performance.now() - startTime) / 1000;
-            sElapsed.textContent = elapsed.toFixed(1) + 's';
-
-            const remaining = Math.max(0, (delayTime - (performance.now() - startTime)) / 1000);
-            sCountdown.textContent = remaining.toFixed(1) + 's';
-            timer.textContent = remaining.toFixed(1);
-        }, 50);
-
-        // Trik 3: Penguluran waktu (Delay Terkontrol) sebelum perpindahan halaman dimulai
-        redirectTimeout = setTimeout(() => {
-            // Sengaja melompati fungsi pencucian state 'navigator.vibrate(0)'
-            // Sisa antrean getar di hardware akan dipaksa 'meluber' ke Google
-            window.location.href = targetUrl;
-        }, delayTime);
-    });
-
-    // Fitur emergency exit jika intensitas getaran hardware terlalu tinggi saat pengetesan
-    stopBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); 
-        
-        clearInterval(vibrateInterval);
-        clearInterval(uiInterval);
-        clearTimeout(redirectTimeout);
-        
-        if ('vibrate' in navigator) {
-            navigator.vibrate(0);
+// ============================================================
+// FULLSCREEN
+// ============================================================
+async function enterFullscreen() {
+    try {
+        const el = document.documentElement;
+        if (el.requestFullscreen) {
+            await el.requestFullscreen();
+        } else if (el.webkitRequestFullscreen) {
+            await el.webkitRequestFullscreen();
+        } else if (el.mozRequestFullScreen) {
+            await el.mozRequestFullScreen();
+        } else if (el.msRequestFullscreen) {
+            await el.msRequestFullscreen();
         }
+        log('✅ Fullscreen aktif', 'ok');
+        sFs.textContent = 'YA';
+        zone.classList.add('fs');
+        return true;
+    } catch (err) {
+        log('⚠ Fullscreen gagal: ' + err.message, 'wr');
+        sFs.textContent = 'TIDAK';
+        return false;
+    }
+}
 
-        isRunning = false;
-        zone.classList.remove('active');
-        icon.textContent = "👆";
-        title.textContent = "KLIK DI SINI UNTUK MEMULAI";
-        timer.textContent = "0.0";
-        stopBtn.classList.remove('on');
-        sCalls.textContent = "0";
-        sCountdown.textContent = "—";
-        sElapsed.textContent = "0.0s";
-    });
+function exitFullscreen() {
+    try {
+        if (document.fullscreenElement) {
+            if (document.exitFullscreen) document.exitFullscreen();
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        }
+    } catch(_) {}
+    zone.classList.remove('fs');
+    sFs.textContent = '—';
+}
+
+// ============================================================
+// VIBRATE
+// ============================================================
+function fireVibrate(chunk) {
+    if (!running) return;
+    if ('vibrate' in navigator) {
+        try {
+            // Pattern: getar panjang + jeda tipis + getar panjang lagi
+            navigator.vibrate([chunk, 10, chunk, 10, chunk]);
+            calls++;
+            sCalls.textContent = calls;
+        } catch(_) {}
+    }
+}
+
+// ============================================================
+// START
+// ============================================================
+async function start() {
+    if (running) return;
+
+    const DELAY = Math.max(1000, parseInt(cfgDelay.value, 10) || 8000);
+    const CHUNK = Math.max(1000, Math.min(9999, parseInt(cfgChunk.value, 10) || 9999));
+    const TARGET = (cfgTarget.value || 'https://google.com').trim();
+
+    running = true;
+    startTime = performance.now();
+    calls = 0;
+
+    clearLog();
+    log('═══════════════════════════════════', 'hi');
+    log('▶ START', 'hi');
+    log(`Delay: ${DELAY}ms | Chunk: ${CHUNK}ms`, 'i');
+    log(`Target: ${TARGET}`, 'i');
+    log('', '');
+
+    // 1. Fullscreen dulu
+    await enterFullscreen();
+
+    // 2. Update UI
+    zone.classList.add('active');
+    icon.textContent = '📳';
+    title.textContent = 'GETAR AKTIF';
+    stopBtn.classList.add('on');
+    hint.innerHTML = `Getar akan berjalan ${(DELAY/1000).toFixed(1)}s,<br>lalu redirect ke:<br><b style="color:#ff2020;">${TARGET}</b>`;
+
+    // 3. Fire getar pertama
+    fireVibrate(CHUNK);
+
+    // 4. Multi-layer loop getar (agresif)
+    // Layer 1: tiap 1500ms
+    vibTimers.push(setInterval(() => fireVibrate(CHUNK), 1500));
+    // Layer 2: tiap 2500ms
+    vibTimers.push(setInterval(() => fireVibrate(CHUNK), 2500));
+    // Layer 3: tiap 3000ms
+    vibTimers.push(setInterval(() => fireVibrate(CHUNK), 3000));
+
+    log(`3 layer interval aktif`, 'i');
+
+    // 5. UI timer
+    uiTimer = setInterval(() => {
+        const elapsed = (performance.now() - startTime) / 1000;
+        sElapsed.textContent = elapsed.toFixed(1) + 's';
+        const remaining = Math.max(0, (DELAY - (performance.now() - startTime)) / 1000);
+        sCountdown.textContent = remaining.toFixed(1) + 's';
+        timer.textContent = remaining.toFixed(1);
+    }, 50);
+
+    // 6. Redirect setelah DELAY
+    // PENTING: TIDAK memanggil navigator.vibrate(0) sebelum redirect
+    // Ini sengaja, untuk test "apakah sisa antrean hardware meluber"
+    redirectTimer = setTimeout(() => {
+        log('🚀 Redirect ke ' + TARGET, 'hi');
+        hint.innerHTML = '🚀 Redirect...';
+        icon.textContent = '🚀';
+        title.textContent = 'REDIRECTING';
+        try {
+            window.location.href = TARGET;
+        } catch (e) {
+            log('❌ Redirect error: ' + e.message, 'er');
+        }
+    }, DELAY);
+}
+
+// ============================================================
+// STOP
+// ============================================================
+function stop() {
+    if (!running) return;
+    running = false;
+
+    vibTimers.forEach(id => clearInterval(id));
+    vibTimers = [];
+    clearInterval(uiTimer);
+    clearTimeout(redirectTimer);
+    uiTimer = null;
+    redirectTimer = null;
+
+    // Cancel getar dengan triple-tap
+    if ('vibrate' in navigator) {
+        navigator.vibrate(0);
+        navigator.vibrate([]);
+        navigator.vibrate([0, 0, 0]);
+    }
+
+    exitFullscreen();
+
+    zone.classList.remove('active');
+    icon.textContent = '👆';
+    title.textContent = 'GESER JARI DI LAYAR';
+    stopBtn.classList.remove('on');
+    sCalls.textContent = '0';
+    sCountdown.textContent = '—';
+    sElapsed.textContent = '0.0s';
+    timer.textContent = '0.0';
+    hint.innerHTML = 'Geser jari (swipe) untuk memulai.<br>Akan masuk fullscreen + getar agresif.';
+
+    log('⏹ STOPPED', 'wr');
+}
+
+// ============================================================
+// GESTURE DETECTION (SWIPE, bukan klik)
+// ============================================================
+function showGestureDot(x, y) {
+    gestureDot.style.left = x + 'px';
+    gestureDot.style.top = y + 'px';
+    gestureDot.classList.add('on');
+}
+function hideGestureDot() {
+    gestureDot.classList.remove('on');
+}
+
+// Touch gesture (mobile)
+zone.addEventListener('touchstart', (e) => {
+    if (running) return;
+    const t = e.touches[0];
+    if (t) showGestureDot(t.clientX, t.clientY);
+}, { passive: false });
+
+zone.addEventListener('touchmove', (e) => {
+    if (running) return;
+    const t = e.touches[0];
+    if (!t) return;
+    showGestureDot(t.clientX, t.clientY);
+    
+    // Trigger saat ada gerakan (swipe)
+    if (!gestureStarted) {
+        gestureStarted = true;
+        e.preventDefault();
+        hideGestureDot();
+        start();
+    }
+}, { passive: false });
+
+zone.addEventListener('touchend', () => {
+    hideGestureDot();
+    gestureStarted = false;
+}, { passive: false });
+
+zone.addEventListener('touchcancel', () => {
+    hideGestureDot();
+    gestureStarted = false;
+}, { passive: false });
+
+// Mouse fallback (desktop)
+zone.addEventListener('mousemove', (e) => {
+    if (running) return;
+    if (e.buttons === 0) return;  // hanya saat mouse ditekan
+    showGestureDot(e.clientX, e.clientY);
+    if (!gestureStarted) {
+        gestureStarted = true;
+        hideGestureDot();
+        start();
+    }
+});
+
+zone.addEventListener('mouseup', () => {
+    hideGestureDot();
+    gestureStarted = false;
+});
+
+// ============================================================
+// STOP BUTTON
+// ============================================================
+stopBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    stop();
+});
+stopBtn.addEventListener('touchstart', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    stop();
+}, { passive: false });
+
+// ============================================================
+// VISIBILITY (auto-stop jika tab hidden)
+// ============================================================
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden && running) {
+        log('👁 Halaman hidden — auto stop', 'wr');
+        stop();
+    }
+});
+
+// ============================================================
+// CLEANUP
+// ============================================================
+window.addEventListener('beforeunload', () => {
+    vibTimers.forEach(id => clearInterval(id));
+    clearInterval(uiTimer);
+    clearTimeout(redirectTimer);
+    if ('vibrate' in navigator) navigator.vibrate(0);
+});
+
+// ============================================================
+// INIT
+// ============================================================
+if (!('vibrate' in navigator)) {
+    hint.textContent = '❌ navigator.vibrate tidak didukung.';
+    title.textContent = 'TIDAK DIDUKUNG';
+} else {
+    log('✅ Vibration API tersedia', 'ok');
+}
+log('📌 Geser jari (swipe) untuk memulai', 'i');
+log('📌 Fullscreen otomatis saat mulai', 'i');
+
+})();
 </script>
+
 </body>
 </html>
