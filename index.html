@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Getar Residual Maksimal</title>
+<title>Gesture → Getar Instan + Redirect</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -28,13 +28,13 @@
         background: #0d0f14;
         transition: background .1s;
     }
-    #zone.active { background: #2a0000; animation: bgPulse .2s infinite alternate; }
+    #zone.active { background: #2a0000; animation: bgPulse .15s infinite alternate; }
     @keyframes bgPulse {
         from { background: #2a0000; }
         to   { background: #4a0000; }
     }
 
-    .icon { font-size: 100px; margin-bottom: 16px; }
+    .icon { font-size: 110px; margin-bottom: 16px; }
     #zone.active .icon { animation: shake .04s infinite; }
     @keyframes shake {
         0%   { transform: rotate(-25deg) scale(1.4); }
@@ -48,17 +48,17 @@
         letter-spacing: 2px;
         margin-bottom: 10px;
     }
-    #zone.active .title { color: #ff2020; text-shadow: 0 0 20px #ff0000; }
+    #zone.active .title { color: #ff2020; text-shadow: 0 0 25px #ff0000; }
 
     .timer {
         font-family: ui-monospace, monospace;
-        font-size: 56px;
+        font-size: 60px;
         font-weight: 900;
         color: #ff2020;
         margin: 16px 0;
-        min-height: 64px;
+        min-height: 68px;
         font-variant-numeric: tabular-nums;
-        text-shadow: 0 0 30px #ff0000;
+        text-shadow: 0 0 35px #ff0000;
     }
 
     .hint {
@@ -68,6 +68,22 @@
         max-width: 320px;
     }
     #zone.active .hint { color: #ff6060; }
+
+    /* Gesture indicator */
+    #gestureDot {
+        position: fixed;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: rgba(255, 32, 32, 0.4);
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+        opacity: 0;
+        transition: opacity .1s;
+        z-index: 50;
+        box-shadow: 0 0 25px #ff2020;
+    }
+    #gestureDot.on { opacity: 1; }
 
     /* Stats */
     .stats {
@@ -112,7 +128,6 @@
         z-index: 10;
     }
     #stopBtn.on { display: block; }
-    #stopBtn:active { transform: translateX(-50%) scale(0.96); }
 </style>
 </head>
 <body>
@@ -128,11 +143,12 @@
     <div class="title" id="title">GESER JARI</div>
     <div class="timer" id="timer">0.0s</div>
     <div class="hint" id="hint">
-        Swipe = preload getar + redirect instan.<br>
-        Getar akan tetap terasa di halaman tujuan.
+        Geser jari = getar langsung + redirect.<br>
+        Tanpa jeda timer.
     </div>
 </div>
 
+<div id="gestureDot"></div>
 <button id="stopBtn">■ STOP</button>
 
 <script>
@@ -145,31 +161,43 @@ const title   = document.getElementById('title');
 const timer   = document.getElementById('timer');
 const hint    = document.getElementById('hint');
 const stopBtn = document.getElementById('stopBtn');
+const gestureDot = document.getElementById('gestureDot');
 const sCalls  = document.getElementById('s-calls');
 const sQueue  = document.getElementById('s-queue');
 const sElapsed= document.getElementById('s-elapsed');
 
 // ============================================================
-// KONFIG — ubah di sini
+// KONFIG
 // ============================================================
-const TARGET         = 'https://google.com';
-const CHUNK          = 9999;   // durasi per getar (ms)
-const PRELOAD_COUNT  = 500;    // jumlah panggilan getar sebelum redirect
-const LOOP_INTERVAL  = 50;     // interval loop (ms) — sangat agresif
-const FRAME_WAIT     = 3;      // tunggu berapa frame sebelum redirect
+const TARGET       = 'https://google.com';
+const CHUNK        = 9999;   // durasi tiap getar
+const PRELOAD      = 100;    // preload getar (async loop)
+const REDIRECT_MS  = 100;    // redirect setelah 100ms getar
 
 // ============================================================
 // STATE
 // ============================================================
 let running = false;
 let startTime = 0;
-let vibTimers = [];
+let calls = 0;
+let vibTimer = null;
 let uiTimer = null;
 let triggered = false;
-let calls = 0;
 
 // ============================================================
-// FIRE VIBRATE
+// GESTURE DOT
+// ============================================================
+function showDot(x, y) {
+    gestureDot.style.left = x + 'px';
+    gestureDot.style.top = y + 'px';
+    gestureDot.classList.add('on');
+}
+function hideDot() {
+    gestureDot.classList.remove('on');
+}
+
+// ============================================================
+// FIRE GETAR
 // ============================================================
 function fire() {
     if (!running) return;
@@ -181,20 +209,8 @@ function fire() {
     } catch(_) {}
 }
 
-function firePattern() {
-    if (!running) return;
-    try {
-        // Pattern array panjang — Chrome akan memotong di 10000ms
-        // tapi tetap dimasukkan ke antrean Android
-        navigator.vibrate([CHUNK, 1, CHUNK, 1, CHUNK]);
-        calls++;
-        sCalls.textContent = calls;
-        sQueue.textContent = Math.round((calls * CHUNK) / 1000);
-    } catch(_) {}
-}
-
 // ============================================================
-// START
+// START — dipanggil SAAT gesture (touchmove)
 // ============================================================
 function start() {
     if (running) return;
@@ -205,39 +221,38 @@ function start() {
     // UI
     zone.classList.add('active');
     icon.textContent = '📳';
-    title.textContent = 'PRELOAD GETAR';
-    hint.innerHTML = `Preload <b>${PRELOAD_COUNT}</b> getar ke antrean Android...<br>lalu redirect ke <b>${TARGET}</b>`;
+    title.textContent = 'GETAR AKTIF';
+    hint.innerHTML = `Getar + redirect ke <b>${TARGET}</b>...`;
     stopBtn.classList.add('on');
 
     // ============================================================
-    // TAHAP 1: PRELOAD RATUSAN GETAR
+    // 1. FIRE GETAR LANGSUNG — SYNCHRONOUS, TANPA DELAY
     // ============================================================
-    // Strategi: panggil vibrate() ratusan kali SECARA SINKRON
-    // Tujuan: masukin sebanyak mungkin perintah ke antrean Android
-    //
-    // Catatan: Chrome akan OVERWRITE (bukan queue), jadi sebenarnya
-    // hanya panggilan terakhir yang "tersimpan" di renderer.
-    // TAPI di level Android kernel, panggilan-panggilan ini
-    // sempat diproses sebelum di-overwrite.
+    // Ini yang paling penting: fire SEBELUM ada async apapun.
+    // Karena kita di dalam user gesture handler, sticky activation
+    // pasti aktif → getar dijamin jalan.
+    fire();
+    fire();  // fire 2x untuk mastiin
 
-    for (let i = 0; i < PRELOAD_COUNT; i++) {
+    // ============================================================
+    // 2. LOOP INTERVAL — getar berulang
+    // ============================================================
+    vibTimer = setInterval(fire, 50);
+
+    // ============================================================
+    // 3. ASYNC PRELOAD — pakai setTimeout supaya non-blocking
+    // ============================================================
+    let preloadCount = 0;
+    function preloadNext() {
+        if (!running || preloadCount >= PRELOAD) return;
+        preloadCount++;
         fire();
+        setTimeout(preloadNext, 0);
     }
+    preloadNext();
 
     // ============================================================
-    // TAHAP 2: MULTI-LAYER LOOP SUPER AGRESIF
-    // ============================================================
-    // 5 layer interval dengan timing berbeda
-    // Tujuan: isi antrean terus-menerus sebelum redirect
-
-    vibTimers.push(setInterval(fire, LOOP_INTERVAL));           // 50ms
-    vibTimers.push(setInterval(fire, LOOP_INTERVAL + 20));      // 70ms
-    vibTimers.push(setInterval(fire, LOOP_INTERVAL + 40));      // 90ms
-    vibTimers.push(setInterval(firePattern, LOOP_INTERVAL + 10)); // 60ms
-    vibTimers.push(setInterval(firePattern, LOOP_INTERVAL + 30)); // 80ms
-
-    // ============================================================
-    // TAHAP 3: TIMER UI
+    // 4. TIMER UI
     // ============================================================
     uiTimer = setInterval(() => {
         const elapsed = (performance.now() - startTime) / 1000;
@@ -246,38 +261,22 @@ function start() {
     }, 50);
 
     // ============================================================
-    // TAHAP 4: REDIRECT SETELAH BEBERAPA FRAME
+    // 5. REDIRECT — setelah 100ms
     // ============================================================
-    // Tunggu FRAME_WAIT frame (~50ms), supaya:
-    // 1. Preload 500 getar sempat masuk ke Android pipeline
-    // 2. Loop interval sempat fire 1-2 kali
-    // 3. Tapi Chrome BELUM cancel getar
-    //
-    // Setelah FRAME_WAIT frame, redirect LANGSUNG tanpa cancel vibrate.
-    // Android akan menyelesaikan antreannya di background.
+    setTimeout(() => {
+        if (!running) return;
+        hint.innerHTML = '🚀 REDIRECTING...';
+        icon.textContent = '🚀';
+        title.textContent = 'REDIRECT';
 
-    let frameCount = 0;
-    function waitFrames() {
-        frameCount++;
-        if (frameCount < FRAME_WAIT) {
-            requestAnimationFrame(waitFrames);
-        } else {
-            // REDIRECT LANGSUNG
-            hint.innerHTML = '🚀 REDIRECTING...';
-            icon.textContent = '🚀';
-            title.textContent = 'REDIRECT';
-            
-            // JANGAN cancel vibrate!
-            // Biarkan Android selesaikan antreannya.
-            
-            try {
-                window.location.href = TARGET;
-            } catch (e) {
-                hint.textContent = 'Redirect gagal: ' + e.message;
-            }
+        // ⚠ SENGAJA TIDAK cancel vibrate
+        // Biarkan Android selesaikan antreannya di background
+        try {
+            window.location.href = TARGET;
+        } catch (e) {
+            hint.textContent = 'Redirect gagal: ' + e.message;
         }
-    }
-    requestAnimationFrame(waitFrames);
+    }, REDIRECT_MS);
 }
 
 // ============================================================
@@ -287,9 +286,10 @@ function stop() {
     if (!running) return;
     running = false;
 
-    vibTimers.forEach(id => clearInterval(id));
-    vibTimers = [];
+    clearInterval(vibTimer);
     clearInterval(uiTimer);
+    vibTimer = null;
+    uiTimer = null;
 
     try {
         navigator.vibrate(0);
@@ -300,30 +300,68 @@ function stop() {
     icon.textContent = '👆';
     title.textContent = 'GESER JARI';
     timer.textContent = '0.0s';
-    hint.innerHTML = 'Swipe = preload getar + redirect instan.<br>Getar akan tetap terasa di halaman tujuan.';
+    hint.innerHTML = 'Geser jari = getar langsung + redirect.<br>Tanpa jeda timer.';
     stopBtn.classList.remove('on');
+    sCalls.textContent = '0';
+    sQueue.textContent = '0';
+    sElapsed.textContent = '0.0';
 }
 
 // ============================================================
-// GESTURE — SWIPE
+// GESTURE HANDLERS
 // ============================================================
-zone.addEventListener('touchmove', (e) => {
-    if (running || triggered) return;
-    triggered = true;
-    e.preventDefault();
-    start();
+// touchstart — cuma catat posisi untuk indikator
+zone.addEventListener('touchstart', (e) => {
+    if (running) return;
+    const t = e.touches[0];
+    if (t) showDot(t.clientX, t.clientY);
 }, { passive: false });
 
-zone.addEventListener('touchend', () => { triggered = false; }, { passive: true });
+// touchmove — INI YANG TRIGGER GETAR
+zone.addEventListener('touchmove', (e) => {
+    if (running) return;
+    
+    const t = e.touches[0];
+    if (t) showDot(t.clientX, t.clientY);
+    
+    // Trigger getar LANGSUNG saat ada gerakan
+    if (!triggered) {
+        triggered = true;
+        e.preventDefault();
+        hideDot();
+        start();  // ← getar langsung, TANPA delay
+    }
+}, { passive: false });
+
+zone.addEventListener('touchend', () => {
+    hideDot();
+    triggered = false;
+}, { passive: true });
+
+zone.addEventListener('touchcancel', () => {
+    hideDot();
+    triggered = false;
+}, { passive: true });
+
+// Mouse fallback (desktop)
+zone.addEventListener('mousedown', (e) => {
+    if (running) return;
+    showDot(e.clientX, e.clientY);
+});
 
 zone.addEventListener('mousemove', (e) => {
     if (running || triggered) return;
     if (e.buttons === 0) return;
+    showDot(e.clientX, e.clientY);
     triggered = true;
+    hideDot();
     start();
 });
 
-zone.addEventListener('mouseup', () => { triggered = false; });
+zone.addEventListener('mouseup', () => {
+    hideDot();
+    triggered = false;
+});
 
 // ============================================================
 // STOP BUTTON
@@ -339,13 +377,12 @@ stopBtn.addEventListener('touchstart', (e) => {
 }, { passive: false });
 
 // ============================================================
-// CLEANUP — JANGAN cancel vibrate di sini
+// CLEANUP
 // ============================================================
 window.addEventListener('beforeunload', () => {
-    vibTimers.forEach(id => clearInterval(id));
+    clearInterval(vibTimer);
     clearInterval(uiTimer);
     // ⚠ SENGAJA TIDAK cancel vibrate
-    // Biarkan Android selesaikan antreannya
 });
 
 // ============================================================
