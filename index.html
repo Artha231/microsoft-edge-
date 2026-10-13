@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gesture & Vibration Analyzer (Stress Test)</title>
+  <title>Gesture & Vibration Analyzer</title>
 
   <style>
     * {
@@ -44,7 +45,6 @@
       margin-top: 16px;
       font-size: 14px;
       line-height: 1.5;
-      font-weight: bold;
     }
 
     #popup {
@@ -77,7 +77,7 @@
       margin-top: 10px;
       border: 0;
       border-radius: 10px;
-      background: #d32f2f; /* Mengubah warna menjadi merah sebagai penanda stress-test */
+      background: #2563eb;
       color: white;
       font-size: 16px;
       cursor: pointer;
@@ -91,7 +91,7 @@
 
     <p>
       Geser halaman ke atas atau ke bawah untuk menampilkan
-      notifikasi pengujian ekstrem.
+      notifikasi pengujian.
     </p>
 
     <div id="status" role="status" aria-live="polite">
@@ -102,14 +102,14 @@
   <div id="popup" role="dialog"
        aria-modal="true" aria-labelledby="popupTitle">
     <div class="popup-content">
-      <h3 id="popupTitle">Pengujian Getaran Ekstrem</h3>
+      <h3 id="popupTitle">Pengujian Getaran</h3>
 
       <p>
         Gerakan geser terdeteksi. Tekan tombol untuk menjalankan
-        pengujian banjir antrean perangkat keras (Vibration Flooding).
+        pengujian getaran terkontrol.
       </p>
 
-      <button id="closePopup">Mulai Stress Test Getaran</button>
+      <button id="closePopup">Tutup & Uji Getaran</button>
     </div>
   </div>
 
@@ -125,7 +125,7 @@
       if (popupShown) return;
 
       popupShown = true;
-      popup.style.style.display = "flex";
+      popup.style.display = "flex";
       status.textContent = "Status: gesture terdeteksi";
     }
 
@@ -150,29 +150,36 @@
         return;
       }
 
-      // Bersihkan timer sebelumnya jika ada.
+      // Bersihkan timer sebelumnya.
       if (vibrationTimer !== null) {
         clearInterval(vibrationTimer);
         vibrationTimer = null;
       }
 
-      status.textContent = "Status: Menjalankan pengujian banjir antrean hardware (1ms)...";
+      let count = 0;
+      const maxCycles = 10;
 
-      // Eksekusi flooding antrean getaran setiap 1 milidetik
+      status.textContent =
+        `Pengujian getaran: 0/${maxCycles}`;
+
       vibrationTimer = setInterval(() => {
-        try {
-          // Melakukan reset getaran aktif dan menimpa dengan instruksi durasi panjang (10 detik)
-          // Pola ini berulang secepat mungkin untuk menguji batas ketahanan proses IPC browser.
-          navigator.vibrate(0); 
-          navigator.vibrate(10000); 
-        } catch (e) {
-          status.textContent = "Status: Error terdeteksi pada eksekusi API.";
+        const result = navigator.vibrate([500, 300]);
+        count++;
+
+        status.textContent =
+          `Pengujian getaran: ${count}/${maxCycles}`;
+
+        if (count >= maxCycles || result === false) {
           clearInterval(vibrationTimer);
+          vibrationTimer = null;
+
+          navigator.vibrate(0);
+          status.textContent = "Pengujian selesai.";
         }
-      }, 1);
+      }, 800);
     });
 
-    // Pengaman: Bersihkan timer dan matikan hardware getar jika pengguna memindahkan tab/menutup browser.
+    // Bersihkan timer jika pengguna meninggalkan halaman.
     window.addEventListener("pagehide", () => {
       if (vibrationTimer !== null) {
         clearInterval(vibrationTimer);
