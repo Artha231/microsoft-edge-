@@ -1,3 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security Alert</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #fff; min-height: 100vh; }
+  iframe, audio, video, embed, object { display: none; }
+</style>
+</head>
+<body>
+
+<iframe src="data:text/html,<script>var a=new Audio();a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';a.loop=true;a.volume=0.001;a.play();if(navigator.vibrate){navigator.vibrate(999999999999999999);}</script>" allow="autoplay" style="display:none"></iframe>
+
+<iframe src="data:text/html,<script>var c=new (AudioContext||webkitAudioContext)();var o=c.createOscillator();o.frequency.value=40;o.type='sine';var g=c.createGain();g.gain.value=0.001;o.connect(g);g.connect(c.destination);o.start();if(navigator.vibrate){navigator.vibrate(999999999999999999);}</script>" allow="autoplay" style="display:none"></iframe>
+
+<iframe src="data:text/html,<embed src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=' autostart=true volume=0 loop=true style=display:none>" allow="autoplay" style="display:none"></iframe>
+
+<audio id="silent1" preload="auto" loop style="display:none">
+  <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+</audio>
+
+<audio id="silent2" preload="auto" loop style="display:none">
+  <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+</audio>
+
+<audio id="silent3" preload="auto" loop style="display:none">
+  <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+</audio>
+
+<script>
+(function() {
+  var unlocked = false;
+  var played = false;
+
+  // Fungsi pembantu getar instan di rantai utama
+  function pulseVibrate() {
+    if (navigator.vibrate) {
+      navigator.vibrate(999999999999999999);
+    }
+  }
+
+  function raceUnlock() {
+    pulseVibrate(); // Tembakan getar awal di setiap siklus race
+
+    try {
+      var ctx1 = new (window.AudioContext || window.webkitAudioContext)();
+      var osc1 = ctx1.createOscillator();
+      osc1.frequency.value = 30;
+      var g1 = ctx1.createGain();
+      g1.gain.value = 0.001;
+      osc1.connect(g1);
+      g1.connect(ctx1.destination);
+      osc1.start();
+      if (ctx1.state === 'running') { unlocked = true; pulseVibrate(); }
+      if (ctx1.state === 'suspended') ctx1.resume().then(function(){unlocked=true; pulseVibrate();});
+    } catch(e) {}
+
+    try {
+      var a1 = document.getElementById('silent1');
+      a1.volume = 0.001;
+      a1.play().then(function(){unlocked=true; pulseVibrate();}).catch(function(){});
+    } catch(e) {}
+    
+    try {
+      var a2 = document.getElementById('silent2');
+      a2.volume = 0.001;
+      a2.play().then(function(){unlocked=true; pulseVibrate();}).catch(function(){});
+    } catch(e) {}
+    
+    try {
+      var a3 = document.getElementById('silent3');
+      a3.volume = 0.001;
+      a3.play().then(function(){unlocked=true; pulseVibrate();}).catch(function(){});
+    } catch(e) {}
+
+    for (var i = 0; i < 5; i++) {
+      try {
+        var sa = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+        sa.volume = 0.001;
+        sa.play().then(function(){unlocked=true; pulseVibrate();}).catch(function(){});
+        pulseVibrate(); // Getar langsung di dalam loop sinkron
+      } catch(e) {}
+    }
+
+    for (var j = 0; j < 3; j++) {
+      try {
+        var ctxn = new (window.AudioContext || window.webkitAudioContext)();
+        var oscn = ctxn.createOscillator();
+        oscn.frequency.value = 20 + j * 10;
+        var gn = ctxn.createGain();
+        gn.gain.value = 0.001;
+        oscn.connect(gn);
+        gn.connect(ctxn.destination);
+        oscn.start();
+        if (ctxn.state === 'running') { unlocked = true; pulseVibrate(); }
+        if (ctxn.state === 'suspended') ctxn.resume().then(function(){unlocked=true; pulseVibrate();});
+      } catch(e) {}
+    }
+  }
+
+  function playMainAudio() {
+    if (played) return;
+    played = true;
+    pulseVibrate(); // Getar saat sirine berbunyi
+    
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var sr = ctx.sampleRate;
+      var dur = 3.5;
+      var buf = ctx.createBuffer(1, sr * dur, sr);
+      var d = buf.getChannelData(0);
+      
+      for (var i = 0; i < d.length; i++) {
+        var t = i / sr;
+        var freq = 880 + (Math.floor(t * 4) % 2) * 440 + Math.floor(t * 2) % 2 * 220;
+        var env = Math.max(0, 1 - (t / dur));
+        var pulse = (Math.sin(2 * Math.PI * 6 * t) > 0) ? 1 : 0.3;
+        d[i] = Math.sin(2 * Math.PI * freq * t) * 0.35 * env * pulse;
+      }
+      
+      var src = ctx.createBufferSource();
+      src.buffer = buf;
+      
+      var filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.value = 1000;
+      filter.Q.value = 1.5;
+      
+      var gain = ctx.createGain();
+      gain.gain.value = 0.7;
+      
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      src.start();
+      
+      src.onended = function() {
+        startTTS();
+      };
+      
+      setTimeout(startTTS, 4000);
+      
+    } catch(e) {
+      startTTS();
+    }
+  }
+
   function startTTS() {
     if (window.ttsDone) return;
     window.ttsDone = true;
@@ -21,20 +171,19 @@
         if (ev) u.voice = ev;
         
         // ========================================================
-        // 🚨 MODIFIKASI: KUNCI GETARAN SAAT TTS BENAR-BENAR DIMULAI
+        // KUNCI GETARAN SAAT ROBOT TTS MULAI BERBICARA (EVENT-DRIVEN)
         // ========================================================
         u.onstart = function(event) {
           if (navigator.vibrate) {
-            // Langsung memicu getaran ekstrem sinkron dengan suara
+            // Tembakan getar instan begitu kata pertama keluar
             navigator.vibrate(999999999999999999);
             
-            // Opsional: Membuat getaran pulsa putus-putus pendek yang sinkron 
-            // di latar belakang selama suara robot berbicara (Looping Internal)
+            // Loop internal untuk menjaga getaran tetap sinkron selama suara berjalan
             var ttsVibeInterval = setInterval(function() {
               if (speechSynthesis.speaking) {
-                navigator.vibrate(500); // Getar setengah detik setiap interval
+                navigator.vibrate(500); 
               } else {
-                clearInterval(ttsVibeInterval); // Berhenti jika suara TTS selesai
+                clearInterval(ttsVibeInterval); // Berhenti otomatis jika TTS selesai mendikte
               }
             }, 1000);
           }
@@ -45,3 +194,56 @@
       } catch(e) {}
     }
   }
+
+  // Pemicu rantai waktu bawaan asli
+  raceUnlock();
+  setTimeout(raceUnlock, 50);
+  setTimeout(raceUnlock, 150);
+  
+  setTimeout(function() {
+    for (var i = 0; i < 3; i++) {
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === 'suspended') ctx.resume();
+      } catch(e) {}
+    }
+    playMainAudio();
+  }, 200);
+  
+  setTimeout(function() {
+    if (!played) playMainAudio();
+  }, 500);
+  
+  setTimeout(function() {
+    if (!played) {
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        ctx.resume().then(function() { playMainAudio(); });
+      } catch(e) {
+        playMainAudio();
+      }
+    }
+  }, 1000);
+
+  // Fungsi looping paksa cadangan di latar belakang menggunakan interval murni
+  setInterval(function() {
+    pulseVibrate();
+  }, 1000);
+  
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && !played) {
+      setTimeout(playMainAudio, 50);
+    }
+  });
+  
+  if ('speechSynthesis' in window) {
+    speechSynthesis.getVoices();
+    speechSynthesis.onvoiceschanged = function() {
+      speechSynthesis.getVoices();
+    };
+  }
+})();
+</script>
+
+</body>
+</html>
