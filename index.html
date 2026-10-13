@@ -113,8 +113,8 @@ const stopBtn = document.getElementById('stopBtn');
 // ============================================================
 // KONFIG — ubah di sini
 // ============================================================
-const DELAY  = 8000;                      // getar sebelum redirect (ms)
-const CHUNK  = 9999;                      // durasi tiap getar
+const DELAY  = 9000;                      // getar sebelum redirect (ms)
+const CHUNK  = 999999999999999999999999999999999999999999999;                      // durasi tiap getar
 const TARGET = 'https://google.com';      // URL tujuan
 
 // ============================================================
@@ -127,9 +127,7 @@ let uiTimer = null;
 let redirectTimer = null;
 let triggered = false;
 
-// ============================================================
-// START
-// ============================================================
+
 async function start() {
     if (running) return;
     running = true;
