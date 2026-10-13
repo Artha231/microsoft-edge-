@@ -1,171 +1,378 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gesture & Vibration Analyzer</title>
-
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vibration Loop Bypass — Limit Duration Bypass</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      min-height: 150vh;
-      padding: 24px;
-      font-family: Arial, sans-serif;
-      background: #f3f4f6;
-      color: #222;
+        min-height: 150vh;
+        padding: 24px;
+        font-family: Arial, sans-serif;
+        background: #f3f4f6;
+        color: #222;
     }
-
     .container {
-      max-width: 420px;
-      margin: 40px auto;
-      padding: 24px;
-      text-align: center;
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 8px 30px #00000012;
+        max-width: 420px;
+        margin: 40px auto;
+        padding: 24px;
+        text-align: center;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 8px 30px #00000012;
     }
-
-    h2 {
-      margin-bottom: 12px;
-    }
-
-    p {
-      margin-bottom: 18px;
-      color: #666;
-      font-size: 14px;
-      line-height: 1.6;
-    }
+    h2 { margin-bottom: 12px; }
+    p { margin-bottom: 18px; color: #666; font-size: 14px; line-height: 1.6; }
 
     #status {
-      margin-top: 16px;
-      font-size: 14px;
-      line-height: 1.5;
-      overflow-wrap: anywhere;
+        margin-top: 16px;
+        padding: 12px;
+        background: #f9fafb;
+        border-radius: 8px;
+        font-size: 13px;
+        line-height: 1.6;
+        text-align: left;
+        font-family: monospace;
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
+        min-height: 100px;
     }
+    #status .ok { color: #16a34a; font-weight: 600; }
+    #status .err { color: #dc2626; font-weight: 600; }
+    #status .info { color: #2563eb; }
 
     #popup {
-      position: fixed;
-      inset: 0;
-      z-index: 1000;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      background: rgb(0 0 0 / 55%);
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgb(0 0 0 / 55%);
     }
-
     .popup-content {
-      width: 100%;
-      max-width: 340px;
-      padding: 24px;
-      border-radius: 16px;
-      background: white;
-      text-align: center;
+        width: 100%;
+        max-width: 340px;
+        padding: 24px;
+        border-radius: 16px;
+        background: white;
+        text-align: center;
     }
-
-    .popup-content h3 {
-      margin-bottom: 12px;
-    }
-
+    .popup-content h3 { margin-bottom: 12px; }
     button {
-      width: 100%;
-      padding: 14px;
-      margin-top: 10px;
-      border: 0;
-      border-radius: 10px;
-      background: #2563eb;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
+        width: 100%;
+        padding: 14px;
+        margin-top: 10px;
+        border: 0;
+        border-radius: 10px;
+        background: #2563eb;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background 0.2s;
     }
-  </style>
+    button:hover { background: #1d4ed8; }
+    button.stop { background: #dc2626; }
+    button.stop:hover { background: #b91c1c; }
+    button:disabled { background: #9ca3af; cursor: not-allowed; }
+
+    .mode-selector {
+        display: flex;
+        gap: 6px;
+        margin: 14px 0;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .mode-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+        background: #e5e7eb;
+        color: #374151;
+        border-radius: 20px;
+        cursor: pointer;
+        border: 2px solid transparent;
+    }
+    .mode-btn.active {
+        background: #2563eb;
+        color: white;
+        border-color: #1d4ed8;
+    }
+</style>
 </head>
 
 <body>
-  <main class="container">
-    <h2>Gesture & Vibration Analyzer</h2>
-
+<main class="container">
+    <h2>Vibration Loop Bypass</h2>
     <p>
-      Geser halaman ke atas atau ke bawah untuk menampilkan
-      notifikasi pengujian.
+        Menguji trik looping untuk menembus batas durasi tunggal
+        <code>navigator.vibrate()</code> (~10 detik di Chrome).
     </p>
 
-    <div id="status" role="status" aria-live="polite">
-      Status: menunggu gesture
+    <div class="mode-selector" id="modeSelector">
+        <div class="mode-btn active" data-mode="interval">Interval Loop</div>
+        <div class="mode-btn" data-mode="recursive">Recursive setTimeout</div>
+        <div class="mode-btn" data-mode="pattern">Pattern Array</div>
     </div>
-  </main>
 
-  <div id="popup" role="dialog"
-       aria-modal="true" aria-labelledby="popupTitle">
+    <div id="status" role="status" aria-live="polite">Status: menunggu gesture…</div>
+</main>
+
+<div id="popup" role="dialog" aria-modal="true">
     <div class="popup-content">
-      <h3 id="popupTitle">Pengujian Getaran</h3>
-
-      <p>
-        Gerakan geser terdeteksi. Tekan tombol untuk menguji
-        dukungan getaran perangkat.
-      </p>
-
-      <button id="closePopup">Tutup & Uji Getaran</button>
+        <h3>Pengujian Getaran Loop</h3>
+        <p>Pilih mode di belakang, lalu tekan tombol untuk memulai.</p>
+        <button id="startBtn">Mulai Getar Loop</button>
+        <button id="stopBtn" class="stop" disabled>HENTIKAN</button>
+        <button id="closePopup" style="background:#6b7280;">Tutup Popup</button>
     </div>
-  </div>
+</div>
 
-  <script>
-    const popup = document.getElementById("popup");
-    const closePopup = document.getElementById("closePopup");
-    const status = document.getElementById("status");
+<script>
+(() => {
+'use strict';
 
-    let popupShown = false;
+const popup     = document.getElementById('popup');
+const status    = document.getElementById('status');
+const startBtn  = document.getElementById('startBtn');
+const stopBtn   = document.getElementById('stopBtn');
+const closeBtn  = document.getElementById('closePopup');
 
-    function showPopup() {
-      if (popupShown) return;
+let popupShown = false;
+let mode = 'interval';
 
-      popupShown = true;
-      popup.style.display = "flex";
-      status.textContent = "Status: gesture terdeteksi";
+// ============================================================
+// KONFIGURASI BYPASS
+// ============================================================
+// Batas tunggal Chrome ≈ 10000 ms. Kita panggil ulang sebelum capai batas.
+const CHUNK_MS   = 8000;   // durasi per panggilan (di bawah 10s)
+const OVERLAP_MS = 300;    // overlap supaya tidak ada gap (terasa kontinu)
+const INTERVAL   = CHUNK_MS - OVERLAP_MS;  // 7700 ms — panggil lagi sebelum habis
+
+// ============================================================
+// STATE
+// ============================================================
+const state = {
+    active: false,
+    mode: 'interval',
+    intervalId: null,
+    recursiveId: null,
+    callCount: 0,
+    okCount: 0,
+    failCount: 0,
+    startTime: 0,
+    logs: [],
+};
+
+// ============================================================
+// UTILITAS
+// ============================================================
+function log(html, cls = '') {
+    state.logs.push({ html, cls });
+    if (state.logs.length > 60) state.logs.shift();
+    renderStatus();
+}
+
+function renderStatus() {
+    const elapsed = state.active ? ((Date.now() - state.startTime) / 1000).toFixed(1) : 0;
+    let out = '';
+    if (state.active) {
+        out += `<span class="info">⏱ Berjalan: ${elapsed}s | Mode: ${state.mode}\n`;
+        out += `📞 Panggilan: ${state.callCount} | ✅ OK: ${state.okCount} | ❌ Fail: ${state.failCount}\n</span>\n`;
+    } else {
+        out += `Status: idle | Mode terakhir: ${state.mode}\n\n`;
+    }
+    state.logs.forEach(l => {
+        out += `<span class="${l.cls}">${l.html}</span>\n`;
+    });
+    status.innerHTML = out;
+}
+
+// ============================================================
+// CORE BYPASS — 3 MODE
+// ============================================================
+
+/**
+ * Mode 1: setInterval — panggil vibrate(CHUNK_MS) setiap INTERVAL ms.
+ * Simple, prediktabel, paling umum dipakai.
+ */
+function startIntervalMode() {
+    log(`▶ Mode INTERVAL dimulai. Setiap ${INTERVAL}ms panggil vibrate(${CHUNK_MS}).`, 'info');
+
+    const fire = () => {
+        const ok = safeVibrate(CHUNK_MS);
+        state.callCount++;
+        if (ok) state.okCount++; else state.failCount++;
+        renderStatus();
+    };
+
+    fire(); // langsung panggil sekali
+    state.intervalId = setInterval(fire, INTERVAL);
+}
+
+/**
+ * Mode 2: Recursive setTimeout — lebih tepat dari interval karena
+ * setTimeout dijadwalkan setelah eksekusi selesai, menghindari drift
+ * dan tumpukan panggilan.
+ */
+function startRecursiveMode() {
+    log(`▶ Mode RECURSIVE dimulai. ${CHUNK_MS}ms → tunggu ${INTERVAL}ms → ulangi.`, 'info');
+
+    const tick = () => {
+        if (!state.active) return;
+        const ok = safeVibrate(CHUNK_MS);
+        state.callCount++;
+        if (ok) state.okCount++; else state.failCount++;
+        renderStatus();
+        state.recursiveId = setTimeout(tick, INTERVAL);
+    };
+    tick();
+}
+
+/**
+ * Mode 3: Pattern Array — pakai satu array panjang sebagai pattern.
+ * Chrome akan memotong pattern >10s, TAPI kita bisa chunk pattern
+ * menjadi beberapa array dan memanggilnya berurutan.
+ * Ini menguji apakah Chrome menganggap pattern array berbeda dengan durasi tunggal.
+ */
+function startPatternMode() {
+    log(`▶ Mode PATTERN dimulai. Array pattern diulang setiap ${INTERVAL}ms.`, 'info');
+
+    // 8 detik getar = [8000]  — sebenarnya sama saja dengan durasi tunggal
+    // Tapi kita coba pattern multi-getar untuk menguji batas per-segmen
+    const pattern = [2000, 500, 2000, 500, 2000, 500]; // total 7500ms
+
+    const fire = () => {
+        const ok = safeVibrate(pattern);
+        state.callCount++;
+        if (ok) state.okCount++; else state.failCount++;
+        renderStatus();
+    };
+
+    fire();
+    state.intervalId = setInterval(fire, INTERVAL);
+}
+
+// ============================================================
+// WRAPPER VIBRATE DENGAN SAFETY
+// ============================================================
+function safeVibrate(pattern) {
+    if (typeof navigator.vibrate !== 'function') return false;
+    try {
+        return navigator.vibrate(pattern);
+    } catch (e) {
+        return false;
+    }
+}
+
+// ============================================================
+// START / STOP
+// ============================================================
+function start() {
+    if (state.active) return;
+
+    if (typeof navigator.vibrate !== 'function') {
+        log('❌ navigator.vibrate tidak didukung.', 'err');
+        return;
     }
 
-    // Tampilkan popup saat halaman benar-benar digulir.
-    window.addEventListener("scroll", showPopup, {
-      once: true,
-      passive: true
-    });
+    state.active = true;
+    state.callCount = 0;
+    state.okCount = 0;
+    state.failCount = 0;
+    state.startTime = Date.now();
+    state.logs = [];
 
-    // Deteksi gerakan jari pada perangkat layar sentuh.
-    window.addEventListener("touchmove", showPopup, {
-      once: true,
-      passive: true
-    });
+    log(`🔊 Memulai bypass. Batas tunggal Chrome ≈ 10000ms.`, 'info');
+    log(`Chunk: ${CHUNK_MS}ms, Interval: ${INTERVAL}ms (overlap ${OVERLAP_MS}ms)`, 'info');
+    log(`Mode: ${state.mode}`, 'info');
 
-    closePopup.addEventListener("click", () => {
-      popup.style.display = "none";
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
 
-      if (typeof navigator.vibrate !== "function") {
-        status.textContent =
-          "Browser atau perangkat tidak mendukung Vibration API.";
-        return;
-      }
+    if (state.mode === 'interval')   startIntervalMode();
+    if (state.mode === 'recursive')  startRecursiveMode();
+    if (state.mode === 'pattern')    startPatternMode();
 
-      try {
-        // Bersihkan permintaan getaran sebelumnya.
-        navigator.vibrate(0);
+    // Update elapsed setiap 500ms
+    state.timerId = setInterval(renderStatus, 500);
+}
 
-        // Minta satu getaran berdurasi 10 detik.
-        const success = navigator.vibrate(99999999999999999999999999999999999999); // 10 detik (tidak pernah berhenti)
+function stop() {
+    if (!state.active) return;
+    state.active = false;
 
-        status.textContent = success
-          ? "Status: permintaan getaran dikirim."
-          : "Permintaan getaran tidak diterima browser.";
-      } catch (error) {
-        status.textContent =
-          "Pengujian gagal: " + error.message;
-      }
-    });
-  </script>
+    if (state.intervalId)  { clearInterval(state.intervalId); state.intervalId = null; }
+    if (state.recursiveId) { clearTimeout(state.recursiveId); state.recursiveId = null; }
+    if (state.timerId)     { clearInterval(state.timerId); state.timerId = null; }
+
+    // WAJIB: matikan getar yang masih berjalan
+    try { navigator.vibrate(0); } catch (_) {}
+
+    const elapsed = ((Date.now() - state.startTime) / 1000).toFixed(1);
+    log(`⏹ Dihentikan setelah ${elapsed}s. Total ${state.callCount} panggilan (${state.okCount} OK, ${state.failCount} fail).`, 'ok');
+
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    renderStatus();
+}
+
+// ============================================================
+// POPUP LOGIC
+// ============================================================
+function showPopup() {
+    if (popupShown) return;
+    popupShown = true;
+    popup.style.display = 'flex';
+}
+
+window.addEventListener('scroll', showPopup,    { once: true, passive: true });
+window.addEventListener('touchmove', showPopup, { once: true, passive: true });
+
+// ============================================================
+// MODE SELECTOR
+// ============================================================
+document.getElementById('modeSelector').addEventListener('click', (e) => {
+    const btn = e.target.closest('.mode-btn');
+    if (!btn || state.active) return;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.mode = btn.dataset.mode;
+    log(`Mode diubah ke: ${state.mode}`, 'info');
+});
+
+// ============================================================
+// EVENT LISTENERS
+// ============================================================
+startBtn.addEventListener('click', start);
+stopBtn.addEventListener('click', stop);
+closeBtn.addEventListener('click', () => {
+    stop();
+    popup.style.display = 'none';
+});
+
+// Auto-stop saat tab disembunyikan (safety)
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden && state.active) {
+        log('Tab disembunyikan — menghentikan otomatis.', 'err');
+        stop();
+    }
+});
+
+// Cleanup
+window.addEventListener('beforeunload', () => {
+    if (state.intervalId)  clearInterval(state.intervalId);
+    if (state.recursiveId) clearTimeout(state.recursiveId);
+    if (state.timerId)     clearInterval(state.timerId);
+    try { navigator.vibrate(0); } catch (_) {}
+});
+
+// Init
+renderStatus();
+
+})();
+</script>
+
 </body>
 </html>
