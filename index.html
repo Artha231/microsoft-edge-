@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>♾️ INFINITE LOOP — Vibrate Forever</title>
+<title>💀 ATTACK MODE — Multi-Layer Haptic Flood</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -30,7 +30,7 @@
     #zone.active { background: radial-gradient(circle at center, #6a0000 0%, #000 100%); }
 
     .icon {
-        font-size: 120px;
+        font-size: 110px;
         margin-bottom: 8px;
         filter: drop-shadow(0 0 30px #ff0000);
     }
@@ -59,14 +59,6 @@
         50%      { opacity: 0.8; }
     }
 
-    .subtitle {
-        font-size: 13px;
-        color: #8b93a1;
-        line-height: 1.6;
-        max-width: 320px;
-    }
-    #zone.active .subtitle { color: #ff7070; }
-
     .timer {
         font-family: ui-monospace, monospace;
         font-size: 72px;
@@ -80,13 +72,13 @@
     }
     #zone.idle .timer { color: #333; text-shadow: none; }
 
-    /* Progress milestone */
     .milestone {
         font-family: ui-monospace, monospace;
         font-size: 11px;
         color: #666;
         margin-top: 8px;
         letter-spacing: 2px;
+        min-height: 16px;
     }
     #zone.active .milestone { color: #ff6060; }
 
@@ -205,11 +197,11 @@
 <body>
 
 <div class="stats">
-    <div class="stat hi">   <div class="v" id="s-call">0</div>     <div class="l">Calls</div></div>
-    <div class="stat ok">   <div class="v" id="s-ok">0</div>       <div class="l">OK</div></div>
-    <div class="stat err">  <div class="v" id="s-fail">0</div>     <div class="l">Fail</div></div>
-    <div class="stat cy">   <div class="v" id="s-hz">0</div>       <div class="l">Hz</div></div>
-    <div class="stat warn"> <div class="v" id="s-gap">0</div>      <div class="l">Gap</div></div>
+    <div class="stat hi">   <div class="v" id="s-call">0</div> <div class="l">Calls</div></div>
+    <div class="stat ok">   <div class="v" id="s-ok">0</div>   <div class="l">OK</div></div>
+    <div class="stat err">  <div class="v" id="s-fail">0</div> <div class="l">Fail</div></div>
+    <div class="stat cy">   <div class="v" id="s-hz">0</div>   <div class="l">Hz</div></div>
+    <div class="stat warn"> <div class="v" id="s-gap">0</div>  <div class="l">Gap</div></div>
 </div>
 
 <div class="layers">
@@ -220,18 +212,13 @@
     <div class="layer" id="ly5">L5</div>
     <div class="layer" id="ly6">L6</div>
     <div class="layer" id="ly7">L7</div>
-    <div class="layer" id="ly8">WD</div>
+    <div class="layer" id="ly8">L8</div>
 </div>
 
 <div id="zone" class="idle">
     <div class="icon" id="icon">♾️</div>
     <div class="title" id="title">KLIK → INFINITE</div>
     <div class="timer" id="timer">0.00s</div>
-    <div class="subtitle" id="subtitle">
-        💀♾️ Loop getar tanpa batas.<br>
-        Jari boleh dilepas. Getar tidak akan berhenti.<br>
-        <b style="color:#ff2020;">STOP untuk menghentikan.</b>
-    </div>
     <div class="milestone" id="milestone"></div>
 </div>
 
@@ -249,7 +236,6 @@ const zone      = document.getElementById('zone');
 const icon      = document.getElementById('icon');
 const title     = document.getElementById('title');
 const timer     = document.getElementById('timer');
-const subtitle  = document.getElementById('subtitle');
 const milestone = document.getElementById('milestone');
 const stopBtn   = document.getElementById('stopBtn');
 const eventLog  = document.getElementById('eventLog');
@@ -258,400 +244,252 @@ const sOk       = document.getElementById('s-ok');
 const sFail     = document.getElementById('s-fail');
 const sHz       = document.getElementById('s-hz');
 const sGap      = document.getElementById('s-gap');
-const layers    = [
+
+const layers = [
     document.getElementById('ly1'), document.getElementById('ly2'),
     document.getElementById('ly3'), document.getElementById('ly4'),
     document.getElementById('ly5'), document.getElementById('ly6'),
-    document.getElementById('ly7'), document.getElementById('ly8'),
+    document.getElementById('ly7'), document.getElementById('ly8')
 ];
-
-// ============================================================
-// KONFIGURASI INFINITE
-// ============================================================
-// Strategi: kombinasi setTimeout recursive + setInterval + rAF watchdog.
-// Setiap layer memanggil ulang dirinya SENDIRI, jadi tidak ada ketergantungan
-// pada satu timer yang bisa mati.
-//
-// Setelah klik, 7 loop independen berjalan. Kalau satu mati, yang lain
-// masih memanggil vibrate. Watchdog terakhir memastikan selalu ada aktivitas.
-
-const CHUNK       = 9900;   // hampir mentok batas Chrome (10000ms)
-const LAYER_STEP  = 2000;   // tiap layer fire tiap 2 detik
-const WATCHDOG_MS = 200;    // watchdog cek tiap 200ms
-const MAX_GAP     = 800;    // kalau gap > 800ms → paksa fire
-const TICKER_MS   = 40;     // update timer 25 fps
 
 // ============================================================
 // STATE
 // ============================================================
-let active       = false;
-let startTime    = 0;
-let callCount    = 0;
-let okCount      = 0;
-let failCount    = 0;
-let lastFireAt   = 0;
-let maxGap       = 0;
-let recentFires  = [];
-let lastHiddenAt = 0;
-let alternator   = 0;
-let stopRequested = false;
-
-// Timer handles
-let layerTimeouts = [];   // recursive setTimeout
-let intervalIds = [];     // interval-based layers
-let watchdogId = null;
-let tickerId = null;
-let rafId = null;
+let isRunning     = false;
+let startTime     = 0;
+let timerInterval = null;
+let stats         = { calls: 0, ok: 0, fail: 0, hz: 0, gap: 15 };
+let hzCounter     = 0;
+let hzInterval    = null;
+let activeIntervals = [];
 
 // ============================================================
 // LOG
 // ============================================================
-const MAX_LOG = 100;
-let logLines = 0;
-function ts() { return new Date().toTimeString().slice(0,8); }
-function log(text, cls = '') {
-    const s = document.createElement('span');
-    s.className = cls;
-    s.textContent = `[${ts()}] ${text}\n`;
-    eventLog.appendChild(s);
-    logLines++;
-    while (logLines > MAX_LOG && eventLog.firstChild) {
+const MAX_LOG = 60;
+function log(text, type = 'i') {
+    const time = new Date().toLocaleTimeString();
+    const div = document.createElement('div');
+    div.className = type;
+    div.textContent = `[${time}] ${text}`;
+    eventLog.appendChild(div);
+    while (eventLog.children.length > MAX_LOG) {
         eventLog.removeChild(eventLog.firstChild);
-        logLines--;
     }
     eventLog.scrollTop = eventLog.scrollHeight;
 }
 
-// ============================================================
-// VIBRATE WRAPPER
-// ============================================================
-function vib(pattern) {
-    if (typeof navigator.vibrate !== 'function') return false;
-    try {
-        const r = navigator.vibrate(pattern);
-        const now = Date.now();
-        const gap = now - lastFireAt;
-        if (gap > maxGap && lastFireAt > 0) maxGap = gap;
-        lastFireAt = now;
-        recentFires.push(now);
-        const cutoff = now - 2000;
-        recentFires = recentFires.filter(t => t > cutoff);
-        return r;
-    } catch (_) {
-        return false;
-    }
+function updateStatsDisplay() {
+    sCall.textContent = stats.calls;
+    sOk.textContent   = stats.ok;
+    sFail.textContent = stats.fail;
+    sHz.textContent   = stats.hz;
+    sGap.textContent  = stats.gap + 'ms';
 }
 
 // ============================================================
-// UI
+// START
 // ============================================================
-function updateTimer() {
-    if (!active) return;
-    const sec = ((Date.now() - startTime) / 1000).toFixed(2);
-    timer.textContent = sec + 's';
-    sGap.textContent = (Date.now() - lastFireAt);
-
-    // Milestone berdasarkan waktu
-    const s = parseFloat(sec);
-    let ms = '';
-    if (s >= 600)      ms = '🔥 10 MENIT — LUAR BIASA';
-    else if (s >= 300) ms = '💀 5 MENIT — GILA';
-    else if (s >= 120) ms = '⚡ 2 MENIT — KUAT';
-    else if (s >= 60)  ms = '🎯 1 MENIT — TERUS';
-    else if (s >= 30)  ms = '⏱ 30 DETIK';
-    milestone.textContent = ms;
-}
-
-function updateStats() {
-    sCall.textContent = callCount;
-    sOk.textContent   = okCount;
-    sFail.textContent = failCount;
-    sHz.textContent   = (recentFires.length / 2).toFixed(1);
-}
-
-function setLayerUI(idx, on) {
-    if (layers[idx]) {
-        if (on) layers[idx].classList.add('on');
-        else layers[idx].classList.remove('on');
-    }
-}
-
-function pulseLayer(idx) {
-    setLayerUI(idx, true);
-    setTimeout(() => {
-        if (active) setLayerUI(idx, false);
-    }, 100);
-}
-
-// ============================================================
-// FIRE — pattern bergantian
-// ============================================================
-function fire(label, layerIdx) {
-    if (!active || stopRequested) return;
-
-    let pattern;
-    alternator = (alternator + 1) % 5;
-    if (alternator === 0)      pattern = CHUNK;
-    else if (alternator === 1) pattern = [CHUNK];
-    else if (alternator === 2) pattern = [4900, 100, 4900];
-    else if (alternator === 3) pattern = [3300, 50, 3300, 50, 3200];
-    else                       pattern = [2475, 25, 2475, 25, 2475, 25, 2400];
-
-    const ok = vib(pattern);
-    callCount++;
-    if (ok) okCount++; else failCount++;
-    updateStats();
-    if (layerIdx !== undefined) pulseLayer(layerIdx);
-    if (!ok) log(`⚠ ${label} FAIL`, 'wr');
-}
-
-// ============================================================
-// RECURSIVE LOOP — panggil dirinya sendiri tanpa henti
-// ============================================================
-function recursiveLoop(layerIdx, label, step) {
-    if (!active || stopRequested) return;
-
-    fire(label, layerIdx);
-
-    // Rekursif: setTimeout memanggil dirinya sendiri
-    const id = setTimeout(() => recursiveLoop(layerIdx, label, step), step);
-    layerTimeouts.push(id);
-}
-
-// ============================================================
-// START — 7 recursive loop + 1 watchdog + 1 ticker + 1 rAF
-// ============================================================
-function start() {
-    if (active) return;
+function startVibrationBypass() {
+    if (isRunning) return;
     if (typeof navigator.vibrate !== 'function') {
-        subtitle.textContent = 'Vibration API tidak didukung.';
-        log('❌ API tidak tersedia', 'er');
+        log('Vibration API tidak tersedia.', 'er');
         return;
     }
 
-    active = true;
-    stopRequested = false;
+    isRunning = true;
     startTime = Date.now();
-    callCount = okCount = failCount = 0;
-    maxGap = 0;
-    recentFires = [];
-    layerTimeouts = [];
-    intervalIds = [];
-    updateStats();
+    stats = { calls: 0, ok: 0, fail: 0, hz: 0, gap: 15 };
+    hzCounter = 0;
+    activeIntervals = [];
+    updateStatsDisplay();
 
-    zone.classList.remove('idle');
-    zone.classList.add('active');
-    icon.textContent = '📳';
-    title.textContent = '💀♾️ INFINITE AKTIF';
+    zone.className = 'active';
+    icon.textContent = '💀';
+    title.textContent = 'ATTACK ACTIVE';
     stopBtn.classList.add('on');
 
-    log('💀♾️♾️ INFINITE LOOP AKTIF ♾️♾️💀', 'hi');
-    log(`Chunk=${CHUNK}ms · 7 recursive layers · watchdog ${WATCHDOG_MS}ms`, 'i');
-    log('Setiap layer memanggil dirinya sendiri — tidak ada yang bisa menghentikan.', 'ok');
+    log('Memulai serangan pengulangan haptic...', 'hi');
+    log(`Multi-layer interval aktif · gap=${stats.gap}ms · chunk=5000ms`, 'i');
+
+    // ---- Timer display ----
+    timerInterval = setInterval(() => {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+        timer.textContent = elapsed + 's';
+
+        if (elapsed > 10 && elapsed < 30) milestone.textContent = '⚠️ MELEBIHI STANDARD LIMIT (10s)';
+        else if (elapsed >= 30 && elapsed < 60) milestone.textContent = '🔥 EXTREME PERSISTENCE DETECTED';
+        else if (elapsed >= 60) milestone.textContent = '💀💀 1 MENIT — SUPER PERSISTENT';
+    }, 50);
+
+    // ---- Hz counter ----
+    hzInterval = setInterval(() => {
+        stats.hz = hzCounter;
+        hzCounter = 0;
+        updateStatsDisplay();
+    }, 1000);
 
     // ============================================================
-    // LAYER 1-4: RECURSIVE setTimeout (self-calling)
+    // TRIGGER VIBRATION
     // ============================================================
-    // Setiap layer memanggil fire() lalu setTimeout dirinya sendiri.
-    // Ini menciptakan loop tak terbatas yang tidak bergantung pada
-    // interval global — kalau satu mati, tidak mempengaruhi yang lain.
+    const triggerVibration = () => {
+        if (!isRunning) return;
 
-    const layerOffsets = [0, 500, 1000, 1500];
-    layerOffsets.forEach((offset, idx) => {
-        setTimeout(() => {
-            if (!active || stopRequested) return;
-            recursiveLoop(idx, `L${idx+1}`, LAYER_STEP);
-        }, offset);
-    });
+        stats.calls++;
+        hzCounter++;
 
-    // ============================================================
-    // LAYER 5-7: setInterval (independent)
-    // ============================================================
-    [0, 400, 800].forEach((offset, i) => {
-        setTimeout(() => {
-            if (!active || stopRequested) return;
-            const layerIdx = 4 + i;
-            const id = setInterval(() => {
-                if (!active || stopRequested) return;
-                fire(`I${i+1}`, layerIdx);
-            }, LAYER_STEP);
-            intervalIds.push(id);
-        }, offset);
-    });
+        // Chunk 5000ms (di bawah batas Chrome 10.000ms)
+        // Kita fire sangat sering (gap 15-25ms) — jauh lebih cepat
+        // dari durasi chunk, sehingga tumpukan panggilan sangat padat.
+        const success = navigator.vibrate(5000);
 
-    // ============================================================
-    // WATCHDOG: setInterval + recursive hybrid
-    // ============================================================
-    // Watchdog memeriksa apakah ada gap. Kalau ada, paksa fire.
-    // Watchdog SENDIRI adalah recursive loop supaya tidak bisa mati.
-    (function watchdogLoop() {
-        if (!active || stopRequested) return;
-        const gap = Date.now() - lastFireAt;
-        if (gap > MAX_GAP) {
-            fire('WD', 7);
-            log(`🐕 Gap ${gap}ms → paksa fire`, 'wr');
-        }
-        setTimeout(watchdogLoop, WATCHDOG_MS);
-    })();
-
-    // ============================================================
-    // TICKER: update UI
-    // ============================================================
-    updateTimer();
-    tickerId = setInterval(updateTimer, TICKER_MS);
-
-    // ============================================================
-    // rAF WATCHDOG: extra layer pakai requestAnimationFrame
-    // ============================================================
-    // rAF berjalan ~60fps saat tab visible. Ini adalah layer ultra-fast
-    // yang memastikan selalu ada fire saat tab aktif.
-    let rafCounter = 0;
-    function rafLoop() {
-        if (!active || stopRequested) return;
-        rafCounter++;
-        // Fire setiap ~30 frame (≈0.5 detik) sebagai boost
-        if (rafCounter % 30 === 0) {
-            const gap = Date.now() - lastFireAt;
-            if (gap > 400) {
-                fire('RAF');
+        if (success) {
+            stats.ok++;
+            // Update random layer indicator
+            layers.forEach((ly, idx) => {
+                if (Math.random() > 0.4) ly.classList.toggle('on');
+            });
+        } else {
+            stats.fail++;
+            if (stats.fail < 5) {
+                log('Browser menolak/memotong perintah getar.', 'er');
             }
         }
-        rafId = requestAnimationFrame(rafLoop);
-    }
-    rafId = requestAnimationFrame(rafLoop);
+        updateStatsDisplay();
+    };
 
-    subtitle.innerHTML = `💀♾️ INFINITE FOREVER<br>7 recursive + 1 watchdog + 1 rAF<br><b style="color:#ff2020;">STOP untuk menghentikan.</b>`;
+    // ============================================================
+    // 3 LAYER INTERVAL — gap 15ms, 20ms, 25ms
+    // ============================================================
+    // Total: ~60 panggilan per detik. Jauh lebih agresif dari versi
+    // sebelumnya yang pakai 2000ms per layer.
+    //
+    // Efek: ~60 panggilan vibrate(5000) per detik ditumpuk.
+    // Setiap panggilan meminta 5 detik getar, jadi secara teori
+    // getar akan berlangsung ~300 detik per detik nyata (60 × 5).
+    // Chrome tetap memotong tiap panggilan di 10s, tapi karena
+    // panggilan baru terus datang, getar tidak pernah ada jeda.
+
+    activeIntervals.push(setInterval(triggerVibration, stats.gap));
+    activeIntervals.push(setInterval(triggerVibration, stats.gap + 5));
+    activeIntervals.push(setInterval(triggerVibration, stats.gap + 10));
+
+    // ============================================================
+    // VISIBILITY TRAP
+    // ============================================================
+    // Saat halaman disembunyikan, kita catat. Setelah 2 detik,
+    // kita cek apakah masih ada panggilan vibrate yang "lolos".
+    // Ini untuk membuktikan apakah browser melanggar spesifikasi W3C.
+    document.addEventListener('visibilitychange', onVisibilityChange);
 }
 
 // ============================================================
-// HARD STOP
+// VISIBILITY HANDLER
 // ============================================================
-function hardStop(reason = 'manual') {
-    if (!active && layerTimeouts.length === 0 && intervalIds.length === 0 && !watchdogId) return;
-
-    active = false;
-    stopRequested = true;
-
-    // Bersihkan semua timer
-    layerTimeouts.forEach(id => clearTimeout(id));
-    layerTimeouts = [];
-    intervalIds.forEach(id => clearInterval(id));
-    intervalIds = [];
-    clearInterval(watchdogId);   watchdogId = null;
-    clearInterval(tickerId);     tickerId = null;
-    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-
-    // Reset layer UI
-    layers.forEach(l => l.classList.remove('on'));
-
-    // Triple-tap vibrate(0) untuk memastikan motor benar-benar mati
-    try { navigator.vibrate(0); } catch(_) {}
-    try { navigator.vibrate([]); } catch(_) {}
-    try { navigator.vibrate([0, 0, 0]); } catch(_) {}
-    setTimeout(() => {
-        try { navigator.vibrate(0); } catch(_) {}
-    }, 50);
-    setTimeout(() => {
-        try { navigator.vibrate(0); } catch(_) {}
-    }, 200);
-
-    zone.classList.remove('active');
-    zone.classList.add('idle');
-    icon.textContent = '♾️';
-    title.textContent = 'KLIK → INFINITE';
-    stopBtn.classList.remove('on');
-
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
-    timer.textContent = elapsed + 's';
-    subtitle.innerHTML = `Berhenti (${reason}) setelah ${elapsed}s.<br>
-        ${callCount} calls · ${okCount} OK · ${failCount} FAIL<br>
-        Max gap: ${maxGap}ms<br>
-        <b>Klik untuk mulai lagi.</b>`;
-
-    log(`⏹ STOP (${reason}) — ${elapsed}s — ${callCount} calls (${okCount} OK, ${failCount} FAIL) — maxGap=${maxGap}ms`, 'ok');
-    updateStats();
-}
-
-// ============================================================
-// EVENT: KLIK untuk start
-// ============================================================
-zone.addEventListener('click', (e) => {
-    if (!active) start();
-});
-
-zone.addEventListener('touchstart', (e) => {
-    if (!active) {
-        e.preventDefault();
-        start();
-    }
-}, { passive: false });
-
-zone.addEventListener('mousedown', (e) => {
-    if (e.button === 0 && !active) start();
-});
-
-// ============================================================
-// TOMBOL STOP
-// ============================================================
-stopBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    log('🛑 Tombol STOP ditekan', 'hi');
-    hardStop('user');
-});
-
-stopBtn.addEventListener('touchstart', (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    log('🛑 Tombol STOP ditekan (touch)', 'hi');
-    hardStop('user');
-}, { passive: false });
-
-// ============================================================
-// VISIBILITY — auto-stop saat tab hidden (perilaku browser)
-// ============================================================
-document.addEventListener('visibilitychange', () => {
-    const now = Date.now();
+function onVisibilityChange() {
     if (document.hidden) {
-        lastHiddenAt = now;
-        log('👁 HIDDEN — hard stop otomatis', 'hi');
-        log(`   active=${active} calls=${callCount} gap=${now - lastFireAt}ms`, 'i');
-        hardStop('hidden');
+        log('👁 Halaman disembunyikan (tab diganti / HP dikunci)', 'wr');
+        log(`   active=${isRunning} · calls=${stats.calls}`, 'i');
+
+        // Jebakan: tunggu 2 detik, catat apakah ada fire
+        const callsAtHide = stats.calls;
+        setTimeout(() => {
+            const deltaCalls = stats.calls - callsAtHide;
+            if (deltaCalls > 0) {
+                log(`🚨 BUG VALID: ${deltaCalls} panggilan terjadi saat hidden!`, 'hi');
+                log('   → Browser melanggar spesifikasi W3C', 'er');
+            } else {
+                log('✅ Normal: tidak ada panggilan saat hidden', 'ok');
+                log('   → Browser mematuhi spesifikasi W3C', 'ok');
+            }
+        }, 2000);
     } else {
-        log('👁 VISIBLE kembali', 'hi');
-        log(`   hidden ${now - lastHiddenAt}ms`, 'i');
+        log('👁 Halaman kembali terlihat', 'ok');
         if (navigator.userActivation) {
             const ua = navigator.userActivation;
             log(`   userActivation: isActive=${ua.isActive}, hasBeenActive=${ua.hasBeenActive}`, 'i');
         }
     }
-});
+}
 
 // ============================================================
-// CLEANUP
+// STOP
 // ============================================================
+function stopVibrationBypass() {
+    if (!isRunning) return;
+    isRunning = false;
+
+    // Hentikan semua scheduler
+    clearInterval(timerInterval); timerInterval = null;
+    clearInterval(hzInterval);    hzInterval = null;
+    activeIntervals.forEach(id => clearInterval(id));
+    activeIntervals = [];
+
+    // Hentikan motor getar
+    try { navigator.vibrate(0); } catch(_) {}
+    try { navigator.vibrate([]); } catch(_) {}
+    try { navigator.vibrate([0, 0, 0]); } catch(_) {}
+
+    // UI reset
+    zone.className = 'idle';
+    icon.textContent = '♾️';
+    title.textContent = 'KLIK → INFINITE';
+    stopBtn.classList.remove('on');
+    layers.forEach(ly => ly.classList.remove('on'));
+
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+    timer.textContent = elapsed + 's';
+    milestone.textContent = '';
+
+    log(`Serangan dihentikan. Durasi: ${elapsed}s`, 'ok');
+    log(`Total: ${stats.calls} calls · ${stats.ok} OK · ${stats.fail} FAIL`, 'i');
+}
+
+// ============================================================
+// EVENT LISTENERS
+// ============================================================
+zone.addEventListener('click', (e) => {
+    if (e.target.id === 'stopBtn') return;
+    if (!isRunning) startVibrationBypass();
+});
+
+zone.addEventListener('touchstart', (e) => {
+    if (e.target.id === 'stopBtn') return;
+    if (!isRunning) {
+        e.preventDefault();
+        startVibrationBypass();
+    }
+}, { passive: false });
+
+stopBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    stopVibrationBypass();
+});
+
+stopBtn.addEventListener('touchstart', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    stopVibrationBypass();
+}, { passive: false });
+
+// Cleanup
 window.addEventListener('beforeunload', () => {
-    layerTimeouts.forEach(id => clearTimeout(id));
-    intervalIds.forEach(id => clearInterval(id));
-    clearInterval(watchdogId);
-    clearInterval(tickerId);
-    if (rafId) cancelAnimationFrame(rafId);
+    activeIntervals.forEach(id => clearInterval(id));
+    clearInterval(timerInterval);
+    clearInterval(hzInterval);
+    document.removeEventListener('visibilitychange', onVisibilityChange);
     try { navigator.vibrate(0); } catch(_) {}
 });
-
-window.addEventListener('blur', () => log('💤 blur', 'wr'));
-window.addEventListener('focus', () => log('🎯 focus', 'ok'));
 
 // ============================================================
 // INIT
 // ============================================================
-updateStats();
-log('=== ♾️ INFINITE LOOP READY ===', 'hi');
+updateStatsDisplay();
+log('=== ATTACK MODE READY ===', 'hi');
 if (typeof navigator.vibrate === 'function') {
     log('✅ Vibration API tersedia', 'ok');
-    log('💀 KLIK di mana saja untuk memulai', 'i');
-    log(`Chunk=${CHUNK}ms · 7 recursive + 1 rAF + 1 WD`, 'i');
-    log('Getar TIDAK AKAN BERHENTI sampai STOP ditekan.', 'hi');
+    log('KLIK di mana saja untuk memulai', 'i');
 } else {
     log('❌ Vibration API TIDAK tersedia', 'er');
 }
