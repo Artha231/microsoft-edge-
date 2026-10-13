@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Getar + Redirect Google</title>
+<title>Test Residual Vibrate</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -16,428 +16,374 @@
         overflow: hidden;
         touch-action: none;
     }
-    #zone {
+    #app {
         position: fixed;
         inset: 0;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        padding: 20px;
-        background: #0d0f14;
-        transition: background .1s;
+        padding: 12px;
+        gap: 8px;
     }
-    #zone.active { background: #2a0000; animation: bgPulse .15s infinite alternate; }
-    @keyframes bgPulse {
-        from { background: #2a0000; }
-        to   { background: #4a0000; }
-    }
+    h1 { font-size: 16px; margin-bottom: 4px; }
+    .sub { font-size: 11px; color: #8b93a1; line-height: 1.5; margin-bottom: 8px; }
 
-    .icon { font-size: 110px; margin-bottom: 16px; }
-    #zone.active .icon { animation: shake .04s infinite; }
-    @keyframes shake {
-        0%   { transform: rotate(-25deg) scale(1.4); }
-        50%  { transform: rotate(25deg) scale(1.5); }
-        100% { transform: rotate(-25deg) scale(1.4); }
-    }
-
-    .title {
-        font-size: 22px;
-        font-weight: 900;
-        letter-spacing: 2px;
-        margin-bottom: 10px;
-    }
-    #zone.active .title { color: #ff2020; text-shadow: 0 0 25px #ff0000; }
-
-    .timer {
-        font-family: ui-monospace, monospace;
-        font-size: 60px;
-        font-weight: 900;
-        color: #ff2020;
-        margin: 16px 0;
-        min-height: 68px;
-        font-variant-numeric: tabular-nums;
-        text-shadow: 0 0 35px #ff0000;
-    }
-
-    .hint {
+    .test-btn {
+        padding: 14px 12px;
         font-size: 13px;
-        color: #8b93a1;
-        line-height: 1.6;
-        max-width: 320px;
+        font-weight: 700;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        color: white;
+        text-align: left;
+        font-family: inherit;
+        transition: transform .05s;
     }
-    #zone.active .hint { color: #ff6060; }
+    .test-btn:active { transform: scale(0.98); }
+    .test-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .test-btn .name { display: block; font-size: 13px; font-weight: 700; }
+    .test-btn .desc { display: block; font-size: 10px; opacity: 0.7; margin-top: 2px; font-weight: 400; }
 
-    #gestureDot {
-        position: fixed;
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background: rgba(255, 32, 32, 0.4);
-        pointer-events: none;
-        transform: translate(-50%, -50%);
-        opacity: 0;
-        transition: opacity .1s;
-        z-index: 50;
-        box-shadow: 0 0 25px #ff2020;
-    }
-    #gestureDot.on { opacity: 1; }
+    .t1 { background: #2563eb; }
+    .t2 { background: #7c3aed; }
+    .t3 { background: #dc2626; }
+    .t4 { background: #ea580c; }
+    .t5 { background: #059669; }
 
-    /* Console overlay untuk lihat log di HP */
-    #console {
-        position: fixed;
-        top: 8px;
-        left: 8px;
-        right: 8px;
-        max-height: 30vh;
+    #log {
+        flex: 1;
         overflow-y: auto;
-        background: rgba(5, 7, 10, 0.95);
+        background: #05070a;
         border: 1px solid #2c313a;
         border-radius: 8px;
-        padding: 8px 10px;
+        padding: 10px;
         font-family: ui-monospace, monospace;
-        font-size: 9.5px;
-        line-height: 1.5;
+        font-size: 10px;
+        line-height: 1.55;
         white-space: pre-wrap;
         word-break: break-word;
-        z-index: 100;
     }
-    #console .i  { color: #79c0ff; }
-    #console .ok { color: #3fb950; }
-    #console .wr { color: #d29922; }
-    #console .er { color: #f85149; }
-    #console .hi { color: #d2a8ff; font-weight: 700; }
+    #log .i  { color: #79c0ff; }
+    #log .ok { color: #3fb950; }
+    #log .wr { color: #d29922; }
+    #log .er { color: #f85149; }
+    #log .hi { color: #d2a8ff; font-weight: 700; }
+    #log .dim { color: #6b7280; }
 
-    #stopBtn {
-        position: fixed;
-        bottom: 24px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 260px;
-        max-width: calc(100% - 40px);
-        padding: 18px;
-        background: #dc2626;
+    #stopAll {
+        padding: 12px;
+        background: #374151;
         color: white;
         border: none;
-        border-radius: 12px;
-        font-size: 18px;
-        font-weight: 900;
-        letter-spacing: 2px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 700;
         cursor: pointer;
-        display: none;
-        z-index: 10;
     }
-    #stopBtn.on { display: block; }
 </style>
 </head>
 <body>
 
-<div id="console">Memuat...</div>
-
-<div id="zone">
-    <div class="icon" id="icon">👆</div>
-    <div class="title" id="title">GESER JARI</div>
-    <div class="timer" id="timer">0.0s</div>
-    <div class="hint" id="hint">
-        Geser jari = getar + redirect Google.<br>
-        Getar akan tetap terasa setelah redirect.
+<div id="app">
+    <h1>🧪 Test Residual Vibrate</h1>
+    <div class="sub">
+        Pilih test, lalu <b>rasakan getar</b> setelah redirect.<br>
+        Ukur berapa detik getar terasa setelah redirect.
     </div>
+
+    <button class="test-btn t1" onclick="test1()">
+        <span class="name">Test 1: Basic Redirect</span>
+        <span class="desc">vibrate(9999) → redirect instan</span>
+    </button>
+
+    <button class="test-btn t2" onclick="test2()">
+        <span class="name">Test 2: Cancel Explicit</span>
+        <span class="desc">vibrate(9999) + vibrate(0) → redirect</span>
+    </button>
+
+    <button class="test-btn t3" onclick="test3()">
+        <span class="name">Test 3: Preload 100x</span>
+        <span class="desc">100× vibrate(9999) sinkron → redirect</span>
+    </button>
+
+    <button class="test-btn t4" onclick="test4()">
+        <span class="name">Test 4: Delayed Redirect</span>
+        <span class="desc">vibrate(9999) → tunggu 3s → redirect</span>
+    </button>
+
+    <button class="test-btn t5" onclick="test5()">
+        <span class="name">Test 5: about:blank</span>
+        <span class="desc">vibrate(9999) → redirect ke about:blank</span>
+    </button>
+
+    <button id="stopAll" onclick="stopAll()">■ STOP GETAR</button>
+
+    <div id="log"></div>
 </div>
 
-<div id="gestureDot"></div>
-<button id="stopBtn">■ STOP</button>
-
 <script>
-(() => {
 'use strict';
 
-const zone    = document.getElementById('zone');
-const icon    = document.getElementById('icon');
-const title   = document.getElementById('title');
-const timer   = document.getElementById('timer');
-const hint    = document.getElementById('hint');
-const stopBtn = document.getElementById('stopBtn');
-const gestureDot = document.getElementById('gestureDot');
-const consoleEl = document.getElementById('console');
-
-// ============================================================
-// KONFIG
-// ============================================================
-const TARGET      = 'https://google.com';
-const CHUNK       = 9999;
-const REDIRECT_MS = 500;   // delay sebelum redirect (ms)
-const PRELOAD     = 100;   // preload getar
+const logEl = document.getElementById('log');
+const TARGET = 'https://google.com';
 
 // ============================================================
 // LOG
 // ============================================================
-const MAX_LOG = 50;
 function log(text, cls = '') {
     const span = document.createElement('span');
     span.className = cls;
     span.textContent = text + '\n';
-    consoleEl.appendChild(span);
-    while (consoleEl.children.length > MAX_LOG) consoleEl.removeChild(consoleEl.firstChild);
-    consoleEl.scrollTop = consoleEl.scrollHeight;
+    logEl.appendChild(span);
+    logEl.scrollTop = logEl.scrollHeight;
+}
+function clearLog() { logEl.textContent = ''; }
+
+function startTime() {
+    const t = new Date();
+    return t.toTimeString().slice(0,8) + '.' + String(t.getMilliseconds()).padStart(3,'0');
 }
 
 // ============================================================
-// STATE
+// UTIL
 // ============================================================
-let running = false;
-let startTime = 0;
-let calls = 0;
-let okCount = 0;
-let vibTimer = null;
-let uiTimer = null;
-let triggered = false;
+function logStart(name, desc, config) {
+    clearLog();
+    log('═══════════════════════════════════', 'hi');
+    log('🧪 ' + name, 'hi');
+    log('═══════════════════════════════════', 'hi');
+    log('📌 ' + desc, 'i');
+    log('');
+    log('Config:', 'i');
+    Object.entries(config).forEach(([k, v]) => {
+        log('   ' + k + ': ' + v, 'dim');
+    });
+    log('');
+    log('⏱ Start: ' + startTime(), 'dim');
+    log('');
+}
 
-// ============================================================
-// FIRE VIBRATE
-// ============================================================
-function fire(label) {
-    if (!running) return;
+function logEnd(reason) {
+    log('');
+    log('⏱ End: ' + startTime(), 'dim');
+    log('📌 ' + reason, 'wr');
+    log('');
+    log('═══════════════════════════════════', 'hi');
+    log('💡 CARA UKUR:', 'hi');
+    log('   1. Catat waktu saat redirect', 'i');
+    log('   2. Rasakan getar', 'i');
+    log('   3. Catat waktu saat getar berhenti', 'i');
+    log('   4. Selisih = durasi residual', 'i');
+    log('═══════════════════════════════════', 'hi');
+}
+
+function fire(pattern, label) {
     let ok = false;
-    try {
-        ok = navigator.vibrate(CHUNK);
-    } catch(e) { ok = false; }
-    calls++;
-    if (ok) okCount++;
-    if (label && calls <= 5) {
-        log(`   ${label}: vibrate(${CHUNK}) → ${ok}`, ok ? 'ok' : 'er');
-    }
+    try { ok = navigator.vibrate(pattern); } catch(_) {}
+    log(`🔥 ${label}: vibrate(${JSON.stringify(pattern)}) → ${ok}`, ok ? 'ok' : 'er');
     return ok;
 }
 
 // ============================================================
-// START
+// TEST 1: BASIC REDIRECT
 // ============================================================
-function start() {
-    if (running) return;
-    running = true;
-    startTime = performance.now();
-    calls = 0;
-    okCount = 0;
+function test1() {
+    logStart('Test 1: Basic Redirect',
+        'Fire getar sekali, langsung redirect tanpa cancel',
+        {
+            'Pattern': '[9999]',
+            'Cancel': 'Tidak ada',
+            'Delay redirect': '0ms',
+            'Target': TARGET
+        });
 
-    consoleEl.textContent = '';
-    log('═══════════════════════════════════', 'hi');
-    log('▶ START — Getar + Redirect Google', 'hi');
-    log('═══════════════════════════════════', 'hi');
-    log('', '');
-    log('Environment:', 'i');
-    log(`   Protocol: ${location.protocol}`, 'i');
-    log(`   Vibrate API: ${typeof navigator.vibrate === 'function' ? 'ADA' : 'TIDAK'}`, 
-        typeof navigator.vibrate === 'function' ? 'ok' : 'er');
-    if (navigator.userActivation) {
-        const ua = navigator.userActivation;
-        log(`   userActivation: isActive=${ua.isActive}, hasBeenActive=${ua.hasBeenActive}`, 'i');
-    }
-    log('', '');
-    log(`📌 Target: ${TARGET}`, 'i');
-    log(`📌 Delay: ${REDIRECT_MS}ms`, 'i');
-    log(`📌 Chunk: ${CHUNK}ms`, 'i');
-    log('', '');
+    // Fire getar
+    fire([9999], 'init');
 
-    // UI
-    zone.classList.add('active');
-    icon.textContent = '📳';
-    title.textContent = 'GETAR AKTIF';
-    hint.innerHTML = `Getar + redirect ke <b>Google</b><br>dalam <b>${REDIRECT_MS}ms</b>...`;
-    stopBtn.classList.add('on');
-
-    // ============================================================
-    // 1. FIRE LANGSUNG (sinkron)
-    // ============================================================
-    log('1️⃣ Fire langsung...', 'i');
-    fire('init-1');
-    fire('init-2');
-    fire('init-3');
-
-    // ============================================================
-    // 2. LOOP INTERVAL
-    // ============================================================
-    log('2️⃣ Loop interval 50ms...', 'i');
-    vibTimer = setInterval(() => fire('loop'), 50);
-
-    // ============================================================
-    // 3. ASYNC PRELOAD
-    // ============================================================
-    log(`3️⃣ Preload ${PRELOAD} calls...`, 'i');
-    let n = 0;
-    function preload() {
-        if (!running || n >= PRELOAD) return;
-        n++;
-        fire('preload');
-        setTimeout(preload, 0);
-    }
-    preload();
-
-    // ============================================================
-    // 4. TIMER UI
-    // ============================================================
-    uiTimer = setInterval(() => {
-        const elapsed = (performance.now() - startTime) / 1000;
-        timer.textContent = elapsed.toFixed(1) + 's';
-    }, 50);
-
-    // ============================================================
-    // 5. REDIRECT SETELAH 500ms
-    // ============================================================
+    // Langsung redirect (setelah 1 tick supaya UI update)
     setTimeout(() => {
-        if (!running) return;
-        
-        log('', '');
-        log('═══════════════════════════════════', 'hi');
-        log('5️⃣ REDIRECT', 'hi');
-        log('═══════════════════════════════════', 'hi');
-        log(`   Total calls: ${calls} | OK: ${okCount}`, 'i');
-        log(`   userActivation:`, 'i');
-        if (navigator.userActivation) {
-            const ua = navigator.userActivation;
-            log(`     isActive=${ua.isActive}, hasBeenActive=${ua.hasBeenActive}`, 'i');
-        }
-        log('', '');
         log('🚀 Redirect ke ' + TARGET, 'hi');
-        log('⚠ TIDAK cancel vibrate', 'wr');
-        log('⚠ Biarkan Android selesaikan antreannya', 'wr');
-        log('', '');
-        log('📌 Setelah Google load:', 'i');
-        log('   - Amati apakah getar masih terasa', 'i');
-        log('   - Getar residual 500-800ms = normal', 'i');
-        log('   - Getar >2 detik = kemungkinan HP bagus', 'i');
-
-        hint.innerHTML = '🚀 REDIRECTING...';
-        icon.textContent = '🚀';
-        title.textContent = 'REDIRECT';
-
-        // Fire ekstra sebelum redirect
-        for (let i = 0; i < 20; i++) {
-            try { navigator.vibrate(CHUNK); } catch(_) {}
-        }
-
-        // Redirect
-        try {
-            window.location.href = TARGET;
-        } catch(e) {
-            log('❌ Redirect gagal: ' + e.message, 'er');
-            try { window.location.assign(TARGET); } catch(_) {}
-        }
-
-    }, REDIRECT_MS);
+        logEnd('Redirect dengan getar masih aktif');
+        window.location.href = TARGET;
+    }, 50);
 }
 
 // ============================================================
-// STOP
+// TEST 2: CANCEL EXPLICIT
 // ============================================================
-function stop() {
-    if (!running) return;
-    running = false;
-    clearInterval(vibTimer);
-    clearInterval(uiTimer);
-    vibTimer = null;
-    uiTimer = null;
+function test2() {
+    logStart('Test 2: Cancel Explicit',
+        'Fire getar panjang, lalu cancel, baru redirect',
+        {
+            'Pattern': '[9999]',
+            'Cancel': 'vibrate(0) + vibrate([])',
+            'Delay redirect': '100ms setelah cancel',
+            'Target': TARGET
+        });
+
+    // Fire getar panjang
+    fire([9999], 'init');
+
+    // Tunggu 500ms (biar getar mulai)
+    setTimeout(() => {
+        log('500ms passed — cancel getar...', 'i');
+        
+        // Cancel
+        fire(0, 'cancel-1');
+        fire([], 'cancel-2');
+        fire([0,0,0], 'cancel-3');
+        
+        // Tunggu 100ms lagi, baru redirect
+        setTimeout(() => {
+            log('🚀 Redirect ke ' + TARGET, 'hi');
+            logEnd('Redirect SETELAH cancel eksplisit');
+            log('', '');
+            log('⚠️ Kalau getar TETAP terasa >2 detik:', 'wr');
+            log('   → Cancel tidak sampai ke Android kernel', 'wr');
+            log('⚠️ Kalau getar berhenti cepat:', 'ok');
+            log('   → Cancel berhasil', 'ok');
+            window.location.href = TARGET;
+        }, 100);
+    }, 500);
+}
+
+// ============================================================
+// TEST 3: PRELOAD 100x
+// ============================================================
+function test3() {
+    logStart('Test 3: Preload 100x',
+        'Fire 100 panggilan getar sinkron sebelum redirect',
+        {
+            'Pattern': '[9999]',
+            'Jumlah panggilan': '100',
+            'Cancel': 'Tidak',
+            'Target': TARGET
+        });
+
+    // Fire 100x sinkron
+    let okCount = 0;
+    for (let i = 0; i < 100; i++) {
+        try {
+            if (navigator.vibrate([9999])) okCount++;
+        } catch(_) {}
+    }
+    log(`🔥 Fire 100x sinkron — ${okCount} return true`, 'ok');
+    log(`   Chrome akan overwrite → hanya terakhir tersimpan`, 'dim');
+    log(`   Tapi 100 panggilan terlihat oleh renderer`, 'dim');
+
+    setTimeout(() => {
+        log('🚀 Redirect ke ' + TARGET, 'hi');
+        logEnd('Redirect dengan 100 preload');
+        window.location.href = TARGET;
+    }, 50);
+}
+
+// ============================================================
+// TEST 4: DELAYED REDIRECT
+// ============================================================
+function test4() {
+    logStart('Test 4: Delayed Redirect',
+        'Fire getar, tunggu 3 detik, baru redirect',
+        {
+            'Pattern': '[9999]',
+            'Delay redirect': '3000ms',
+            'Cancel': 'Tidak',
+            'Target': TARGET
+        });
+
+    // Fire getar
+    fire([9999], 'init');
+
+    // Countdown
+    let countdown = 3;
+    log(`⏱ Redirect dalam ${countdown} detik...`, 'i');
+    
+    const interval = setInterval(() => {
+        countdown--;
+        if (countdown > 0) {
+            log(`⏱ ${countdown}...`, 'i');
+        } else {
+            clearInterval(interval);
+            log('🚀 Redirect sekarang!', 'hi');
+            logEnd('Redirect setelah 3 detik delay');
+            window.location.href = TARGET;
+        }
+    }, 1000);
+}
+
+// ============================================================
+// TEST 5: ABOUT:BLANK
+// ============================================================
+function test5() {
+    logStart('Test 5: about:blank',
+        'Redirect ke about:blank (tanpa network)',
+        {
+            'Pattern': '[9999]',
+            'Target': 'about:blank',
+            'Cancel': 'Tidak',
+            'Delay': '50ms'
+        });
+
+    fire([9999], 'init');
+
+    setTimeout(() => {
+        log('🚀 Redirect ke about:blank', 'hi');
+        logEnd('Redirect ke about:blank — tanpa network latency');
+        log('', '');
+        log('💡 Perbandingan:', 'i');
+        log('   - about:blank = unload INSTAN', 'i');
+        log('   - google.com = unload + network load', 'i');
+        log('   Kalau about:blank getar berhenti cepat:', 'ok');
+        log('   → Masalahnya di network latency', 'ok');
+        log('   Kalau about:blank juga getar lama:', 'wr');
+        log('   → Masalahnya di Chrome Android bridge', 'wr');
+        window.location.href = 'about:blank';
+    }, 50);
+}
+
+// ============================================================
+// STOP ALL
+// ============================================================
+function stopAll() {
     try { navigator.vibrate(0); } catch(_) {}
     try { navigator.vibrate([]); } catch(_) {}
-    zone.classList.remove('active');
-    icon.textContent = '👆';
-    title.textContent = 'GESER JARI';
-    timer.textContent = '0.0s';
-    hint.innerHTML = 'Geser jari = getar + redirect Google.<br>Getar akan tetap terasa setelah redirect.';
-    stopBtn.classList.remove('on');
-    log('⏹ STOPPED', 'wr');
+    log('', '');
+    log('🛑 STOP — getar dimatikan manual', 'wr');
 }
-
-// ============================================================
-// GESTURE — SWIPE
-// ============================================================
-zone.addEventListener('touchstart', (e) => {
-    if (running) return;
-    const t = e.touches[0];
-    if (t) {
-        gestureDot.style.left = t.clientX + 'px';
-        gestureDot.style.top = t.clientY + 'px';
-        gestureDot.classList.add('on');
-    }
-}, { passive: false });
-
-zone.addEventListener('touchmove', (e) => {
-    if (running) return;
-    const t = e.touches[0];
-    if (t) {
-        gestureDot.style.left = t.clientX + 'px';
-        gestureDot.style.top = t.clientY + 'px';
-    }
-    if (!triggered) {
-        triggered = true;
-        e.preventDefault();
-        gestureDot.classList.remove('on');
-        start();
-    }
-}, { passive: false });
-
-zone.addEventListener('touchend', () => {
-    gestureDot.classList.remove('on');
-    triggered = false;
-}, { passive: true });
-
-zone.addEventListener('touchcancel', () => {
-    gestureDot.classList.remove('on');
-    triggered = false;
-}, { passive: true });
-
-// Mouse fallback
-zone.addEventListener('mousemove', (e) => {
-    if (running || triggered) return;
-    if (e.buttons === 0) return;
-    triggered = true;
-    gestureDot.classList.remove('on');
-    start();
-});
-
-zone.addEventListener('mouseup', () => { triggered = false; });
-
-// ============================================================
-// STOP BUTTON
-// ============================================================
-stopBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    stop();
-});
-stopBtn.addEventListener('touchstart', (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    stop();
-}, { passive: false });
-
-// ============================================================
-// CLEANUP
-// ============================================================
-window.addEventListener('beforeunload', () => {
-    clearInterval(vibTimer);
-    clearInterval(uiTimer);
-    // ⚠ SENGAJA TIDAK cancel vibrate
-});
 
 // ============================================================
 // INIT
 // ============================================================
-if (!('vibrate' in navigator)) {
-    log('❌ navigator.vibrate tidak tersedia', 'er');
-    hint.textContent = '❌ Browser tidak mendukung getaran.';
-    title.textContent = 'TIDAK DIDUKUNG';
-} else {
-    log('✅ navigator.vibrate tersedia', 'ok');
-    log('📌 Geser jari untuk mulai', 'i');
-    log('', '');
-    log('Script akan:', 'hi');
-    log('  1. Fire getar 100+ kali', 'i');
-    log('  2. Redirect ke Google setelah 500ms', 'i');
-    log('  3. Biarkan Android selesaikan antrean', 'i');
-    log('  4. Getar residual terasa ~500-800ms di Google', 'wr');
+log('═══════════════════════════════════', 'hi');
+log('🧪 RESIDUAL VIBRATE TEST SUITE', 'hi');
+log('═══════════════════════════════════', 'hi');
+log('');
+log('Environment:', 'i');
+log('   Vibrate API: ' + (typeof navigator.vibrate === 'function' ? 'ADA' : 'TIDAK'), 
+    typeof navigator.vibrate === 'function' ? 'ok' : 'er');
+log('   Protocol: ' + location.protocol, 'dim');
+log('   Host: ' + location.hostname, 'dim');
+if (navigator.userActivation) {
+    const ua = navigator.userActivation;
+    log('   userActivation: isActive=' + ua.isActive + ', hasBeenActive=' + ua.hasBeenActive, 'dim');
 }
+log('');
+log('📌 Pilih test di atas:', 'hi');
+log('   Setelah redirect, RASUKAN getar', 'i');
+log('   Ukur berapa detik getar terasa setelah redirect', 'i');
+log('   Bandingkan hasil antar test', 'i');
+log('');
+log('💡 Rekomendasi urutan test:', 'wr');
+log('   1. Test 1 (baseline)', 'i');
+log('   2. Test 2 (cancel explicit)', 'i');
+log('   3. Test 4 (delayed)', 'i');
+log('   4. Test 5 (about:blank)', 'i');
+log('   5. Test 3 (preload 100x)', 'i');
+log('');
+log('⚠️ CATATAN: Setelah redirect, halaman ini hilang.', 'wr');
+log('   Refresh untuk kembali ke menu test.', 'wr');
+log('');
 
-})();
 </script>
 
 </body>
