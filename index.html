@@ -4,153 +4,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gesture & Vibration API Check</title>
+    <title>Gesture & Vibration Analyzer</title>
+
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
-        body {
-            font-family: sans-serif;
-            background-color: #ffffff;
-            color: #000000;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .touch-zone {
-            width: 100%;
-            max-width: 400px;
-            height: 200px;
-            margin: 20px 0;
-            border: 2px dashed #cccccc;
-            border-radius: 8px;
-            display: flex;
+
+        html, body {
+            min-height: 100%;
+            background: #fff;
+            font-family: Arial, sans-serif;
+            color: #111;
+        }
+
+        body {
+            padding: 20px;
+            text-align: center;
+        }
+
+        #popup {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            color: #666666;
-            cursor: pointer;
+            background: rgba(0, 0, 0, 0.35);
+            padding: 24px;
         }
-        .btn-stop {
+
+        .dialog {
             width: 100%;
-            max-width: 400px;
-            padding: 15px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            background-color: #ff3333;
-            color: white;
-            border: none;
+            max-width: 340px;
+            padding: 24px;
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 8px 32px #0002;
+        }
+
+        .dialog h3 {
+            margin-bottom: 12px;
+        }
+
+        .dialog p {
             margin-bottom: 20px;
+            line-height: 1.5;
+            color: #555;
         }
+
+        button {
+            padding: 12px 20px;
+            border: 0;
+            border-radius: 8px;
+            background: #222;
+            color: white;
+            cursor: pointer;
+        }
+
+        #stopBtn {
+            margin-top: 20px;
+            background: #d22;
+        }
+
         #log-output {
-            width: 100%;
             max-width: 400px;
-            padding: 15px;
-            background: #f5f5f5;
-            border: 1px solid #e0e0e0;
-            color: #333333;
-            font-family: monospace;
-            text-align: left;
-            border-radius: 6px;
-            font-size: 13px;
-            height: 200px;
+            height: 180px;
+            margin: 20px auto;
+            padding: 12px;
             overflow-y: auto;
             white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            text-align: left;
+            font: 13px monospace;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 8px;
         }
     </style>
 </head>
-<body>
 
-    <h3 style="margin-top: 20px;">Vibration & Gesture Analyzer</h3>
-    <p style="color: #666; font-size: 14px; margin-top: 5px; text-align: center;">
-        Sentuh, seret, atau gulir halaman untuk menguji Vibration API.
+<body>
+    <h3>Gesture & Vibration Analyzer</h3>
+    <p style="margin-top: 8px; color: #666">
+        Pengujian event gestur dan Vibration API.
     </p>
 
-    <div id="touchZone" class="touch-zone">
-        INTERAKSI JARI DI SINI
+    <div id="popup" role="dialog"
+         aria-modal="true"
+         aria-labelledby="popupTitle">
+        <div class="dialog">
+            <h3 id="popupTitle">Pengujian Gestur</h3>
+            <p id="popupMessage">
+                Aktivitas gestur terdeteksi.
+            </p>
+            <button id="closePopup">Tutup & Uji Getaran</button>
+        </div>
     </div>
 
-    <button id="stopBtn" class="btn-stop">HENTIKAN LOOP GETAR</button>
+    <button id="stopBtn">Hentikan Getaran</button>
 
-    <div id="log-output">Menunggu aktivitas sentuhan...</div>
+    <div id="log-output">Menunggu aktivitas...</div>
 
 <script>
-    const logOutput = document.getElementById('log-output');
-    const touchZone = document.getElementById('touchZone');
-    const stopBtn = document.getElementById('stopBtn');
+    const popup = document.getElementById("popup");
+    const message = document.getElementById("popupMessage");
+    const closePopup = document.getElementById("closePopup");
+    const stopBtn = document.getElementById("stopBtn");
+    const logOutput = document.getElementById("log-output");
 
-    let vibrationInterval = null;
+    let popupShown = false;
+    let vibrationTimer = null;
 
-    function addLog(message) {
-        logOutput.innerHTML += "\n> " + message;
+    function addLog(text) {
+        const line = document.createElement("div");
+        line.textContent = "> " + text;
+        logOutput.appendChild(line);
+
+        while (logOutput.children.length > 40) {
+            logOutput.removeChild(logOutput.firstChild);
+        }
+
         logOutput.scrollTop = logOutput.scrollHeight;
     }
 
-    // MODEL GETARAN ASLI — TIDAK DIUBAH
-    function startVibrationSpam() {
-        if (vibrationInterval) return;
+    function showPopup(source) {
+        if (popupShown) return;
 
-        addLog("Memulai perulangan Vibration API...");
+        popupShown = true;
+        message.textContent =
+            "Event " + source + " terdeteksi. " +
+            "Tekan tombol untuk menguji getaran.";
 
-        vibrationInterval = setInterval(() => {
-            if (navigator.vibrate) {
-                const status = navigator.vibrate(5000);
-
-                if (status) {
-                    addLog("Sinyal getar berhasil dikirim.");
-                } else {
-                    addLog("⚠️ Browser menolak perintah getar (Aktivasi tidak valid).");
-                    clearInterval(vibrationInterval);
-                    vibrationInterval = null;
-                }
-            } else {
-                addLog("❌ Browser tidak mendukung Vibration API.");
-                clearInterval(vibrationInterval);
-                vibrationInterval = null;
-            }
-        }, 1000);
+        popup.style.display = "flex";
+        addLog("Pop-up ditampilkan: " + source);
     }
 
-    // EVENT ASLI
-    touchZone.addEventListener('pointerup', () => {
-        if (!vibrationInterval) {
-            addLog("Gerakan dilepaskan (Pointerup).");
-            startVibrationSpam();
+    function testVibration() {
+        if (typeof navigator.vibrate !== "function") {
+            addLog("Vibration API tidak didukung browser ini.");
+            return;
         }
-    }, { once: true });
 
-    // TAMBAHAN: EVENT POINTERMOVE
-    touchZone.addEventListener('pointermove', () => {
-        if (!vibrationInterval) {
-            addLog("Gerakan terdeteksi (Pointermove).");
-            startVibrationSpam();
-        }
-    });
+        const result = navigator.vibrate(200);
 
-    // TAMBAHAN: EVENT SCROLL
-    window.addEventListener('scroll', () => {
-        if (!vibrationInterval) {
-            addLog("Halaman digulir (Scroll).");
-            startVibrationSpam();
+        addLog(
+            result
+                ? "Permintaan getaran singkat dikirim."
+                : "Permintaan getaran ditolak."
+        );
+    }
+
+    // Deteksi gerakan sentuhan.
+    window.addEventListener("pointermove", (event) => {
+        if (event.pointerType === "touch") {
+            showPopup("pointermove");
         }
     }, { passive: true });
 
-    // TOMBOL BERHENTI ASLI
-    stopBtn.addEventListener('click', () => {
-        if (vibrationInterval) {
-            clearInterval(vibrationInterval);
-            vibrationInterval = null;
+    // Deteksi halaman digulir.
+    window.addEventListener("scroll", () => {
+        showPopup("scroll");
+    }, { passive: true });
+
+    // Getaran hanya dicoba setelah pengguna menekan tombol.
+    closePopup.addEventListener("click", () => {
+        popup.style.display = "none";
+        testVibration();
+    });
+
+    // Tombol penghentian.
+    stopBtn.addEventListener("click", () => {
+        if (vibrationTimer !== null) {
+            clearInterval(vibrationTimer);
+            vibrationTimer = null;
         }
 
-        if (navigator.vibrate) {
+        if (typeof navigator.vibrate === "function") {
             navigator.vibrate(0);
         }
 
-        addLog("🛑 Pengujian dihentikan. Getaran direset.");
+        addLog("Pengujian getaran dihentikan.");
     });
 </script>
-
 </body>
 </html>
 ```
