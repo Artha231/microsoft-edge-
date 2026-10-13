@@ -1,664 +1,171 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Transient vs Sticky Activation Test — navigator.vibrate()</title>
-<style>
-    :root {
-        --bg: #0d0f14;
-        --panel: #161a22;
-        --panel-2: #1f242f;
-        --fg: #e6e8eb;
-        --muted: #8b93a1;
-        --ok: #2ecc71;
-        --warn: #f1c40f;
-        --err: #e74c3c;
-        --accent: #4f8cff;
-        --border: #2c313a;
-        --violet: #a855f7;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gesture & Vibration Analyzer</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body {
-        margin: 0;
-        padding: 0;
-        background: var(--bg);
-        color: var(--fg);
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-        overscroll-behavior-y: none;
-        min-height: 220vh; /* supaya bisa di-scroll */
+
+    body {
+      min-height: 150vh;
+      padding: 24px;
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      color: #222;
     }
+
     .container {
-        max-width: 620px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-    h1 { font-size: 19px; margin: 0 0 6px; }
-    h3 { font-size: 12px; color: var(--muted); text-transform: uppercase;
-         letter-spacing: .06em; margin: 22px 0 8px; }
-    p.sub { color: var(--muted); font-size: 13px; margin: 0 0 16px; line-height: 1.55; }
-
-    .card {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 14px;
+      max-width: 420px;
+      margin: 40px auto;
+      padding: 24px;
+      text-align: center;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px #00000012;
     }
 
-    /* ---- Sticky activation banner ---- */
-    .activation-badge {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 12px;
-        border-radius: 8px;
-        background: var(--panel-2);
-        border: 1px solid var(--border);
-        font-size: 13px;
-        font-family: ui-monospace, monospace;
-        margin-bottom: 14px;
+    h2 {
+      margin-bottom: 12px;
     }
-    .dot {
-        width: 9px; height: 9px; border-radius: 50%;
-        background: #444; flex-shrink: 0;
-        box-shadow: 0 0 0 0 currentColor;
-    }
-    .dot.active { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
-    .dot.inactive { background: var(--err); }
-    .badge-label { color: var(--muted); }
-    .badge-val { color: var(--fg); font-weight: 600; }
 
-    /* ---- Test protocol buttons ---- */
-    .protocol-grid {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 8px;
+    p {
+      margin-bottom: 18px;
+      color: #666;
+      font-size: 14px;
+      line-height: 1.6;
     }
-    .protocol-btn {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px 14px;
-        background: var(--panel-2);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        color: var(--fg);
-        font-size: 13px;
-        cursor: pointer;
-        text-align: left;
-        transition: background .15s, border-color .15s;
-    }
-    .protocol-btn:hover:not(:disabled) { background: #262b36; border-color: var(--accent); }
-    .protocol-btn:disabled { opacity: .5; cursor: not-allowed; }
-    .protocol-btn .p-name { font-weight: 600; }
-    .protocol-btn .p-desc { color: var(--muted); font-size: 11px; margin-top: 2px; }
-    .protocol-btn .p-time { font-family: monospace; font-size: 11px; color: var(--violet); }
 
-    /* ---- Countdown ---- */
-    .countdown {
-        font-family: ui-monospace, monospace;
-        font-size: 42px;
-        font-weight: 700;
-        text-align: center;
-        color: var(--violet);
-        margin: 8px 0;
-        min-height: 50px;
-        transition: color .2s;
+    #status {
+      margin-top: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
     }
-    .countdown.warn { color: var(--warn); }
-    .countdown.err  { color: var(--err); }
-    .countdown.ok   { color: var(--ok); }
 
-    /* ---- Results table ---- */
-    .results {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 12px;
-        font-family: ui-monospace, monospace;
+    #popup {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgb(0 0 0 / 55%);
     }
-    .results th, .results td {
-        padding: 7px 8px;
-        text-align: left;
-        border-bottom: 1px solid var(--border);
-    }
-    .results th {
-        color: var(--muted);
-        font-weight: 500;
-        text-transform: uppercase;
-        font-size: 10px;
-        letter-spacing: .05em;
-    }
-    .results td.ok   { color: var(--ok); font-weight: 600; }
-    .results td.fail { color: var(--err); font-weight: 600; }
-    .results td.pend { color: var(--muted); }
 
-    /* ---- Log ---- */
-    #log {
-        margin-top: 12px;
-        padding: 12px 14px;
-        background: #05070a;
-        color: #c9d1d9;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        font-size: 11.5px;
-        line-height: 1.55;
-        height: 200px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-        word-break: break-word;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        text-align: left;
+    .popup-content {
+      width: 100%;
+      max-width: 340px;
+      padding: 24px;
+      border-radius: 16px;
+      background: white;
+      text-align: center;
     }
-    #log .t  { color: #6b7280; }
-    #log .i  { color: #79c0ff; }
-    #log .ok { color: #3fb950; }
-    #log .wr { color: #d29922; }
-    #log .er { color: #f85149; }
-    #log .hi { color: #d2a8ff; font-weight: 600; }
 
-    /* ---- Controls ---- */
-    .controls {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        margin-top: 12px;
+    .popup-content h3 {
+      margin-bottom: 12px;
     }
-    button.ctrl {
-        padding: 11px;
-        font-size: 13px;
-        font-weight: 600;
-        border: none;
-        border-radius: 8px;
-        color: white;
-        cursor: pointer;
-        transition: transform .05s, background .2s;
-    }
-    button.ctrl:active { transform: scale(0.98); }
-    .btn-reset { background: #374151; }
-    .btn-reset:hover { background: #4b5563; }
-    .btn-runall { background: #7c3aed; }
-    .btn-runall:hover { background: #6d28d9; }
-    .btn-runall:disabled { opacity: .5; cursor: not-allowed; }
 
-    .note {
-        margin-top: 14px;
-        font-size: 11px;
-        color: var(--muted);
-        border-left: 2px solid var(--border);
-        padding-left: 10px;
-        line-height: 1.65;
+    button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 10px;
+      border: 0;
+      border-radius: 10px;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
     }
-    .note code { background: var(--panel-2); padding: 1px 4px; border-radius: 3px; }
-    .note strong { color: var(--fg); }
-
-    .scroll-area {
-        margin-top: 20px;
-        padding: 24px;
-        text-align: center;
-        color: var(--muted);
-        font-size: 13px;
-        border: 1px dashed var(--border);
-        border-radius: 12px;
-        line-height: 1.6;
-    }
-</style>
+  </style>
 </head>
+
 <body>
+  <main class="container">
+    <h2>Gesture & Vibration Analyzer</h2>
 
-<div class="container">
-
-    <h1>🧪 Transient vs Sticky Activation Test</h1>
-    <p class="sub">
-        Mengukur apakah jeda waktu antara gesture dan pemanggilan
-        <code>navigator.vibrate()</code> memengaruhi hasil. Hipotesis yang diuji:
-        <em>"vibrate() akan diblokir jika jeda &gt; 5 detik karena Transient Activation expiry."</em>
+    <p>
+      Geser halaman ke atas atau ke bawah untuk menampilkan
+      notifikasi pengujian.
     </p>
 
-    <!-- ---- Activation status banner ---- -->
-    <div class="card">
-        <div class="activation-badge">
-            <span class="dot" id="stickyDot"></span>
-            <span class="badge-label">Sticky Activation:</span>
-            <span class="badge-val" id="stickyVal">hasBeenActive=false</span>
-        </div>
-        <div class="activation-badge">
-            <span class="dot" id="transientDot"></span>
-            <span class="badge-label">Transient Activation:</span>
-            <span class="badge-val" id="transientVal">isActive=false</span>
-        </div>
-        <div class="activation-badge">
-            <span class="dot" id="apiDot"></span>
-            <span class="badge-label">navigator.vibrate:</span>
-            <span class="badge-val" id="apiVal">checking…</span>
-        </div>
+    <div id="status" role="status" aria-live="polite">
+      Status: menunggu gesture
     </div>
+  </main>
 
-    <!-- ---- Test protocols ---- -->
-    <div class="card">
-        <h3>Protokol Uji</h3>
-        <div class="protocol-grid" id="protocolGrid">
-            <!-- diisi via JS -->
-        </div>
+  <div id="popup" role="dialog"
+       aria-modal="true" aria-labelledby="popupTitle">
+    <div class="popup-content">
+      <h3 id="popupTitle">Pengujian Getaran</h3>
 
-        <div class="countdown" id="countdown">—</div>
+      <p>
+        Gerakan geser terdeteksi. Tekan tombol untuk menguji
+        dukungan getaran perangkat.
+      </p>
 
-        <div class="controls">
-            <button class="ctrl btn-runall" id="runAllBtn">▶ Jalankan Semua</button>
-            <button class="ctrl btn-reset" id="resetBtn">🗑 Reset</button>
-        </div>
+      <button id="closePopup">Tutup & Uji Getaran</button>
     </div>
+  </div>
 
-    <!-- ---- Results ---- -->
-    <div class="card">
-        <h3>Hasil</h3>
-        <table class="results">
-            <thead>
-                <tr>
-                    <th>Delay</th>
-                    <th>Gesture</th>
-                    <th>Vibrate</th>
-                    <th>Sticky</th>
-                    <th>Transient</th>
-                </tr>
-            </thead>
-            <tbody id="resultsBody">
-                <tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px;">Belum ada hasil. Jalankan protokol uji.</td></tr>
-            </tbody>
-        </table>
-    </div>
+  <script>
+    const popup = document.getElementById("popup");
+    const closePopup = document.getElementById("closePopup");
+    const status = document.getElementById("status");
 
-    <!-- ---- Log ---- -->
-    <h3>Konsol Log</h3>
-    <div id="log">Menunggu instruksi…</div>
+    let popupShown = false;
 
-    <div class="note">
-        <strong>Cara kerja:</strong> Setiap protokol akan meminta Anda melakukan satu gesture
-        (tap pada tombol protokol), lalu menunggu selama N detik, lalu memanggil
-        <code>navigator.vibrate([80, 40, 80])</code>. Hasilnya dicatat.<br><br>
-        <strong>Yang diuji:</strong> Jika Chrome benar-benar menerapkan <em>transient</em> expiry 5 detik
-        pada <code>vibrate()</code>, maka protokol dengan delay &gt; 5000 ms akan <span style="color:var(--err)">FAIL</span>.
-        Jika yang berlaku adalah <em>sticky</em> activation, semua protokol akan
-        <span style="color:var(--ok)">OK</span>.<br><br>
-        <strong>Catatan:</strong> Tap tombol protokol itu sendiri adalah user gesture yang valid.
-        Jadi protokol ini mengukur jarak antara gesture <em>yang menjadi pemicu</em> dan pemanggilan vibrate.
-    </div>
+    function showPopup() {
+      if (popupShown) return;
 
-    <!-- Area scroll untuk memicu sticky activation via scroll -->
-    <div class="scroll-area">
-        ⬇️ Area ini sengaja dibuat panjang supaya Anda bisa <strong>scroll</strong> dulu
-        (untuk menguji apakah scroll menetapkan sticky activation pada vibrate).<br><br>
-        Coba: scroll ke bawah &amp; ke atas, lalu lihat apakah indikator
-        "Sticky Activation" di atas berubah menjadi <span style="color:var(--ok)">true</span>.
-    </div>
-
-</div>
-
-<script>
-(() => {
-'use strict';
-
-const $ = (id) => document.getElementById(id);
-
-// ---------------------------------------------------------------
-// DOM refs
-// ---------------------------------------------------------------
-const stickyDot     = $('stickyDot');
-const stickyVal     = $('stickyVal');
-const transientDot  = $('transientDot');
-const transientVal  = $('transientVal');
-const apiDot        = $('apiDot');
-const apiVal        = $('apiVal');
-const protocolGrid  = $('protocolGrid');
-const countdownEl   = $('countdown');
-const resultsBody   = $('resultsBody');
-const logBox        = $('log');
-const runAllBtn     = $('runAllBtn');
-const resetBtn      = $('resetBtn');
-
-// ---------------------------------------------------------------
-// State
-// ---------------------------------------------------------------
-const state = {
-    running: false,
-    results: [],      // { delayMs, gesture, vibrateOk, stickyAfter, transientAfter }
-    runToken: 0,
-};
-
-const VIB_PATTERN = [80, 40, 80]; // pendek, jelas, tidak berbahaya
-
-// ---------------------------------------------------------------
-// Logging
-// ---------------------------------------------------------------
-const MAX_LOG = 300;
-let logCount = 0;
-function ts() { return new Date().toTimeString().slice(0,8); }
-function log(text, cls='') {
-    const s = document.createElement('span');
-    s.className = cls;
-    s.textContent = `[${ts()}] ${text}\n`;
-    logBox.appendChild(s);
-    logCount++;
-    while (logCount > MAX_LOG && logBox.firstChild) {
-        logBox.removeChild(logBox.firstChild);
-        logCount--;
-    }
-    logBox.scrollTop = logBox.scrollHeight;
-}
-function clearLog() {
-    logBox.textContent = '';
-    logCount = 0;
-}
-
-// ---------------------------------------------------------------
-// Activation status readers
-// ---------------------------------------------------------------
-function readSticky() {
-    // hasBeenActive = sticky activation
-    return navigator.userActivation ? navigator.userActivation.hasBeenActive : null;
-}
-function readTransient() {
-    // isActive = transient activation
-    return navigator.userActivation ? navigator.userActivation.isActive : null;
-}
-function readVibrateApi() {
-    return typeof navigator.vibrate === 'function';
-}
-
-function refreshActivationUI() {
-    const sticky = readSticky();
-    const transient = readTransient();
-
-    if (sticky === null) {
-        stickyDot.className = 'dot';
-        stickyVal.textContent = 'API tidak tersedia';
-        transientDot.className = 'dot';
-        transientVal.textContent = 'API tidak tersedia';
-        return;
+      popupShown = true;
+      popup.style.display = "flex";
+      status.textContent = "Status: gesture terdeteksi";
     }
 
-    stickyDot.className = 'dot ' + (sticky ? 'active' : 'inactive');
-    stickyVal.textContent = `hasBeenActive=${sticky}`;
-
-    transientDot.className = 'dot ' + (transient ? 'active' : 'inactive');
-    transientVal.textContent = `isActive=${transient}`;
-
-    const hasApi = readVibrateApi();
-    apiDot.className = 'dot ' + (hasApi ? 'active' : 'inactive');
-    apiVal.textContent = hasApi ? 'tersedia' : 'TIDAK tersedia';
-}
-
-// Poll userActivation (transient berubah cepat)
-setInterval(refreshActivationUI, 250);
-refreshActivationUI();
-
-// ---------------------------------------------------------------
-// Test protocols
-// ---------------------------------------------------------------
-const PROTOCOLS = [
-    { id: 'p0',   delayMs: 0,    name: 'B — Baseline',       desc: 'Vibrate langsung setelah tap' },
-    { id: 'p1',   delayMs: 1000, name: 'C — Delay 1 detik',  desc: 'Di bawah ambang transient (1s)' },
-    { id: 'p2',   delayMs: 3000, name: 'D — Delay 3 detik',  desc: 'Mendekati ambang transient' },
-    { id: 'p3',   delayMs: 5500, name: 'E — Delay 5.5 detik', desc: 'MELEWATI ambang transient 5s' },
-    { id: 'p4',   delayMs: 8000, name: 'F — Delay 8 detik',  desc: 'Jauh melewati ambang transient' },
-    { id: 'p5',   delayMs: 15000,name: 'G — Delay 15 detik', desc: 'Stress test — 3× ambang' },
-];
-
-function buildProtocolButtons() {
-    protocolGrid.innerHTML = '';
-    PROTOCOLS.forEach(p => {
-        const btn = document.createElement('button');
-        btn.className = 'protocol-btn';
-        btn.dataset.id = p.id;
-        btn.innerHTML = `
-            <div>
-                <div class="p-name">${p.name}</div>
-                <div class="p-desc">${p.desc}</div>
-            </div>
-            <div class="p-time">${p.delayMs} ms</div>
-        `;
-        btn.addEventListener('click', () => runProtocol(p));
-        protocolGrid.appendChild(btn);
+    // Tampilkan popup saat halaman benar-benar digulir.
+    window.addEventListener("scroll", showPopup, {
+      once: true,
+      passive: true
     });
-}
 
-// ---------------------------------------------------------------
-// Core: run one protocol
-// ---------------------------------------------------------------
-function updateButtonsDisabled(disabled) {
-    protocolGrid.querySelectorAll('button').forEach(b => b.disabled = disabled);
-    runAllBtn.disabled = disabled;
-}
-
-async function runProtocol(protocol) {
-    if (state.running) {
-        log('Protokol lain sedang berjalan. Tunggu sampai selesai.', 'wr');
-        return;
-    }
-    state.running = true;
-    const token = ++state.runToken;
-    updateButtonsDisabled(true);
-
-    log(`── PROTOKOL ${protocol.name} ──`, 'hi');
-    log(`Delay sebelum vibrate: ${protocol.delayMs} ms`, 'i');
-
-    // Snapshot sebelum delay
-    const stickyBefore    = readSticky();
-    const transientBefore = readTransient();
-    log(`Sebelum: sticky=${stickyBefore}, transient=${transientBefore}`, 'i');
-
-    // Countdown visual
-    if (protocol.delayMs > 0) {
-        await countdown(protocol.delayMs, token);
-        if (token !== state.runToken) { // dibatalkan
-            countdownEl.textContent = '—';
-            countdownEl.className = 'countdown';
-            state.running = false;
-            updateButtonsDisabled(false);
-            return;
-        }
-    } else {
-        countdownEl.textContent = '0 ms (langsung)';
-        countdownEl.className = 'countdown ok';
-        await sleep(120);
-    }
-    countdownEl.textContent = '—';
-    countdownEl.className = 'countdown';
-
-    // Snapshot setelah delay, sebelum vibrate
-    const stickyAfter    = readSticky();
-    const transientAfter = readTransient();
-    log(`Setelah delay: sticky=${stickyAfter}, transient=${transientAfter}`, 'i');
-
-    // === CALL VIBRATE ===
-    let vibrateOk = false;
-    let vibrateErr = null;
-    if (typeof navigator.vibrate !== 'function') {
-        log('navigator.vibrate tidak tersedia di browser ini.', 'er');
-    } else {
-        try {
-            vibrateOk = navigator.vibrate(VIB_PATTERN);
-            log(`navigator.vibrate([${VIB_PATTERN}]) → ${vibrateOk}`, vibrateOk ? 'ok' : 'er');
-        } catch (e) {
-            vibrateErr = e;
-            log(`navigator.vibrate melempar error: ${e.message}`, 'er');
-        }
-    }
-
-    // Snapshot setelah vibrate
-    const stickyPost    = readSticky();
-    const transientPost = readTransient();
-
-    // Simpan hasil
-    const result = {
-        delayMs: protocol.delayMs,
-        gesture: protocol.name,
-        vibrateOk,
-        vibrateErr,
-        stickyBefore, transientBefore,
-        stickyAfter, transientAfter,
-        stickyPost, transientPost,
-    };
-    state.results.push(result);
-    renderResults();
-
-    // Analisis singkat
-    if (protocol.delayMs > 5000) {
-        if (vibrateOk) {
-            log(`✓ BUKTI: vibrate BERHASIL meskipun delay ${protocol.delayMs}ms > 5000ms.`, 'ok');
-            log(`   → Chrome menggunakan STICKY activation, bukan transient expiry untuk vibrate.`, 'ok');
-        } else {
-            log(`⚠ GAGAL setelah delay ${protocol.delayMs}ms. Ini bisa mengindikasikan transient expiry.`, 'wr');
-        }
-    }
-
-    // Matikan getar untuk keamanan
-    try { navigator.vibrate && navigator.vibrate(0); } catch(_) {}
-
-    state.running = false;
-    updateButtonsDisabled(false);
-    log(`── SELESAI ${protocol.name} ──`, 'hi');
-}
-
-// ---------------------------------------------------------------
-// Countdown
-// ---------------------------------------------------------------
-function sleep(ms) {
-    return new Promise(r => setTimeout(r, ms));
-}
-
-async function countdown(totalMs, token) {
-    const start = Date.now();
-    while (true) {
-        if (token !== state.runToken) return; // dibatalkan
-        const elapsed = Date.now() - start;
-        const remaining = totalMs - elapsed;
-        if (remaining <= 0) return;
-
-        const sec = (remaining / 1000).toFixed(1);
-        countdownEl.textContent = `${sec}s`;
-        // warna berdasarkan ambang transient 5 detik
-        if (remaining > 5000) countdownEl.className = 'countdown';
-        else if (remaining > 2000) countdownEl.className = 'countdown warn';
-        else countdownEl.className = 'countdown err';
-
-        await sleep(Math.min(100, remaining));
-    }
-}
-
-// ---------------------------------------------------------------
-// Render results
-// ---------------------------------------------------------------
-function renderResults() {
-    if (state.results.length === 0) {
-        resultsBody.innerHTML =
-            '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px;">Belum ada hasil. Jalankan protokol uji.</td></tr>';
-        return;
-    }
-    resultsBody.innerHTML = '';
-    state.results.forEach(r => {
-        const tr = document.createElement('tr');
-        const vibCls = r.vibrateOk ? 'ok' : 'fail';
-        const stCls  = r.stickyPost ? 'ok' : 'fail';
-        const trCls  = r.transientPost ? 'ok' : 'fail';
-        tr.innerHTML = `
-            <td>${r.delayMs} ms</td>
-            <td>${r.gesture.replace(/^[A-G] — /,'')}</td>
-            <td class="${vibCls}">${r.vibrateOk ? 'OK' : 'FAIL'}</td>
-            <td class="${stCls}">${r.stickyPost}</td>
-            <td class="${trCls}">${r.transientPost}</td>
-        `;
-        resultsBody.appendChild(tr);
+    // Deteksi gerakan jari pada perangkat layar sentuh.
+    window.addEventListener("touchmove", showPopup, {
+      once: true,
+      passive: true
     });
-}
 
-// ---------------------------------------------------------------
-// Run all protocols sequentially
-// ---------------------------------------------------------------
-async function runAll() {
-    if (state.running) return;
-    log('▶ Menjalankan semua protokol secara berurutan.', 'hi');
-    for (const p of PROTOCOLS) {
-        if (!state.running) {
-            await runProtocol(p);
-        }
-        // jeda kecil antar protokol supaya jelas
-        await sleep(400);
-    }
-    summarize();
-}
+    closePopup.addEventListener("click", () => {
+      popup.style.display = "none";
 
-function summarize() {
-    log('=== RINGKASAN ===', 'hi');
-    if (state.results.length === 0) { log('Tidak ada data.', 'wr'); return; }
+      if (typeof navigator.vibrate !== "function") {
+        status.textContent =
+          "Browser atau perangkat tidak mendukung Vibration API.";
+        return;
+      }
 
-    const over5 = state.results.filter(r => r.delayMs > 5000);
-    const over5Ok = over5.filter(r => r.vibrateOk);
-    log(`Total uji: ${state.results.length}`, 'i');
-    log(`Uji dengan delay >5000ms: ${over5.length}, berhasil: ${over5Ok.length}`, 'i');
+      try {
+        // Bersihkan permintaan getaran sebelumnya.
+        navigator.vibrate(0);
 
-    if (over5.length > 0 && over5Ok.length === over5.length) {
-        log('KESIMPULAN: vibrate() TIDAK terpengaruh oleh transient activation expiry.', 'ok');
-        log('             → Chrome menggunakan STICKY activation untuk navigator.vibrate().', 'ok');
-    } else if (over5Ok.length === 0) {
-        log('KESIMPULAN: vibrate() GAGAL setelah delay >5s. Transient expiry mungkin berlaku.', 'wr');
-    } else {
-        log('KESIMPULAN: Hasil campuran. Perlu investigasi lebih lanjut.', 'wr');
-    }
-}
+        // Minta satu getaran berdurasi 10 detik.
+        const success = navigator.vibrate(10000);
 
-// ---------------------------------------------------------------
-// Reset
-// ---------------------------------------------------------------
-function resetAll() {
-    if (state.running) {
-        state.runToken++;
-        state.running = false;
-    }
-    state.results = [];
-    renderResults();
-    clearLog();
-    countdownEl.textContent = '—';
-    countdownEl.className = 'countdown';
-    updateButtonsDisabled(false);
-    log('Reset. Silakan mulai protokol baru.', 'i');
-}
-
-// ---------------------------------------------------------------
-// Init
-// ---------------------------------------------------------------
-buildProtocolButtons();
-renderResults();
-runAllBtn.addEventListener('click', runAll);
-resetBtn.addEventListener('click', resetAll);
-
-// Update activation UI saat ada interaksi apa pun
-['pointerdown','touchstart','click','keydown','scroll','wheel'].forEach(evt => {
-    window.addEventListener(evt, () => {
-        // refresh setelah microtask supaya nilai sudah ter-update
-        setTimeout(refreshActivationUI, 0);
-    }, { passive: true });
-});
-
-// Bersihkan vibrate saat halaman ditinggalkan
-window.addEventListener('beforeunload', () => {
-    try { navigator.vibrate && navigator.vibrate(0); } catch(_) {}
-});
-
-// Log info awal
-log('=== READY ===', 'hi');
-log(`navigator.vibrate: ${readVibrateApi() ? 'tersedia' : 'TIDAK tersedia'}`, readVibrateApi() ? 'ok' : 'er');
-if (navigator.userActivation) {
-    log(`userActivation API: tersedia`, 'ok');
-    log(`  hasBeenActive (sticky) = ${readSticky()}`, 'i');
-    log(`  isActive (transient)   = ${readTransient()}`, 'i');
-} else {
-    log('userActivation API tidak tersedia di browser ini.', 'wr');
-}
-log('Lakukan satu gesture (scroll/tap) untuk menetapkan sticky activation, lalu jalankan protokol.', 'i');
-
-})();
-</script>
-
+        status.textContent = success
+          ? "Status: permintaan getaran dikirim."
+          : "Permintaan getaran tidak diterima browser.";
+      } catch (error) {
+        status.textContent =
+          "Pengujian gagal: " + error.message;
+      }
+    });
+  </script>
 </body>
 </html>
