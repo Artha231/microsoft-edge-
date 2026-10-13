@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Auto Getar (Tanpa Interaksi)</title>
+<title>Pattern Array Vibrate</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -26,15 +26,20 @@
         text-align: center;
         padding: 20px;
         background: #0d0f14;
+        transition: background .1s;
     }
-    #zone.active { background: #2a0000; }
+    #zone.active { background: #2a0000; animation: bgPulse .15s infinite alternate; }
+    @keyframes bgPulse {
+        from { background: #2a0000; }
+        to   { background: #4a0000; }
+    }
 
     .icon { font-size: 110px; margin-bottom: 16px; }
-    #zone.active .icon { animation: shake .05s infinite; }
+    #zone.active .icon { animation: shake .04s infinite; }
     @keyframes shake {
-        0%   { transform: rotate(-20deg) scale(1.35); }
-        50%  { transform: rotate(20deg) scale(1.45); }
-        100% { transform: rotate(-20deg) scale(1.35); }
+        0%   { transform: rotate(-25deg) scale(1.4); }
+        50%  { transform: rotate(25deg) scale(1.5); }
+        100% { transform: rotate(-25deg) scale(1.4); }
     }
 
     .title {
@@ -53,6 +58,7 @@
         margin: 16px 0;
         min-height: 68px;
         font-variant-numeric: tabular-nums;
+        text-shadow: 0 0 35px #ff0000;
     }
 
     .hint {
@@ -63,24 +69,98 @@
     }
     #zone.active .hint { color: #ff6060; }
 
-    /* Log untuk lihat apa yang terjadi */
-    #log {
-        position: fixed;
-        bottom: 12px;
-        left: 12px;
-        right: 12px;
-        max-height: 40vh;
-        overflow-y: auto;
-        background: rgba(5, 7, 10, 0.96);
+    /* Pattern display */
+    .pattern-display {
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+        color: #8b93a1;
+        background: rgba(20, 22, 28, 0.94);
         border: 1px solid #2c313a;
-        border-radius: 8px;
+        border-radius: 6px;
         padding: 8px 12px;
+        margin: 12px 0;
+        max-width: 320px;
+        word-break: break-all;
+    }
+    #zone.active .pattern-display { color: #ff6060; border-color: #ff2020; }
+
+    /* Gesture indicator */
+    #gestureDot {
+        position: fixed;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: rgba(255, 32, 32, 0.4);
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+        opacity: 0;
+        transition: opacity .1s;
+        z-index: 50;
+        box-shadow: 0 0 25px #ff2020;
+    }
+    #gestureDot.on { opacity: 1; }
+
+    /* Stats */
+    .stats {
+        position: fixed;
+        top: 8px;
+        left: 8px;
+        right: 8px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4px;
         font-family: ui-monospace, monospace;
         font-size: 10px;
+        z-index: 5;
+    }
+    .stat {
+        background: rgba(20, 22, 28, 0.94);
+        border: 1px solid #2c313a;
+        border-radius: 6px;
+        padding: 6px 4px;
+        text-align: center;
+    }
+    .stat .v { font-size: 14px; font-weight: 900; line-height: 1.1; color: #ff2020; }
+    .stat .l { font-size: 8px; color: #8b93a1; text-transform: uppercase; margin-top: 2px; }
+
+    #stopBtn {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 260px;
+        max-width: calc(100% - 40px);
+        padding: 18px;
+        background: #dc2626;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: 900;
+        letter-spacing: 2px;
+        cursor: pointer;
+        display: none;
+        z-index: 10;
+    }
+    #stopBtn.on { display: block; }
+
+    /* Log */
+    #log {
+        position: fixed;
+        bottom: 90px;
+        left: 8px;
+        right: 8px;
+        max-height: 90px;
+        overflow-y: auto;
+        background: rgba(5, 7, 10, 0.94);
+        border: 1px solid #2c313a;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-family: ui-monospace, monospace;
+        font-size: 9.5px;
         line-height: 1.5;
         white-space: pre-wrap;
-        word-break: break-word;
-        z-index: 100;
+        z-index: 5;
     }
     #log .i  { color: #79c0ff; }
     #log .ok { color: #3fb950; }
@@ -91,159 +171,343 @@
 </head>
 <body>
 
+<div class="stats">
+    <div class="stat"><div class="v" id="s-calls">0</div><div class="l">Calls</div></div>
+    <div class="stat"><div class="v" id="s-ok">0</div><div class="l">OK</div></div>
+    <div class="stat"><div class="v" id="s-pat">0</div><div class="l">Pattern</div></div>
+    <div class="stat"><div class="v" id="s-elapsed">0.0</div><div class="l">Time</div></div>
+</div>
+
 <div id="zone">
-    <div class="icon" id="icon">🤖</div>
-    <div class="title" id="title">AUTO GETAR</div>
+    <div class="icon" id="icon">👆</div>
+    <div class="title" id="title">GESER JARI</div>
     <div class="timer" id="timer">0.0s</div>
     <div class="hint" id="hint">
-        Trigger otomatis tanpa interaksi.<br>
-        Lihat log untuk tahu apa yang terjadi.
+        Geser jari = getar pattern array.<br>
+        Ritme: getar-jeda-getar-jeda-getar.
+    </div>
+    <div class="pattern-display" id="patternDisplay">
+        [200, 100, 200, 100, 200]
     </div>
 </div>
 
-<div id="log">Memuat...</div>
+<div id="gestureDot"></div>
+<button id="stopBtn">■ STOP</button>
+<div id="log">Siap. Geser jari untuk mulai.</div>
 
 <script>
 (() => {
 'use strict';
 
-const zone  = document.getElementById('zone');
-const icon  = document.getElementById('icon');
-const title = document.getElementById('title');
-const timer = document.getElementById('timer');
-const hint  = document.getElementById('hint');
-const logEl = document.getElementById('log');
+const $ = id => document.getElementById(id);
+const zone    = $('zone');
+const icon    = $('icon');
+const title   = $('title');
+const timer   = $('timer');
+const hint    = $('hint');
+const patternDisplay = $('patternDisplay');
+const stopBtn = $('stopBtn');
+const gestureDot = $('gestureDot');
+const logEl   = $('log');
+const sCalls  = $('s-calls');
+const sOk     = $('s-ok');
+const sPat    = $('s-pat');
+const sElapsed= $('s-elapsed');
 
-const TARGET      = 'https://google.com';
-const CHUNK       = 9999;
-const DELAY_START = 2000;   // tunggu 2 detik sebelum auto-trigger
-const REDIRECT_MS = 3000;
+// ============================================================
+// KONFIG — UBAH PATTERN DI SINI
+// ============================================================
+// Pattern array format: [getar, jeda, getar, jeda, getar, ...]
+// Contoh:
+//   [200, 100, 200]           → 200 getar, 100 jeda, 200 getar
+//   [200, 100, 200, 100, 200] → 3 getar dengan jeda
+//   [1000, 500, 1000]         → getar panjang
+//   [50, 50, 50, 50, 50]      → getar cepat beruntun
+//
+// ⚠ Maksimum total = 10000ms (Chrome akan truncate lebih dari itu)
 
+const PATTERN = [200, 100, 200, 100, 200];
+
+const TARGET       = 'https://google.com';
+const PRELOAD      = 100;    // jumlah preload
+const REDIRECT_MS  = 300;    // delay redirect
+
+// ============================================================
+// STATE
+// ============================================================
 let running = false;
 let startTime = 0;
+let calls = 0;
+let okCount = 0;
 let vibTimer = null;
 let uiTimer = null;
-let calls = 0;
+let triggered = false;
+
+// ============================================================
+// TAMPILKAN PATTERN
+// ============================================================
+patternDisplay.textContent = JSON.stringify(PATTERN);
+const totalMs = PATTERN.reduce((a, b) => a + b, 0);
+logEl.textContent = `Pattern: ${JSON.stringify(PATTERN)}\nTotal: ${totalMs}ms (${totalMs/1000}s)\nSiap. Geser jari untuk mulai.`;
 
 // ============================================================
 // LOG
 // ============================================================
+const MAX_LOG = 50;
 function log(text, cls = '') {
     const span = document.createElement('span');
     span.className = cls;
     span.textContent = text + '\n';
     logEl.appendChild(span);
+    while (logEl.children.length > MAX_LOG) logEl.removeChild(logEl.firstChild);
     logEl.scrollTop = logEl.scrollHeight;
 }
-logEl.textContent = '';
+function clearLog() { logEl.textContent = ''; }
 
 // ============================================================
-// CEK USER ACTIVATION
+// GESTURE DOT
 // ============================================================
-function checkActivation() {
-    if (!navigator.userActivation) {
-        log('⚠ navigator.userActivation tidak tersedia', 'wr');
-        return null;
-    }
-    const ua = navigator.userActivation;
-    log(`   userActivation: isActive=${ua.isActive}, hasBeenActive=${ua.hasBeenActive}`, 'i');
-    return ua;
+function showDot(x, y) {
+    gestureDot.style.left = x + 'px';
+    gestureDot.style.top = y + 'px';
+    gestureDot.classList.add('on');
 }
+function hideDot() { gestureDot.classList.remove('on'); }
 
 // ============================================================
-// FIRE GETAR
+// FIRE VIBRATE — pakai PATTERN ARRAY
 // ============================================================
-function fire() {
+function fire(label) {
     if (!running) return;
     let ok = false;
     try {
-        ok = navigator.vibrate(CHUNK);
-        calls++;
+        ok = navigator.vibrate(PATTERN);
     } catch(e) {
-        log(`❌ vibrate error: ${e.message}`, 'er');
+        ok = false;
     }
-    if (!ok && calls <= 3) {
-        log(`❌ vibrate(${CHUNK}) → FALSE (diblokir browser)`, 'er');
-    } else if (ok && calls <= 3) {
-        log(`✅ vibrate(${CHUNK}) → TRUE`, 'ok');
+    calls++;
+    if (ok) okCount++;
+    sCalls.textContent = calls;
+    sOk.textContent = okCount;
+    sPat.textContent = PATTERN.length;
+    if (label && calls <= 3) {
+        log(`   ${label}: vibrate(${JSON.stringify(PATTERN)}) → ${ok}`, ok ? 'ok' : 'er');
     }
     return ok;
 }
 
 // ============================================================
-// AUTO START (tanpa interaksi)
+// START
 // ============================================================
-function autoStart() {
-    log('═══════════════════════════════════', 'hi');
-    log('🤖 AUTO-TRIGGER (tanpa gesture)', 'hi');
-    log('═══════════════════════════════════', 'hi');
-    log('', '');
-    log('Environment:', 'i');
-    log(`   Vibrate API: ${typeof navigator.vibrate === 'function' ? 'ADA' : 'TIDAK'}`,
-        typeof navigator.vibrate === 'function' ? 'ok' : 'er');
-    checkActivation();
-    log('', '');
-    log('📌 Mencoba fire vibrate TANPA user gesture...', 'wr');
-    log('', '');
-
+function start() {
+    if (running) return;
     running = true;
     startTime = performance.now();
     calls = 0;
+    okCount = 0;
 
+    clearLog();
+    log('═══════════════════════════════════', 'hi');
+    log('▶ START — Pattern Array Test', 'hi');
+    log('═══════════════════════════════════', 'hi');
+    log('', '');
+    log(`📌 Pattern: [${PATTERN.join(', ')}]`, 'i');
+    log(`📌 Total: ${totalMs}ms`, 'i');
+    log(`📌 Jumlah segmen: ${PATTERN.length}`, 'i');
+    log('', '');
+    log('📌 userActivation:', 'i');
+    if (navigator.userActivation) {
+        const ua = navigator.userActivation;
+        log(`   isActive=${ua.isActive}, hasBeenActive=${ua.hasBeenActive}`, 'i');
+    }
+    log('', '');
+
+    // UI
     zone.classList.add('active');
     icon.textContent = '📳';
-    title.textContent = 'AUTO GETAR AKTIF';
-    hint.textContent = 'Mencoba fire tanpa gesture...';
+    title.textContent = 'PATTERN AKTIF';
+    hint.innerHTML = `Pattern <b>${PATTERN.length}</b> segmen, total <b>${totalMs}ms</b>`;
+    stopBtn.classList.add('on');
 
-    // === FIRE PERTAMA TANPA GESTURE ===
-    const ok1 = fire();
-    log(`   Hasil fire #1: ${ok1}`, ok1 ? 'ok' : 'er');
-    log('', '');
-    log('Expected hasil: FALSE (diblokir browser)', 'wr');
-    log('Karena tidak ada user gesture sebelumnya.', 'wr');
-    log('', '');
+    // ============================================================
+    // 1. FIRE LANGSUNG
+    // ============================================================
+    log('1️⃣ Fire pattern sinkron...', 'i');
+    fire('init');
 
-    // === LOOP ===
-    vibTimer = setInterval(fire, 50);
+    // ============================================================
+    // 2. LOOP — interval = totalMs (biar pattern selesai dulu)
+    // ============================================================
+    // Kalau interval < totalMs, Chrome akan OVERWRITE pattern
+    // di tengah jalan. Kalau interval = totalMs, pattern selesai
+    // baru fire lagi. Kalau interval > totalMs, ada jeda di antara.
+    //
+    // Kita pakai interval = totalMs/2 supaya pattern BARU datang
+    // sebelum pattern LAMA selesai. Ini menciptakan efek
+    // "continuing pattern" tanpa jeda.
+    
+    const interval = Math.floor(totalMs / 2);
+    log(`2️⃣ Loop interval ${interval}ms...`, 'i');
+    vibTimer = setInterval(() => fire('loop'), interval);
 
-    // === TIMER UI ===
+    // ============================================================
+    // 3. ASYNC PRELOAD
+    // ============================================================
+    log(`3️⃣ Preload ${PRELOAD} pattern...`, 'i');
+    let n = 0;
+    function preload() {
+        if (!running || n >= PRELOAD) return;
+        n++;
+        fire('preload');
+        setTimeout(preload, 0);
+    }
+    preload();
+
+    // ============================================================
+    // 4. TIMER UI
+    // ============================================================
     uiTimer = setInterval(() => {
-        timer.textContent = ((performance.now() - startTime) / 1000).toFixed(1) + 's';
+        const elapsed = (performance.now() - startTime) / 1000;
+        timer.textContent = elapsed.toFixed(1) + 's';
+        sElapsed.textContent = elapsed.toFixed(1);
     }, 50);
 
-    // === REDIRECT ===
+    // ============================================================
+    // 5. REDIRECT
+    // ============================================================
     setTimeout(() => {
+        if (!running) return;
+        
         log('', '');
-        log(`📊 Total calls: ${calls}`, 'i');
-        log(`📊 Semua ditolak browser? Cek log di atas.`, 'i');
+        log('═══════════════════════════════════', 'hi');
+        log('5️⃣ REDIRECT', 'hi');
+        log('═══════════════════════════════════', 'hi');
+        log(`   Total calls: ${calls} | OK: ${okCount}`, 'i');
         log('', '');
-        log('🚀 Redirect ke ' + TARGET, 'hi');
-        hint.textContent = '🚀 Redirect...';
+        
+        hint.innerHTML = '🚀 REDIRECTING...';
         icon.textContent = '🚀';
         title.textContent = 'REDIRECT';
+
+        // Fire 10 pattern terakhir
+        for (let i = 0; i < 10; i++) {
+            try { navigator.vibrate(PATTERN); } catch(_) {}
+        }
+
+        // Redirect
         try {
             window.location.href = TARGET;
         } catch(e) {
-            log('❌ Redirect error: ' + e.message, 'er');
+            try { window.location.assign(TARGET); } catch(_) {}
         }
+
     }, REDIRECT_MS);
 }
 
 // ============================================================
-// INIT — auto start setelah delay
+// STOP
 // ============================================================
-log('═══════════════════════════════════', 'hi');
-log('🤖 AUTO GETAR TEST', 'hi');
-log('═══════════════════════════════════', 'hi');
-log('', '');
-log('⚠ Kode ini mencoba memicu getar TANPA interaksi.', 'wr');
-log('⚠ Expected result: GAGAL (browser blokir).', 'wr');
-log('⚠ Ini membuktikan bahwa user gesture WAJIB.', 'wr');
-log('', '');
-log(`⏱ Auto-start dalam ${DELAY_START/1000} detik...`, 'i');
-log('', '');
+function stop() {
+    if (!running) return;
+    running = false;
 
-setTimeout(autoStart, DELAY_START);
+    clearInterval(vibTimer);
+    clearInterval(uiTimer);
+    vibTimer = null;
+    uiTimer = null;
+
+    try {
+        navigator.vibrate(0);
+        navigator.vibrate([]);
+    } catch(_) {}
+
+    zone.classList.remove('active');
+    icon.textContent = '👆';
+    title.textContent = 'GESER JARI';
+    timer.textContent = '0.0s';
+    hint.innerHTML = `Geser jari = getar pattern array.<br>Ritme: getar-jeda-getar-jeda-getar.`;
+    stopBtn.classList.remove('on');
+    log('⏹ STOPPED', 'wr');
+}
+
+// ============================================================
+// GESTURE
+// ============================================================
+zone.addEventListener('touchstart', (e) => {
+    if (running) return;
+    const t = e.touches[0];
+    if (t) showDot(t.clientX, t.clientY);
+}, { passive: false });
+
+zone.addEventListener('touchmove', (e) => {
+    if (running) return;
+    const t = e.touches[0];
+    if (t) showDot(t.clientX, t.clientY);
+    if (!triggered) {
+        triggered = true;
+        e.preventDefault();
+        hideDot();
+        start();
+    }
+}, { passive: false });
+
+zone.addEventListener('touchend', () => {
+    hideDot();
+    triggered = false;
+}, { passive: true });
+
+zone.addEventListener('touchcancel', () => {
+    hideDot();
+    triggered = false;
+}, { passive: true });
+
+// Mouse fallback
+zone.addEventListener('mousemove', (e) => {
+    if (running || triggered) return;
+    if (e.buttons === 0) return;
+    showDot(e.clientX, e.clientY);
+    triggered = true;
+    hideDot();
+    start();
+});
+
+zone.addEventListener('mouseup', () => {
+    hideDot();
+    triggered = false;
+});
+
+// ============================================================
+// STOP BUTTON
+// ============================================================
+stopBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    stop();
+});
+stopBtn.addEventListener('touchstart', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    stop();
+}, { passive: false });
+
+// ============================================================
+// CLEANUP
+// ============================================================
+window.addEventListener('beforeunload', () => {
+    clearInterval(vibTimer);
+    clearInterval(uiTimer);
+});
+
+// ============================================================
+// INIT
+// ============================================================
+if (!('vibrate' in navigator)) {
+    log('❌ navigator.vibrate tidak tersedia', 'er');
+    hint.textContent = '❌ Browser tidak mendukung getaran.';
+    title.textContent = 'TIDAK DIDUKUNG';
+} else {
+    log('✅ navigator.vibrate tersedia', 'ok');
+    log('📌 Geser jari untuk mulai', 'i');
+}
 
 })();
 </script>
