@@ -2,125 +2,181 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Clickjacking & Haptic Experiment</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iframe Vibrate Policy Test</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
-  body { 
-    background: #121214; 
-    color: #ffffff; 
-    min-height: 100vh; 
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #121214;
+    color: #e6e8eb;
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-    overflow: hidden;
-  }
-
-  /* LAPISAN 1: Umpan Visual (Yang Dilihat Pengguna) */
-  .game-layer {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
     padding: 20px;
-    z-index: 1;
-    text-align: center;
+    min-height: 100vh;
   }
-  .fake-btn {
-    margin-top: 20px;
-    background: #007bff;
-    color: white;
-    padding: 15px 40px;
-    font-size: 18px;
-    font-weight: bold;
-    border-radius: 50px;
-    box-shadow: 0 4px 15px rgba(0,123,255,0.4);
-    animation: pulse 1.5s infinite;
+  h2 { margin-bottom: 16px; font-size: 18px; }
+  .test-block {
+    background: #1e1e24;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 14px;
+    border: 1px solid #2c313a;
   }
-
-  /* LAPISAN 2: Clickjacking Invisible Overlay (Yang Mengeksekusi Getar) */
-  /* Lapisan ini menutupi seluruh layar secara transparan di atas game-layer */
-  .invisible-overlay {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: transparent;
-    opacity: 0; /* Sepenuhnya tidak terlihat */
-    z-index: 999; /* Berada paling atas agar mendahului semua ketukan */
-    cursor: pointer;
+  .test-block h3 {
+    font-size: 13px;
+    color: #8b93a1;
+    margin-bottom: 8px;
+    font-family: monospace;
   }
-
-  #status-log {
-    margin-top: 30px;
+  iframe {
+    width: 100%;
+    height: 160px;
+    border: 1px solid #2c313a;
+    border-radius: 8px;
+    background: #0d0f14;
+  }
+  .result {
+    margin-top: 8px;
     font-family: monospace;
     font-size: 11px;
     color: #00ff66;
-    background: #000;
-    padding: 10px;
-    border-radius: 5px;
-    width: 80%;
-    max-width: 300px;
-    text-align: left;
-    min-height: 60px;
+    background: #05070a;
+    padding: 8px;
+    border-radius: 6px;
+    white-space: pre-wrap;
+    min-height: 40px;
   }
-
-  @keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
+  .no-allow iframe {
+    border-color: #dc2626;
+  }
+  .with-allow iframe {
+    border-color: #16a34a;
   }
 </style>
 </head>
 <body>
 
-  <!-- Lapisan Umpan Psiko/Game -->
-  <div class="game-layer">
-    <h2>Klaim Hadiah Anda!</h2>
-    <p style="color: #aaa; margin-top: 5px; font-size: 14px;">Ketuk tombol di bawah untuk membuka hadiah.</p>
-    <div class="fake-btn">KLAIM SEKARANG</div>
-    
-    <div id="status-log">> Menunggu interaksi pengguna...</div>
-  </div>
+<h2>🧪 Iframe Vibrate Policy Test</h2>
 
-  <!-- Lapisan Clickjacking Transparan -->
-  <div class="invisible-overlay" id="victim-trigger"></div>
+<!-- Test 1: Without allow="vibrate" -->
+<div class="test-block no-allow">
+  <h3>Test A: iframe tanpa allow="vibrate" (cross-origin)</h3>
+  <iframe id="if-noallow" 
+          src="https://example.com"
+          sandbox="allow-scripts allow-same-origin allow-forms">
+  </iframe>
+  <div class="result" id="log-a">Menunggu...</div>
+</div>
+
+<!-- Test 2: With allow="vibrate" -->
+<div class="test-block with-allow">
+  <h3>Test B: iframe dengan allow="vibrate" (cross-origin)</h3>
+  <iframe id="if-allow" 
+          src="https://example.com"
+          allow="vibrate"
+          sandbox="allow-scripts allow-same-origin allow-forms">
+  </iframe>
+  <div class="result" id="log-b">Menunggu...</div>
+</div>
+
+<!-- Test 3: Same-origin iframe via srcdoc -->
+<div class="test-block with-allow">
+  <h3>Test C: iframe same-origin (srcdoc) + allow="vibrate"</h3>
+  <iframe id="if-same" 
+          srcdoc="<html><body style='background:#0d0f14;color:#e6e8eb;font-family:monospace;padding:10px;'>
+            <button id='vibBtn' style='padding:8px 16px;background:#2563eb;color:white;border:none;border-radius:6px;'>Tap & Vibrate</button>
+            <div id='log' style='margin-top:8px;font-size:10px;color:#00ff66;'>idle</div>
+            <script>
+              const log = document.getElementById('log');
+              function tryVib(label) {
+                if (typeof navigator.vibrate !== 'function') {
+                  log.textContent = label + ': API tidak ada';
+                  return;
+                }
+                const ok = navigator.vibrate([80, 40, 80]);
+                log.textContent = label + ': ' + (ok ? 'OK' : 'FAIL');
+              }
+              // Coba sebelum gesture
+              window.addEventListener('load', () => tryVib('load'));
+              document.getElementById('vibBtn').addEventListener('click', () => tryVib('click'));
+              setTimeout(() => tryVib('after-2s'), 2000);
+            <\/script>
+          <\/body><\/html>"
+          allow="vibrate">
+  </iframe>
+  <div class="result" id="log-c">Menunggu...</div>
+</div>
 
 <script>
-(function() {
-  var trigger = document.getElementById('victim-trigger');
-  var logBox = document.getElementById('status-log');
-  var loopInterval = null;
+// Test A: Tanpa allow="vibrate"
+// Kita tidak bisa inject script ke cross-origin iframe, jadi kita hanya
+// bisa memantau apakah iframe memuat dan console error terkait vibrate.
+// Untuk tujuan demonstrasi, kita buat iframe srcdoc sebagai pengganti.
 
-  function writeLog(text) {
-    logBox.innerHTML = "> " + text;
+const ifA = document.getElementById('if-noallow');
+const ifB = document.getElementById('if-allow');
+const ifC = document.getElementById('if-same');
+const logA = document.getElementById('log-a');
+const logB = document.getElementById('log-b');
+const logC = document.getElementById('log-c');
+
+// Ganti Test A dengan srcdoc (same-origin simulation tanpa allow)
+ifA.srcdoc = `<html><body style="background:#0d0f14;color:#e6e8eb;font-family:monospace;padding:10px;">
+<button id="vibBtn" style="padding:8px 16px;background:#dc2626;color:white;border:none;border-radius:6px;">Tap (no allow)</button>
+<div id="log" style="margin-top:8px;font-size:10px;color:#00ff66;">idle</div>
+<script>
+const log = document.getElementById('log');
+function tryVib(label) {
+  if (typeof navigator.vibrate !== 'function') {
+    log.textContent = label + ': API tidak ada';
+    return;
   }
+  const ok = navigator.vibrate([80, 40, 80]);
+  log.textContent = label + ': ' + (ok ? 'OK' : 'FAIL');
+  parent.postMessage({test:'A', label, ok}, '*');
+}
+window.addEventListener('load', () => tryVib('load'));
+document.getElementById('vibBtn').addEventListener('click', () => tryVib('click'));
+setTimeout(() => tryVib('after-2s'), 2000);
+<\/script></body></html>`;
 
-  // Begitu pengguna mengetuk bagian mana saja di layar (karena terhalang overlay transparan)
-  trigger.addEventListener('click', function(e) {
-    writeLog("Gesture terdeteksi! Token akses aktif.");
+// Test B: Dengan allow="vibrate"
+ifB.srcdoc = `<html><body style="background:#0d0f14;color:#e6e8eb;font-family:monospace;padding:10px;">
+<button id="vibBtn" style="padding:8px 16px;background:#16a34a;color:white;border:none;border-radius:6px;">Tap (allow)</button>
+<div id="log" style="margin-top:8px;font-size:10px;color:#00ff66;">idle</div>
+<script>
+const log = document.getElementById('log');
+function tryVib(label) {
+  if (typeof navigator.vibrate !== 'function') {
+    log.textContent = label + ': API tidak ada';
+    return;
+  }
+  const ok = navigator.vibrate([80, 40, 80]);
+  log.textContent = label + ': ' + (ok ? 'OK' : 'FAIL');
+  parent.postMessage({test:'B', label, ok}, '*');
+}
+window.addEventListener('load', () => tryVib('load'));
+document.getElementById('vibBtn').addEventListener('click', () => tryVib('click'));
+setTimeout(() => tryVib('after-2s'), 2000);
+<\/script></body></html>`;
 
-    if (navigator.vibrate) {
-      // 1. Eksekusi getaran angka raksasa instan memanfaatkan token yang aktif
-      navigator.vibrate(999999999999999999);
+// Kumpulkan hasil dari iframe
+window.addEventListener('message', (e) => {
+  const d = e.data;
+  if (!d || !d.test) return;
+  const logEl = d.test === 'A' ? logA : (d.test === 'B' ? logB : logC);
+  const line = `[${d.label}] vibrate=${d.ok ? 'OK' : 'FAIL'}\n`;
+  logEl.textContent += line;
+  console.log(`Test ${d.test}:`, d);
+});
 
-      // 2. Eksploitasi Rantai Loop (Menjaga getaran tetap hidup selamanya)
-      if (loopInterval === null) {
-        loopInterval = setInterval(function() {
-          // Memompa getaran pendek konstan setiap 1 detik
-          navigator.vibrate(500);
-        }, 1000);
-        writeLog("🚨 GETAR LOOP AKTIF BERKELANJUTAN!");
-      }
-    } else {
-      writeLog("Browser tidak mendukung haptik.");
-    }
+// Untuk Test C, kita tidak bisa akses langsung, jadi hanya info umum
+logC.textContent = 'Lihat hasil di dalam iframe di atas.\nPerhatikan perilaku load vs click.';
 
-    // Menghilangkan overlay setelah klik pertama agar pengguna bisa berinteraksi dengan web asli di bawahnya
-    trigger.style.display = 'none';
-  });
-
-})();
+// Info umum tentang cross-origin restriction
+console.log(`Cross-origin iframe vibrate policy:
+- Default: BLOCKED
+- With allow="vibrate": allowed AFTER user gesture
+- Same-origin: typically allowed after gesture, may vary by Chrome version`);
 </script>
 
 </body>
