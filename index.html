@@ -15,6 +15,7 @@
 
     body {
       min-height: 100vh;
+      padding: 24px;
       font-family: Arial, sans-serif;
       background: #f3f4f6;
       color: #222;
@@ -22,12 +23,12 @@
 
     .container {
       max-width: 420px;
-      margin: 60px auto;
+      margin: 40px auto;
       padding: 24px;
-      text-align: center;
-      background: #fff;
       border-radius: 16px;
+      background: white;
       box-shadow: 0 8px 30px #00000012;
+      text-align: center;
     }
 
     h2 {
@@ -35,45 +36,38 @@
     }
 
     p {
+      margin-bottom: 18px;
       color: #666;
       font-size: 14px;
       line-height: 1.6;
-      margin-bottom: 18px;
     }
 
     button {
       width: 100%;
       padding: 14px;
       margin-top: 10px;
-      border: none;
+      border: 0;
       border-radius: 10px;
       font-size: 16px;
       cursor: pointer;
     }
 
-    #showPopupBtn {
-      background: #2563eb;
-      color: white;
-    }
-
     #closePopup {
-      background: #2563eb;
       color: white;
+      background: #2563eb;
     }
 
     #stopBtn {
-      background: #dc2626;
       color: white;
+      background: #dc2626;
     }
 
     #status {
       margin-top: 18px;
       font-size: 14px;
       line-height: 1.5;
-      overflow-wrap: anywhere;
     }
 
-    /* Popup */
     #popup {
       position: fixed;
       inset: 0;
@@ -82,7 +76,7 @@
       align-items: center;
       justify-content: center;
       padding: 20px;
-      background: rgba(0, 0, 0, 0.55);
+      background: rgb(0 0 0 / 55%);
     }
 
     .popup-content {
@@ -92,14 +86,9 @@
       border-radius: 16px;
       background: white;
       text-align: center;
-      box-shadow: 0 12px 40px #00000030;
     }
 
     .popup-content h3 {
-      margin-bottom: 12px;
-    }
-
-    .popup-content p {
       margin-bottom: 12px;
     }
   </style>
@@ -110,11 +99,9 @@
     <h2>Gesture & Vibration Analyzer</h2>
 
     <p>
-      Lakukan gesture pada halaman ini untuk melihat popup.
-      Tekan tombol pada popup untuk menguji getaran perangkat.
+      Lakukan gesture pada halaman untuk menampilkan notifikasi.
     </p>
 
-    <button id="showPopupBtn">Tampilkan Notifikasi</button>
     <button id="stopBtn">Stop Getaran</button>
 
     <div id="status" role="status" aria-live="polite">
@@ -128,7 +115,8 @@
       <h3 id="popupTitle">Pemberitahuan</h3>
 
       <p>
-        Tekan tombol di bawah untuk memulai pengujian getaran.
+        Notifikasi berhasil ditampilkan.
+        Tekan tombol di bawah untuk menguji getaran.
       </p>
 
       <button id="closePopup">Tutup & Uji Getaran</button>
@@ -138,37 +126,49 @@
   <script>
     const popup = document.getElementById("popup");
     const closePopup = document.getElementById("closePopup");
-    const showPopupBtn = document.getElementById("showPopupBtn");
     const stopBtn = document.getElementById("stopBtn");
     const status = document.getElementById("status");
 
-    let vibrationTimer = null;
     let popupShown = false;
+    let vibrationTimer = null;
 
-    function showPopup() {
+    // Popup muncul otomatis saat gesture pertama terdeteksi.
+    function detectGesture() {
       if (popupShown) return;
 
       popupShown = true;
       popup.style.display = "flex";
-      status.textContent = "Status: popup ditampilkan";
+      status.textContent = "Status: gesture terdeteksi";
     }
 
-    function startVibration() {
+    document.addEventListener("pointerup", detectGesture, {
+      once: true
+    });
+
+    document.addEventListener("touchend", detectGesture, {
+      once: true,
+      passive: true
+    });
+
+    document.addEventListener("scroll", detectGesture, {
+      once: true,
+      passive: true
+    });
+
+    // Tombol popup memulai pengujian getaran.
+    closePopup.addEventListener("click", () => {
+      popup.style.display = "none";
+
       if (typeof navigator.vibrate !== "function") {
         status.textContent =
-          "Vibration API tidak didukung browser atau perangkat ini.";
+          "Browser atau perangkat tidak mendukung getaran.";
         return;
       }
 
-      // Hentikan timer lama tanpa menonaktifkan tombol.
       if (vibrationTimer !== null) {
         clearInterval(vibrationTimer);
-        vibrationTimer = null;
       }
 
-      navigator.vibrate(0);
-
-      // Getar 1 detik, jeda 300 milidetik.
       const pattern = [1000, 300];
 
       navigator.vibrate(pattern);
@@ -177,11 +177,11 @@
         navigator.vibrate(pattern);
       }, 1300);
 
-      status.textContent =
-        "Status: getaran berulang aktif";
-    }
+      status.textContent = "Status: getaran aktif";
+    });
 
-    function stopVibration() {
+    // Tombol Stop tetap aktif.
+    stopBtn.addEventListener("click", () => {
       if (vibrationTimer !== null) {
         clearInterval(vibrationTimer);
         vibrationTimer = null;
@@ -192,27 +192,17 @@
       }
 
       status.textContent = "Status: getaran berhenti";
-    }
-
-    // Gesture memunculkan popup.
-    document.addEventListener("pointerup", showPopup, {
-      once: true
     });
 
-    // Tombol manual untuk menampilkan popup.
-    showPopupBtn.addEventListener("click", showPopup);
+    window.addEventListener("pagehide", () => {
+      if (vibrationTimer !== null) {
+        clearInterval(vibrationTimer);
+      }
 
-    // Klik popup memulai getaran.
-    closePopup.addEventListener("click", () => {
-      popup.style.display = "none";
-      startVibration();
+      if (typeof navigator.vibrate === "function") {
+        navigator.vibrate(0);
+      }
     });
-
-    // Tombol Stop selalu dapat digunakan.
-    stopBtn.addEventListener("click", stopVibration);
-
-    // Bersihkan getaran saat halaman ditinggalkan.
-    window.addEventListener("pagehide", stopVibration);
   </script>
 </body>
 </html>
