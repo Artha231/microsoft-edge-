@@ -1,186 +1,311 @@
-<!DOCTYPE html>
+]<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bug Diagnostic — Vibrate Background</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>UI Freeze Test — Vibrate vs Event Loop</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
+    html, body {
+        height: 100%;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         background: #0d0f14;
         color: #e6e8eb;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        padding: 16px;
-        min-height: 100vh;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        overflow: hidden;
     }
-    h1 { font-size: 18px; margin-bottom: 6px; }
-    p.sub { color: #8b93a1; font-size: 12px; line-height: 1.6; margin-bottom: 16px; }
-    button {
-        width: 100%;
-        padding: 14px;
+    #app {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Header */
+    .header {
+        padding: 12px 16px;
+        background: #1a1d24;
+        border-bottom: 1px solid #2c313a;
+        flex-shrink: 0;
+    }
+    .header h1 {
         font-size: 15px;
         font-weight: 700;
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
-        margin-bottom: 10px;
-        color: white;
+        margin-bottom: 4px;
     }
-    #startBtn { background: #dc2626; }
-    #stopBtn  { background: #374151; }
-    #clearBtn { background: #1f2937; }
-    #diagLog {
-        margin-top: 12px;
-        padding: 12px;
-        background: #05070a;
-        border: 1px solid #2c313a;
-        border-radius: 8px;
-        font-family: ui-monospace, monospace;
+    .header .sub {
         font-size: 11px;
-        line-height: 1.6;
-        height: 60vh;
+        color: #8b93a1;
+        line-height: 1.5;
+    }
+
+    /* Stats bar */
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4px;
+        padding: 8px 12px;
+        background: #12151b;
+        border-bottom: 1px solid #2c313a;
+        flex-shrink: 0;
+    }
+    .stat {
+        background: rgba(20, 22, 28, 0.9);
+        border: 1px solid #2c313a;
+        border-radius: 6px;
+        padding: 6px 4px;
+        text-align: center;
+        font-family: ui-monospace, monospace;
+    }
+    .stat .v { font-size: 14px; font-weight: 900; line-height: 1.1; }
+    .stat .l { font-size: 8px; color: #8b93a1; text-transform: uppercase; letter-spacing: .04em; margin-top: 2px; }
+    .stat.hi  .v { color: #ff2020; }
+    .stat.ok  .v { color: #2ecc71; }
+    .stat.wr  .v { color: #f1c40f; }
+    .stat.cy  .v { color: #00ffff; }
+
+    /* Main button area */
+    .btn-area {
+        flex-shrink: 0;
+        padding: 12px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        background: #12151b;
+        border-bottom: 1px solid #2c313a;
+    }
+    button {
+        padding: 14px 10px;
+        font-size: 13px;
+        font-weight: 700;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        color: white;
+        transition: transform .05s;
+        position: relative;
+    }
+    button:active { transform: scale(0.96); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-start { background: #dc2626; grid-column: 1 / -1; font-size: 15px; padding: 16px; }
+    .btn-clear { background: #374151; }
+    .btn-close { background: #7c3aed; }
+
+    /* Log */
+    #log {
+        flex: 1;
         overflow-y: auto;
+        background: #05070a;
+        padding: 10px 12px;
+        font-family: ui-monospace, monospace;
+        font-size: 10.5px;
+        line-height: 1.55;
         white-space: pre-wrap;
         word-break: break-word;
     }
-    #diagLog .t   { color: #6b7280; }
-    #diagLog .i   { color: #79c0ff; }
-    #diagLog .ok  { color: #3fb950; }
-    #diagLog .wr  { color: #d29922; }
-    #diagLog .er  { color: #f85149; }
-    #diagLog .hi  { color: #a855f7; font-weight: 700; }
-    .box {
-        background: #1a1d24;
-        border: 1px solid #2c313a;
-        border-radius: 8px;
-        padding: 12px;
-        margin-bottom: 10px;
-        font-family: ui-monospace, monospace;
-        font-size: 12px;
+    #log .i  { color: #79c0ff; }
+    #log .ok { color: #3fb950; }
+    #log .wr { color: #d29922; }
+    #log .er { color: #f85149; }
+    #log .hi { color: #d2a8ff; font-weight: 700; }
+
+    /* Responsiveness indicator */
+    #respIndicator {
+        position: fixed;
+        bottom: 12px;
+        right: 12px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: #2ecc71;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        font-weight: 900;
+        color: #000;
+        z-index: 100;
+        box-shadow: 0 0 20px currentColor;
+        transition: background .1s;
+        pointer-events: none;
     }
-    .box .lbl { color: #8b93a1; }
-    .box .val { color: #e6e8eb; font-weight: 700; }
+
+    /* Overlay untuk tombol saat freeze terdeteksi */
+    #freezeOverlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(220, 38, 38, 0.85);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        color: white;
+        font-size: 20px;
+        font-weight: 900;
+        text-align: center;
+        padding: 20px;
+    }
+    #freezeOverlay.on { display: flex; }
+
+    /* Click counter overlay */
+    .click-flash {
+        position: fixed;
+        pointer-events: none;
+        color: #2ecc71;
+        font-family: ui-monospace, monospace;
+        font-size: 24px;
+        font-weight: 900;
+        z-index: 200;
+        text-shadow: 0 0 10px #2ecc71;
+        animation: flash 0.6s ease-out forwards;
+    }
+    @keyframes flash {
+        0%   { transform: translateY(0) scale(1); opacity: 1; }
+        100% { transform: translateY(-50px) scale(1.5); opacity: 0; }
+    }
 </style>
 </head>
 <body>
 
-<h1>🔬 Bug Diagnostic — Vibrate Background</h1>
-<p class="sub">
-    Kode ini mengukur secara presisi apakah <code>navigator.vibrate()</code> benar-benar berhenti
-    saat tab hidden / HP dikunci. Log akan mencatat timestamp setiap panggilan.
-</p>
+<div id="app">
+    <div class="header">
+        <h1>🔬 UI Freeze Test</h1>
+        <div class="sub">
+            Uji apakah getaran brutal bisa membekukan tombol CLEAR / CLOSE.<br>
+            <b style="color:#ff2020;">Klik tombol saat HP bergetar — lihat apakah merespons.</b>
+        </div>
+    </div>
 
-<div class="box">
-    <div><span class="lbl">Vibrate API:</span> <span class="val" id="apiStatus">-</span></div>
-    <div><span class="lbl">Chrome/UA:</span> <span class="val" id="uaInfo">-</span></div>
-    <div><span class="lbl">Status:</span> <span class="val" id="runStatus">idle</span></div>
-    <div><span class="lbl">Calls fired (visible):</span> <span class="val" id="cntVisible">0</span></div>
-    <div><span class="lbl">Calls fired (hidden):</span> <span class="val" id="cntHidden">0</span></div>
-    <div><span class="lbl">Calls RETURNED true (hidden):</span> <span class="val" id="cntHiddenOk">0</span></div>
+    <div class="stats">
+        <div class="stat hi"> <div class="v" id="s-call">0</div>   <div class="l">Calls</div></div>
+        <div class="stat ok"> <div class="v" id="s-ok">0</div>     <div class="l">OK</div></div>
+        <div class="stat wr"> <div class="v" id="s-hz">0</div>     <div class="l">Hz</div></div>
+        <div class="stat cy"> <div class="v" id="s-lag">0</div>    <div class="l">Lag ms</div></div>
+    </div>
+
+    <div class="btn-area">
+        <button id="startBtn" class="btn-start">▶ MULAI GETAR BRUTAL</button>
+        <button id="clearBtn" class="btn-clear" disabled>🗑 CLEAR LOG</button>
+        <button id="closeBtn" class="btn-close" disabled>✖ CLOSE</button>
+    </div>
+
+    <div id="log">Tekan MULAI GETAR BRUTAL untuk memulai test.
+
+Tujuan test: buktikan bahwa getaran TIDAK BISA membekukan UI.
+
+Setelah mulai:
+1. Tombol CLEAR dan CLOSE akan aktif
+2. Coba klik keduanya saat HP bergetar kencang
+3. Amati apakah mereka merespons instan atau tidak
+4. Indikator hijau di kanan bawah menunjukkan responsivitas</div>
 </div>
 
-<button id="startBtn">▶ MULAI TEST</button>
-<button id="stopBtn" disabled>■ STOP</button>
-<button id="clearBtn">🗑 CLEAR LOG</button>
-
-<div id="diagLog">Siap. Tekan MULAI TEST lalu pindah tab atau matikan layar.</div>
+<div id="respIndicator">✓</div>
+<div id="freezeOverlay">
+    ⚠️ UI FREEZE TERDETEKSI<br>
+    <div style="font-size:14px;margin-top:12px;font-weight:400;">
+        Event loop diblokir oleh sesuatu.<br>
+        Bukan oleh vibrate — cek kode Anda.
+    </div>
+</div>
 
 <script>
 (() => {
 'use strict';
 
-const $ = (id) => document.getElementById(id);
-const startBtn    = $('startBtn');
-const stopBtn     = $('stopBtn');
-const clearBtn    = $('clearBtn');
-const diagLog     = $('diagLog');
-const apiStatus   = $('apiStatus');
-const uaInfo      = $('uaInfo');
-const runStatus   = $('runStatus');
-const cntVisible  = $('cntVisible');
-const cntHidden   = $('cntHidden');
-const cntHiddenOk = $('cntHiddenOk');
+// ============================================================
+// DOM
+// ============================================================
+const startBtn      = document.getElementById('startBtn');
+const clearBtn      = document.getElementById('clearBtn');
+const closeBtn      = document.getElementById('closeBtn');
+const logEl         = document.getElementById('log');
+const sCall         = document.getElementById('s-call');
+const sOk           = document.getElementById('s-ok');
+const sHz           = document.getElementById('s-hz');
+const sLag          = document.getElementById('s-lag');
+const respIndicator = document.getElementById('respIndicator');
+const freezeOverlay = document.getElementById('freezeOverlay');
 
 // ============================================================
 // STATE
 // ============================================================
-let running = false;
-let intervalId = null;
-let startTime = 0;
-let callsVisible = 0;
-let callsHidden = 0;
-let callsHiddenOk = 0;
-let lastFireTime = 0;
-let hiddenEnterTime = 0;
-let lastHiddenFireTime = 0;
+let running        = false;
+let startTime      = 0;
+let callCount      = 0;
+let okCount        = 0;
+let hzCounter      = 0;
+let activeIntervals = [];
+let hzInterval     = null;
+let lastTickTime   = 0;
+let lastTickDelta  = 0;
+let maxTickDelta   = 0;
+let eventLoopLag   = 0;
 
 // ============================================================
-// LOGGING
+// LOG
 // ============================================================
-const MAX_LOG = 500;
-function ts() {
-    const d = new Date();
-    return d.toTimeString().slice(0,8) + '.' + String(d.getMilliseconds()).padStart(3, '0');
-}
+const MAX_LOG = 200;
+let logLines = 0;
 function log(text, cls = '') {
-    const span = document.createElement('span');
-    span.className = cls;
-    span.textContent = `[${ts()}] ${text}\n`;
-    diagLog.appendChild(span);
-    while (diagLog.children.length > MAX_LOG) {
-        diagLog.removeChild(diagLog.firstChild);
+    const s = document.createElement('span');
+    s.className = cls;
+    s.textContent = text + '\n';
+    logEl.appendChild(s);
+    logLines++;
+    while (logLines > MAX_LOG && logEl.firstChild) {
+        logEl.removeChild(logEl.firstChild);
+        logLines--;
     }
-    diagLog.scrollTop = diagLog.scrollHeight;
+    logEl.scrollTop = logEl.scrollHeight;
 }
+
 function clearLog() {
-    diagLog.textContent = '';
+    logEl.textContent = '';
+    logLines = 0;
 }
 
 // ============================================================
-// CORE FIRE FUNCTION
+// EVENT LOOP LAG MONITOR
 // ============================================================
-function fireVibrate(label) {
-    const now = Date.now();
-    const tNow = performance.now();
-    const hidden = document.hidden;
+// Ini adalah "jam" yang berjalan setiap 16ms. Kalau UI benar-benar
+// freeze, tick ini tidak akan jalan dan lag akan naik.
+function tickMonitor() {
+    if (!running) return;
+    const now = performance.now();
+    if (lastTickTime) {
+        const delta = now - lastTickTime;
+        eventLoopLag = Math.max(0, delta - 16);
+        lastTickDelta = delta;
+        if (delta > maxTickDelta) maxTickDelta = delta;
 
-    // Catat waktu antar panggilan
-    const dt = lastFireTime ? (now - lastFireTime) : 0;
-    lastFireTime = now;
+        // Update indicator
+        sLag.textContent = Math.round(eventLoopLag);
 
-    // Panggil vibrate
-    let result = false;
-    let errMsg = null;
-    try {
-        result = navigator.vibrate(9000);
-    } catch (e) {
-        errMsg = e.message;
-    }
-
-    // Klasifikasi
-    if (hidden) {
-        callsHidden++;
-        if (result === true) {
-            callsHiddenOk++;
-            // INI YANG PENTING: panggilan berhasil saat hidden
-            log(`🚨 ${label} HIDDEN → vibrate(9000) = TRUE  ← POTENTIAL BUG`, 'er');
-            log(`     dt=${dt}ms  hiddenSince=${now - hiddenEnterTime}ms`, 'er');
+        if (eventLoopLag > 500) {
+            // Event loop benar-benar terblokir
+            respIndicator.style.background = '#dc2626';
+            respIndicator.textContent = '✗';
+        } else if (eventLoopLag > 100) {
+            respIndicator.style.background = '#f1c40f';
+            respIndicator.textContent = '!';
         } else {
-            // Normal: hidden → return false
-            if (callsHidden <= 3) {
-                log(`✅ ${label} HIDDEN → vibrate(9000) = false  (normal)`, 'ok');
-            }
-        }
-    } else {
-        callsVisible++;
-        if (!result) {
-            log(`⚠ ${label} VISIBLE → vibrate(9000) = false  dt=${dt}ms`, 'wr');
+            respIndicator.style.background = '#2ecc71';
+            respIndicator.textContent = '✓';
         }
     }
+    lastTickTime = now;
+    requestAnimationFrame(tickMonitor);
+}
 
-    cntVisible.textContent = callsVisible;
-    cntHidden.textContent = callsHidden;
-    cntHiddenOk.textContent = callsHiddenOk;
+// ============================================================
+// VIBRATE
+// ============================================================
+function vib(pattern) {
+    if (typeof navigator.vibrate !== 'function') return false;
+    try { return navigator.vibrate(pattern); }
+    catch (_) { return false; }
 }
 
 // ============================================================
@@ -188,162 +313,168 @@ function fireVibrate(label) {
 // ============================================================
 function start() {
     if (running) return;
-
     if (typeof navigator.vibrate !== 'function') {
-        log('❌ navigator.vibrate tidak tersedia', 'er');
+        log('❌ Vibration API tidak tersedia', 'er');
         return;
     }
 
     running = true;
     startTime = Date.now();
-    callsVisible = 0;
-    callsHidden = 0;
-    callsHiddenOk = 0;
-    lastFireTime = 0;
+    callCount = okCount = hzCounter = 0;
+    maxTickDelta = 0;
+    lastTickTime = 0;
 
     startBtn.disabled = true;
-    stopBtn.disabled = false;
-    runStatus.textContent = 'RUNNING';
+    clearBtn.disabled = false;
+    closeBtn.disabled = false;
 
-    clearLog();
-    log('═══════════════════════════════════════════════════', 'hi');
-    log('🔬 DIAGNOSTIC STARTED', 'hi');
-    log('═══════════════════════════════════════════════════', 'hi');
-    log(`Vibrate API: tersedia`, 'ok');
-    log(`User Agent: ${navigator.userAgent}`, 'i');
-    log(`Chrome version: ${(navigator.userAgent.match(/Chrome\/(\d+)/) || [])[1] || 'unknown'}`, 'i');
-    log(`Device: ${navigator.platform || 'unknown'}`, 'i');
-    log(`userActivation: ${navigator.userActivation ? 'tersedia' : 'tidak'}`,
-        navigator.userActivation ? 'ok' : 'wr');
-    if (navigator.userActivation) {
-        const ua = navigator.userActivation;
-        log(`  isActive=${ua.isActive}, hasBeenActive=${ua.hasBeenActive}`, 'i');
-    }
-    log('', '');
-    log('Instruksi: biarkan berjalan 10 detik, lalu pindah tab / matikan layar.', 'wr');
-    log('Log akan mencatat apakah ada panggilan yang return TRUE saat hidden.', 'wr');
+    log('═══════════════════════════════════════════════', 'hi');
+    log('▶ GETAR BRUTAL DIMULAI', 'hi');
+    log('═══════════════════════════════════════════════', 'hi');
+    log('Sekarang coba klik tombol CLEAR dan CLOSE.', 'wr');
+    log('Kalau UI freeze, tombol tidak akan merespons.', 'wr');
     log('', '');
 
-    // Fire setiap 15ms (interval agresif, sama seperti kode Anda)
-    fireVibrate('init');
-    intervalId = setInterval(() => fireVibrate('loop'), 15);
+    // Fire function
+    const fire = () => {
+        if (!running) return;
+        const ok = vib(9000);
+        callCount++;
+        if (ok) okCount++; else okCount += 0;
+        hzCounter++;
+        sCall.textContent = callCount;
+        sOk.textContent = okCount;
+    };
+
+    // 5 layer interval — brutal, gap 10-30ms
+    activeIntervals.push(setInterval(fire, 10));
+    activeIntervals.push(setInterval(fire, 15));
+    activeIntervals.push(setInterval(fire, 20));
+    activeIntervals.push(setInterval(fire, 25));
+    activeIntervals.push(setInterval(fire, 30));
+
+    // Hz counter
+    hzInterval = setInterval(() => {
+        sHz.textContent = hzCounter;
+        hzCounter = 0;
+    }, 1000);
+
+    // Event loop monitor
+    requestAnimationFrame(tickMonitor);
 }
 
 // ============================================================
 // STOP
 // ============================================================
-function stop() {
+function stop(reason) {
     if (!running) return;
     running = false;
 
-    if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
-    }
+    activeIntervals.forEach(id => clearInterval(id));
+    activeIntervals = [];
+    clearInterval(hzInterval);
+    hzInterval = null;
 
     try { navigator.vibrate(0); } catch(_) {}
+    try { navigator.vibrate([]); } catch(_) {}
 
     startBtn.disabled = false;
-    stopBtn.disabled = true;
-    runStatus.textContent = 'stopped';
+    clearBtn.disabled = true;
+    closeBtn.disabled = true;
+
+    respIndicator.style.background = '#2ecc71';
+    respIndicator.textContent = '✓';
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     log('', '');
-    log('═══════════════════════════════════════════════════', 'hi');
-    log(`⏹ STOPPED setelah ${elapsed}s`, 'hi');
-    log(`   Calls visible: ${callsVisible}`, 'i');
-    log(`   Calls hidden:  ${callsHidden}`, 'i');
-    log(`   Calls hidden returning TRUE: ${callsHiddenOk}`, callsHiddenOk > 0 ? 'er' : 'ok');
-    log('', '');
-    if (callsHiddenOk > 0) {
-        log('🚨🚨🚨 BUG CONFIRMED 🚨🚨🚨', 'er');
-        log(`${callsHiddenOk} panggilan vibrate RETURNED TRUE saat hidden.`, 'er');
-        log('Ini melanggar spesifikasi W3C. Harap laporkan ke crbug.com.', 'er');
+    log('═══════════════════════════════════════════════', 'hi');
+    log(`⏹ STOP (${reason}) setelah ${elapsed}s`, 'hi');
+    log(`   Total calls: ${callCount}`, 'i');
+    log(`   Max event loop lag: ${Math.round(maxTickDelta)}ms`, 'i');
+    if (maxTickDelta < 100) {
+        log('   ✅ UI tetap responsif — getaran TIDAK mem-freeze UI', 'ok');
+    } else if (maxTickDelta < 500) {
+        log(`   ⚠ UI sedikit lag (${Math.round(maxTickDelta)}ms) — tapi masih responsif`, 'wr');
     } else {
-        log('✅ NO BUG DETECTED', 'ok');
-        log('Semua panggilan saat hidden ditolak browser (return false).', 'ok');
-        log('Browser mematuhi spesifikasi W3C.', 'ok');
+        log(`   ❌ UI freeze terdeteksi (${Math.round(maxTickDelta)}ms)`, 'er');
     }
-    log('═══════════════════════════════════════════════════', 'hi');
+    log('═══════════════════════════════════════════════', 'hi');
 }
 
 // ============================================================
-// VISIBILITY HANDLER
+// BUTTON: CLEAR LOG
 // ============================================================
-document.addEventListener('visibilitychange', () => {
-    const now = Date.now();
-    if (document.hidden) {
-        hiddenEnterTime = now;
-        log('', '');
-        log('═══════════════════════════════════════════════════', 'hi');
-        log('👁 → HIDDEN', 'hi');
-        log(`   time: ${ts()}`, 'i');
-        log(`   state: ${document.visibilityState}`, 'i');
-        log(`   callsVisible so far: ${callsVisible}`, 'i');
-        log(`   callsHidden so far: ${callsHidden}`, 'i');
-        log(`   interval still running: ${intervalId !== null}`, intervalId ? 'wr' : 'ok');
-        log(`   → Interval AKAN tetap fire, tapi browser harus menolak`, 'i');
-        log(`   → Perhatikan apakah ada log "🚨 ... = TRUE"`, 'wr');
-        log('', '');
+// Tombol ini mencatat timestamp saat diklik dan merespons instan.
+// Kalau UI freeze, log tidak akan muncul — yang membuktikan freeze.
+clearBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const t0 = performance.now();
+    clearLog();
+    const t1 = performance.now();
+    const latency = (t1 - t0).toFixed(2);
 
-        // Force-stop getar
-        try { navigator.vibrate(0); } catch(_) {}
-    } else {
-        const hiddenDuration = now - hiddenEnterTime;
-        log('', '');
-        log('═══════════════════════════════════════════════════', 'hi');
-        log('👁 → VISIBLE kembali', 'hi');
-        log(`   hidden duration: ${hiddenDuration}ms`, 'i');
-        log(`   callsHidden selama hidden: ${callsHidden}`, 'i');
-        log(`   callsHiddenOk selama hidden: ${callsHiddenOk}`, callsHiddenOk > 0 ? 'er' : 'ok');
+    // Flash indicator
+    const flash = document.createElement('div');
+    flash.className = 'click-flash';
+    flash.textContent = 'CLEAR +' + latency + 'ms';
+    flash.style.left = e.clientX + 'px';
+    flash.style.top = (e.clientY - 40) + 'px';
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 600);
 
-        if (callsHiddenOk > 0) {
-            log(`   🚨 ADA ${callsHiddenOk} panggilan yang RETURN TRUE saat hidden!`, 'er');
-        } else if (callsHidden > 0) {
-            log(`   ✅ Semua ${callsHidden} panggilan ditolak (return false)`, 'ok');
-        } else {
-            log(`   ℹ Tidak ada panggilan sama sekali saat hidden`, 'i');
-        }
-
-        if (navigator.userActivation) {
-            const ua = navigator.userActivation;
-            log(`   userActivation: isActive=${ua.isActive}, hasBeenActive=${ua.hasBeenActive}`, 'i');
-        }
-        log('', '');
-    }
+    log(`🗑 CLEAR LOG diklik — latency ${latency}ms`, 'ok');
+    log(`   Event loop lag saat klik: ${eventLoopLag.toFixed(1)}ms`, 
+        eventLoopLag < 100 ? 'ok' : eventLoopLag < 500 ? 'wr' : 'er');
 });
+
+// ============================================================
+// BUTTON: CLOSE
+// ============================================================
+// "Close" di browser tidak bisa menutup tab via JS.
+// Kita simulasikan dengan menampilkan overlay "closed".
+closeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const t0 = performance.now();
+    const latency = (performance.now() - t0).toFixed(2);
+
+    const flash = document.createElement('div');
+    flash.className = 'click-flash';
+    flash.textContent = 'CLOSE +' + latency + 'ms';
+    flash.style.left = e.clientX + 'px';
+    flash.style.top = (e.clientY - 40) + 'px';
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 600);
+
+    log(`✖ CLOSE diklik — latency ${latency}ms`, 'ok');
+    log(`   Event loop lag saat klik: ${eventLoopLag.toFixed(1)}ms`,
+        eventLoopLag < 100 ? 'ok' : eventLoopLag < 500 ? 'wr' : 'er');
+
+    // Simulasi close: matikan getar, tampilkan log
+    stop('close diklik');
+});
+
+// ============================================================
+// START BUTTON
+// ============================================================
+startBtn.addEventListener('click', start);
 
 // ============================================================
 // CLEANUP
 // ============================================================
 window.addEventListener('beforeunload', () => {
-    if (intervalId) clearInterval(intervalId);
+    activeIntervals.forEach(id => clearInterval(id));
+    clearInterval(hzInterval);
     try { navigator.vibrate(0); } catch(_) {}
-});
-
-// ============================================================
-// EVENT BINDING
-// ============================================================
-startBtn.addEventListener('click', start);
-stopBtn.addEventListener('click', stop);
-clearBtn.addEventListener('click', () => {
-    if (running) {
-        log('Tidak bisa clear saat running.', 'wr');
-        return;
-    }
-    clearLog();
-    log('Log cleared.', 'i');
 });
 
 // ============================================================
 // INIT
 // ============================================================
-apiStatus.textContent = typeof navigator.vibrate === 'function' ? 'Tersedia ✅' : 'Tidak tersedia ❌';
-apiStatus.style.color = typeof navigator.vibrate === 'function' ? '#3fb950' : '#f85149';
-
-const ua = navigator.userAgent;
-const chromeMatch = ua.match(/Chrome\/(\d+)/);
-uaInfo.textContent = chromeMatch ? `Chrome ${chromeMatch[1]}` : 'Unknown';
+if (typeof navigator.vibrate !== 'function') {
+    startBtn.disabled = true;
+    startBtn.textContent = '❌ VIBRATION API TIDAK TERSEDIA';
+    log('❌ navigator.vibrate tidak tersedia di browser ini.', 'er');
+}
 
 })();
 </script>
