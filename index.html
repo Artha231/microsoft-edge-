@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instrumen Pengujian Standar: Analisis Interaksi & Vibration API</title>
+    <title>Vibration API Gesture Security Analyzer</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body {
@@ -21,23 +21,30 @@
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
-        .btn-action {
+        .interactive-zone {
+            width: 100%;
+            height: 150px;
+            margin: 20px 0;
+            background: #2c3e50;
+            border: 2px dashed #3498db;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-stop {
             padding: 15px;
             font-size: 16px;
             font-weight: bold;
             border-radius: 8px;
             cursor: pointer;
             width: 100%;
-            margin-bottom: 10px;
-            border: none;
-            background-color: #007bff;
+            background-color: #dc3545;
             color: white;
-            transition: background-color 0.2s;
+            border: none;
         }
-        .btn-action:hover { background-color: #0056b3; }
-        .btn-stop { background-color: #dc3545; color: white; }
-        .btn-stop:hover { background-color: #bd2130; }
-        
         #status-log {
             margin-top: 20px;
             padding: 15px;
@@ -47,8 +54,8 @@
             text-align: left;
             border-radius: 6px;
             font-size: 12px;
-            min-height: 150px;
-            max-height: 300px;
+            min-height: 120px;
+            max-height: 250px;
             overflow-y: auto;
             white-space: pre-wrap;
         }
@@ -58,94 +65,68 @@
 
 <div class="container">
     <h2>Vibration API Analyzer</h2>
-    <p style="color: #aaa; font-size: 14px; margin-bottom: 20px;">
-        Gunakan tombol di bawah untuk menganalisis bagaimana browser memproses token interaksi dan membatasi durasi haptik.
-    </p>
+    <p style="color: #aaa; font-size: 14px;">Interaksikan jari Anda pada area di bawah untuk menguji respons gembok keamanan peramban.</p>
     
-    <button id="testBtn" class="btn-action">JALANKAN ANALISIS (Klik 1x)</button>
-    <button id="stopBtn" class="btn-action btn-stop">HENTIKAN PENGUJIAN</button>
+    <!-- Area untuk menerima interaksi gestur pengguna -->
+    <div id="gestureArea" class="interactive-zone">
+        KETUK ATAU SWIPE DI SINI
+    </div>
+
+    <button id="stopBtn" class="btn-stop">HENTIKAN LOOP</button>
 
     <h3>Konsol Log Logika:</h3>
-    <div id="status-log">Menunggu inisialisasi pengujian...</div>
+    <div id="status-log">Menunggu inisialisasi gestur...</div>
 </div>
 
 <script>
     const logBox = document.getElementById('status-log');
-    const testBtn = document.getElementById('testBtn');
+    const gestureArea = document.getElementById('gestureArea');
     const stopBtn = document.getElementById('stopBtn');
-
-    let isRunning = false;
-    let loopCounter = 0;
+    
+    let spamInterval = null;
 
     function writeLog(text) {
         logBox.innerHTML += "\n> " + text;
         logBox.scrollTop = logBox.scrollHeight;
-        console.log(text);
     }
 
-    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-    // Fungsi untuk menguji penanganan durasi ekstrem oleh browser
-    function executeVibrationTest() {
-        if (navigator.vibrate) {
-            // Memasukkan angka durasi ekstrem untuk memverifikasi fitur otomatis pemotongan (truncation) menjadi maksimal 10 detik oleh browser
-            const success = navigator.vibrate(999999999);
-            return success;
-        }
-        return false;
-    }
-
-    // Alur perulangan asinkron utama
-    async function startEvaluationLoop() {
-        isRunning = true;
-        loopCounter = 0;
-        logBox.innerHTML = "";
-        writeLog("Aktivasi Terdeteksi: Token interaksi awal berhasil dicatat.");
-
-        while (isRunning) {
-            loopCounter++;
-            writeLog(`[Siklus #${loopCounter}] Memulai jeda asinkron 6 detik...`);
-            
-            // Jeda waktu untuk mengevaluasi apakah token aktivasi bersifat sementara (Transient) atau permanen (Sticky)
-            await sleep(6000);
-
-            if (!isRunning) break;
-
-            // Memeriksa status aktivasi pengguna jika didukung oleh browser
-            if (navigator.userActivation) {
-                writeLog(`Siklus #${loopCounter} - Status Transient Activation (isActive): ` + navigator.userActivation.isActive);
-            }
-
-            writeLog(`Siklus #${loopCounter} - Mengirimkan permintaan eksekusi Vibration API...`);
-            let result = executeVibrationTest();
-
-            if (result) {
-                writeLog(`Siklus #${loopCounter} - Status: API merespons dengan sukses (Menggunakan Sticky Activation).`);
+    // Fungsi untuk memicu getaran berulang sesuai logika instrumen Anda
+    function startVibrationSpam() {
+        writeLog("Mengeksekusi siklus pengetesan Vibration API...");
+        
+        // Menggunakan interval intermiten yang aman (misal: tiap 1000ms) untuk stabilitas memori haptik hardware
+        spamInterval = setInterval(() => {
+            if (navigator.vibrate) {
+                const isAllowed = navigator.vibrate(5000); 
+                if (!isAllowed) {
+                    writeLog("⚠️ Perintah getar ditolak peramban (Aktivasi tidak valid).");
+                    clearInterval(spamInterval);
+                }
             } else {
-                writeLog(`Siklus #${loopCounter} - Status: API ditolak atau tidak didukung oleh browser.`);
+                writeLog("❌ Peramban tidak mendukung atau memblokir Vibration API.");
+                clearInterval(spamInterval);
             }
-
-            // Jeda antar siklus untuk menjaga stabilitas memori peramban
-            await sleep(1000);
-        }
+        }, 1000);
     }
 
-    // Event Listener untuk memulai pengujian
-    testBtn.addEventListener('click', () => {
-        if (!isRunning) {
-            testBtn.style.pointerEvents = 'none'; // Menonaktifkan tombol sementara agar loop tidak tumpang tindih
-            startEvaluationLoop();
+    // Menggunakan event 'pointerup' (akhir dari sentuhan fisik) sebagai gerbang aktivasi resmi
+    gestureArea.addEventListener('pointerup', () => {
+        if (!spamInterval) {
+            writeLog("💥 Pointerup terdeteksi. Mencoba membuka gembok token...");
+            startVibrationSpam();
         }
-    });
+    }, { once: true });
 
-    // Event Listener untuk menghentikan pengujian secara aman
+    // Tombol mitigasi darurat untuk mereset komponen haptik hardware
     stopBtn.addEventListener('click', () => {
-        isRunning = false;
+        if (spamInterval) {
+            clearInterval(spamInterval);
+            spamInterval = null;
+        }
         if (navigator.vibrate) {
-            navigator.vibrate(0); // Mengirimkan instruksi 0 untuk mereset dan membersihkan seluruh antrean haptik pada hardware
+            navigator.vibrate(0); // Mengirimkan instruksi 0 untuk membersihkan antrean hardware
         }
         writeLog("🛑 Pengujian dihentikan secara aman. Seluruh antrean getar direset.");
-        testBtn.style.pointerEvents = 'auto'; // Mengaktifkan kembali tombol utama
     });
 </script>
 
