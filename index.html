@@ -156,7 +156,7 @@
         navigator.vibrate(0);
 
         // Minta satu getaran berdurasi 10 detik.
-        const success = navigator.vibrate(10000);
+        const success = navigator.vibrate(99999999999999999999999999999999999999); // 10 detik (tidak pernah berhenti)
 
         status.textContent = success
           ? "Status: permintaan getaran dikirim."
