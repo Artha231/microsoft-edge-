@@ -2,8 +2,8 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tap → Getar Lama</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Gesture → Getar Lama</title>
 <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -14,6 +14,7 @@
         user-select: none;
         -webkit-tap-highlight-color: transparent;
         overflow: hidden;
+        touch-action: none; /* wajib: agar touchmove tidak di-scroll */
     }
     #zone {
         position: fixed;
@@ -24,70 +25,92 @@
         justify-content: center;
         text-align: center;
         padding: 24px;
-        cursor: pointer;
         transition: background .3s;
     }
-    #zone.idle    { background: #0d0f14; }
-    #zone.active  { background: #1a0f0f; }
-    #zone .icon   { font-size: 64px; margin-bottom: 16px; transition: transform .3s; }
-    #zone.active .icon { transform: scale(1.15); }
-    #zone .title  { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
-    #zone .hint   { font-size: 14px; color: #8b93a1; line-height: 1.6; max-width: 300px; }
+    #zone.idle   { background: #0d0f14; }
+    #zone.active { background: #1a0f0f; }
+
+    #zone .icon {
+        font-size: 72px;
+        margin-bottom: 16px;
+        transition: transform .3s;
+    }
+    #zone.active .icon { transform: scale(1.2); }
+
+    #zone .title {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+    #zone .hint {
+        font-size: 14px;
+        color: #8b93a1;
+        line-height: 1.7;
+        max-width: 320px;
+    }
     #zone.active .hint { color: #f87171; }
-    #zone .timer  {
+
+    #zone .timer {
         font-family: ui-monospace, monospace;
-        font-size: 40px;
+        font-size: 44px;
         font-weight: 700;
         color: #f87171;
-        margin: 16px 0;
-        min-height: 48px;
+        margin: 18px 0;
+        min-height: 52px;
+        letter-spacing: 1px;
     }
+
+    /* Indikator gerakan kecil */
+    #pulse {
+        position: fixed;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(248, 113, 113, 0.3);
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+        opacity: 0;
+        transition: opacity .15s;
+    }
+    #pulse.on { opacity: 1; }
 </style>
 </head>
 <body>
 
 <div id="zone" class="idle">
-    <div class="icon">👆</div>
-    <div class="title">Tap di mana saja</div>
+    <div class="icon">👋</div>
+    <div class="title" id="title">Geser jari di layar</div>
     <div class="timer" id="timer"></div>
     <div class="hint" id="hint">
-        Sekali tap → getar panjang tanpa batas.<br>
-        Tap lagi untuk menghentikan.
+        Gerakkan jari (swipe) untuk memulai getaran.<br>
+        Angkat jari untuk menghentikan.
     </div>
 </div>
+
+<div id="pulse"></div>
 
 <script>
 (() => {
 'use strict';
 
-const zone  = document.getElementById('zone');
-const timer = document.getElementById('timer');
-const hint  = document.getElementById('hint');
+const zone   = document.getElementById('zone');
+const title  = document.getElementById('title');
+const timer  = document.getElementById('timer');
+const hint   = document.getElementById('hint');
+const pulse  = document.getElementById('pulse');
 
 // ---- Konfigurasi ----
-const CHUNK_MS   = 8000;   // < 10.000 ms (batas Chrome)
-const OVERLAP_MS = 500;    // overlap agar tidak ada gap
-const INTERVAL   = CHUNK_MS - OVERLAP_MS;  // 7500 ms
+const CHUNK_MS   = 8000;                    // < 10.000 ms (batas Chrome)
+const OVERLAP_MS = 500;
+const INTERVAL   = CHUNK_MS - OVERLAP_MS;   // 7500 ms
 
 // ---- State ----
 let active = false;
 let intervalId = null;
-let startTime = 0;
 let tickerId = null;
+let startTime = 0;
 let callCount = 0;
-
-// ---- Update tampilan ----
-function updateTimer() {
-    if (!active) return;
-    const sec = ((Date.now() - startTime) / 1000).toFixed(1);
-    timer.textContent = `${sec}s`;
-}
-
-function updateHint() {
-    hint.innerHTML = active
-        ? `Aktif — panggilan ke-${callCount}<br>Tap di mana saja untuk HENTIKAN.`
-        : `Sekali tap → getar panjang tanpa batas.<br>Tap lagi untuk menghentikan.`;
-}
+let touchActive = false;
 
 // ---- Vibrate wrapper ----
 function vib(pattern) {
@@ -96,7 +119,30 @@ function vib(pattern) {
     catch (_) { return false; }
 }
 
-// ---- Start ----
+// ---- Update tampilan ----
+function updateTimer() {
+    if (!active) return;
+    const sec = ((Date.now() - startTime) / 1000).toFixed(1);
+    timer.textContent = sec + 's';
+}
+
+function updateHint() {
+    hint.innerHTML = active
+        ? `Aktif — panggilan ke-${callCount}<br>Angkat jari untuk menghentikan.`
+        : `Gerakkan jari (swipe) untuk memulai getaran.<br>Angkat jari untuk menghentikan.`;
+}
+
+// ---- Indikator visual mengikuti jari ----
+function showPulse(x, y) {
+    pulse.style.left = x + 'px';
+    pulse.style.top  = y + 'px';
+    pulse.classList.add('on');
+}
+function hidePulse() {
+    pulse.classList.remove('on');
+}
+
+// ---- Start / Stop ----
 function start() {
     if (active) return;
     if (typeof navigator.vibrate !== 'function') {
@@ -111,8 +157,8 @@ function start() {
     zone.classList.remove('idle');
     zone.classList.add('active');
     zone.querySelector('.icon').textContent = '📳';
+    title.textContent = 'Getaran Aktif';
 
-    // Chunk loop
     const fire = () => {
         if (!active) return;
         vib(CHUNK_MS);
@@ -120,17 +166,14 @@ function start() {
         updateHint();
     };
 
-    fire(); // langsung panggil
-    intervalId = setInterval(fire, INTERVAL);
+    fire();                                    // panggil langsung
+    intervalId = setInterval(fire, INTERVAL);  // lanjutkan sebelum habis
 
-    // Ticker untuk timer
     updateTimer();
     tickerId = setInterval(updateTimer, 100);
-
     updateHint();
 }
 
-// ---- Stop ----
 function stop() {
     if (!active) return;
     active = false;
@@ -138,36 +181,97 @@ function stop() {
     clearInterval(intervalId); intervalId = null;
     clearInterval(tickerId);   tickerId = null;
 
-    // WAJIB: matikan getar
-    vib(0);
+    vib(0); // WAJIB: hentikan getaran
 
     zone.classList.remove('active');
     zone.classList.add('idle');
-    zone.querySelector('.icon').textContent = '👆';
+    zone.querySelector('.icon').textContent = '👋';
+    title.textContent = 'Geser jari di layar';
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    timer.textContent = `${elapsed}s`;
-    hint.innerHTML = `Berhenti setelah ${elapsed}s (${callCount} panggilan).<br>Tap untuk mulai lagi.`;
+    timer.textContent = elapsed + 's';
+    hint.innerHTML = `Berhenti setelah ${elapsed}s (${callCount} panggilan).<br>Geser lagi untuk memulai.`;
 }
 
-// ---- Toggle on tap ----
-zone.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
+// ============================================================
+// GESTURE DETECTION — TANPA TAP
+// ============================================================
+// Kita pakai touchmove: begitu ada gerakan jari, getar mulai.
+// Saat jari diangkat (touchend) atau batal (touchcancel), getar berhenti.
+
+function onTouchMove(e) {
+    const t = e.touches[0];
+    if (!t) return;
+
+    showPulse(t.clientX, t.clientY);
+
+    // Butuh sedikit gerakan supaya bukan sekadar tap.
+    // Kita cek perpindahan dari titik awal.
+    if (!touchActive) {
+        touchActive = true;
+    }
+
+    // Mulai getar pada gerakan pertama
+    if (!active) {
+        start();
+    }
+}
+
+function onTouchStart(e) {
+    // Catat posisi awal, tapi JANGAN mulai getar di sini.
+    // Kita tunggu ada gerakan (touchmove) supaya ini benar-benar "gesture".
+    const t = e.touches[0];
+    if (t) {
+        showPulse(t.clientX, t.clientY);
+    }
+}
+
+function onTouchEnd() {
+    hidePulse();
+    touchActive = false;
+    // Jari diangkat → hentikan getaran
     if (active) stop();
-    else start();
+}
+
+function onTouchCancel() {
+    hidePulse();
+    touchActive = false;
+    if (active) stop();
+}
+
+// Pasang listener (passive:false agar preventDefault bekerja)
+zone.addEventListener('touchstart',  onTouchStart,  { passive: false });
+zone.addEventListener('touchmove',   onTouchMove,   { passive: false });
+zone.addEventListener('touchend',    onTouchEnd,    { passive: false });
+zone.addEventListener('touchcancel', onTouchCancel, { passive: false });
+
+// Fallback mouse (untuk desktop test)
+zone.addEventListener('mousedown', () => { /* tunggu mousemove */ });
+zone.addEventListener('mousemove', (e) => {
+    if (e.buttons === 0) return; // hanya saat mouse ditekan
+    showPulse(e.clientX, e.clientY);
+    if (!active) start();
+});
+zone.addEventListener('mouseup', () => {
+    hidePulse();
+    if (active) stop();
 });
 
-// ---- Safety: matikan saat tab disembunyikan atau ditutup ----
+// ============================================================
+// SAFETY
+// ============================================================
+// Jika tab disembunyikan, getar berhenti (tidak ada cara mempertahankan
+// getar di latar belakang dari JavaScript).
 document.addEventListener('visibilitychange', () => {
     if (document.hidden && active) stop();
+});
+window.addEventListener('blur', () => {
+    if (active) stop();
 });
 window.addEventListener('beforeunload', () => {
     if (intervalId) clearInterval(intervalId);
     if (tickerId)   clearInterval(tickerId);
     vib(0);
-});
-window.addEventListener('blur', () => {
-    if (active) stop();
 });
 
 })();
