@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Test: Clickjacking & Async Race Condition</title>
+    <title>Advanced Test: Moving Clickjacking & Race Condition</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body {
@@ -12,6 +12,7 @@
             color: #e3e3e3;
             text-align: center;
             padding: 20px;
+            overflow-x: hidden;
         }
         .container {
             max-width: 450px;
@@ -20,6 +21,7 @@
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            position: relative;
         }
         button {
             padding: 15px;
@@ -51,57 +53,90 @@
         }
 
         /* ======================================================== */
-        /* PENYEMPURNAAN STRATEGI CLICKJACKING                      */
+        /* STRATEGI CLICKJACKING DENGAN ELEMEN BERGERAK             */
         /* ======================================================== */
-        .bait-box {
-            position: relative; /* Menjadi jangkar posisi absolut untuk tombol transparan */
-            margin: 20px 0;
-            padding: 0;         /* Diubah ke 0 agar overlay tombol menutupi 100% area tanpa celah */
-            border: 2px dashed #333;
-            border-radius: 30px; /* Menyelaraskan kebulatan sudut wadah dengan tombol */
-            background: #1a1a1e;
-            overflow: hidden;   /* Memastikan elemen transparan tidak bocor keluar batas */
-        }
         
-        /* Umpan visual yang dilihat oleh target */
-        .fake-target-btn {
-            background: #007bff;
-            color: white;
-            padding: 15px;
-            font-size: 18px;
-            font-weight: bold;
-            border-radius: 30px;
-            display: inline-block;
+        /* Area panggung tempat tombol bergerak */
+        .stage-area {
             width: 100%;
-            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+            height: 120px;
+            margin: 20px 0;
+            position: relative;
+            background: #151518;
+            border: 2px dashed #333;
+            border-radius: 12px;
+            overflow: hidden;
         }
 
-        /* Tombol start asli yang dimanipulasi agar menutup sempurna tepat di atas umpan */
+        /* Wadah utama yang bergerak. Berisi tombol palsu & tombol asli transparan */
+        .bait-box {
+            position: absolute;
+            width: 220px;
+            height: 50px;
+            top: 35px; /* Posisikan di tengah vertikal panggung */
+            left: 0;
+            border-radius: 30px;
+            /* Menjalankan animasi bergerak ke kiri-kanan secara horizontal */
+            animation: gerakHorizontal 3s ease-in-out infinite alternate;
+        }
+        
+        /* Umpan visual bergerak yang memancing mata pengguna */
+        .fake-target-btn {
+            background: #ffc107; /* Warna kuning agar kontras */
+            color: #000;
+            padding: 13px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 30px;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(255,193,7,0.4);
+            letter-spacing: 1px;
+        }
+
+        /* Tombol start asli yang menempel MATI pada wadah bergerak */
         #startBtn {
             position: absolute;
-            top: 0;       /* Menempel mutlak di ujung atas wadah */
-            left: 0;      /* Menempel mutlak di ujung kiri wadah */
-            width: 100%;  /* Menutupi 100% lebar wadah umpan */
-            height: 100%; /* Menutupi 100% tinggi wadah umpan */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background: transparent;
-            opacity: 0;   /* Sepenuhnya transparan (tak terlihat oleh mata) */
-            z-index: 99;  /* Berada di lapisan teratas agar memotong interaksi sentuhan */
+            opacity: 0; /* 100% Tidak terlihat */
+            z-index: 999; /* Lapisan paling atas memotong semua ketukan jari */
             cursor: pointer;
             border: none;
+            border-radius: 30px;
+        }
+
+        /* Animasi CSS untuk menggerakkan tombol ke kanan dan ke kiri */
+        @keyframes gerakHorizontal {
+            0% {
+                transform: translateX(10px);
+            }
+            100% {
+                /* Bergerak maksimal ke ujung kanan wadah kontainer */
+                transform: translateX(calc(100% - 40px));
+            }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Clickjacking Race Experiment</h2>
-    <p style="color: #aaa; font-size: 14px; margin-top: 5px;">Ketuk tombol biru untuk mensimulasikan jacking gesture dan memulai kondisi balapan.</p>
+    <h2>Moving Clickjacking Race</h2>
+    <p style="color: #aaa; font-size: 14px; margin-top: 5px;">
+        Ketuk tombol kuning yang bergerak untuk mensimulasikan kegagalan refleks pengguna.
+    </p>
     
-    <!-- Area Clickjacking Terisolasi -->
-    <div class="bait-box">
-        <div class="fake-target-btn">KLAIM HADIAH ANDA</div>
-        <!-- Tombol Start Asli Menimpa Tombol Palsu secara Presisi -->
-        <button id="startBtn"></button>
+    <!-- Panggung Gerak Terisolasi -->
+    <div class="stage-area">
+        <div class="bait-box">
+            <div class="fake-target-btn">🎁 KLAIM BONUS 🎁</div>
+            <!-- Tombol Asli ikut bergerak secara pasif karena berada dalam satu container -->
+            <button id="startBtn"></button>
+        </div>
     </div>
 
     <button id="stopBtn" class="btn-stop">HENTIKAN PENGUJIAN</button>
@@ -147,7 +182,7 @@
         isRunning = true;
         loopCounter = 0;
         logBox.innerHTML = "";
-        writeLog("💥 Clickjacking Sukses: Gesture token berhasil direbut!");
+        writeLog("💥 Clickjacking Sukses: Tombol bergerak berhasil dijebak!");
         writeLog("Memulai Loop Penundaan & Paket Race...");
 
         while (isRunning) {
@@ -156,7 +191,6 @@
             
             await sleep(6000);
 
-            // Jika eksekusi stop ditekan saat delay, langsung potong alur keluar dari loop
             if (!isRunning) break;
 
             if (navigator.userActivation) {
@@ -176,22 +210,22 @@
         }
     }
 
-    // Pemicu Klik Tersembunyi
+    // Pemicu Klik Tersembunyi pada Elemen Bergerak
     startBtn.addEventListener('click', () => {
         if (!isRunning) {
-            startBtn.style.pointerEvents = 'none'; // Matikan klik tambahan agar tidak menumpuk instansi loop
+            startBtn.style.pointerEvents = 'none'; // Amankan dari double click berlebih
             startTestingLoop();
         }
     });
 
     // Pemicu Stop Bersih
-    stopBtn.getElementById && stopBtn.addEventListener('click', () => {
+    stopBtn.addEventListener('click', () => {
         isRunning = false;
         if (navigator.vibrate) {
-            navigator.vibrate(0); // Batalkan semua perintah haptik aktif di antrean perangkat keras
+            navigator.vibrate(0); // Batalkan semua perintah haptik aktif
         }
         writeLog("🛑 Pengujian dihentikan. Memori dibersihkan.");
-        startBtn.style.pointerEvents = 'auto'; // Mengembalikan kemampuan klik untuk pengujian ulang
+        startBtn.style.pointerEvents = 'auto'; // Aktifkan kembali akses klik
     });
 </script>
 
