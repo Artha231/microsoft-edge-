@@ -3,59 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vibration API Gesture Security Analyzer</title>
+    <title>Gesture & Vibration API Check</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            background-color: #121214;
-            color: #e3e3e3;
-            text-align: center;
+            font-family: sans-serif;
+            background-color: #ffffff; /* Latar putih penuh */
+            color: #000000;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        .container {
-            max-width: 450px;
-            margin: 30px auto;
-            background: #1e1e24;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-        }
-        .interactive-zone {
+        .touch-zone {
             width: 100%;
-            height: 150px;
+            max-width: 400px;
+            height: 200px;
             margin: 20px 0;
-            background: #2c3e50;
-            border: 2px dashed #3498db;
-            border-radius: 12px;
+            border: 2px dashed #cccccc;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
+            color: #666666;
             cursor: pointer;
         }
         .btn-stop {
+            width: 100%;
+            max-width: 400px;
             padding: 15px;
             font-size: 16px;
             font-weight: bold;
             border-radius: 8px;
             cursor: pointer;
-            width: 100%;
-            background-color: #dc3545;
+            background-color: #ff3333;
             color: white;
             border: none;
+            margin-bottom: 20px;
         }
-        #status-log {
-            margin-top: 20px;
+        #log-output {
+            width: 100%;
+            max-width: 400px;
             padding: 15px;
-            background: #000;
-            color: #00ff66;
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            color: #333333;
             font-family: monospace;
             text-align: left;
             border-radius: 6px;
-            font-size: 12px;
-            min-height: 120px;
-            max-height: 250px;
+            font-size: 13px;
+            height: 200px;
             overflow-y: auto;
             white-space: pre-wrap;
         }
@@ -63,70 +61,72 @@
 </head>
 <body>
 
-<div class="container">
-    <h2>Vibration API Analyzer</h2>
-    <p style="color: #aaa; font-size: 14px;">Interaksikan jari Anda pada area di bawah untuk menguji respons gembok keamanan peramban.</p>
-    
-    <!-- Area untuk menerima interaksi gestur pengguna -->
-    <div id="gestureArea" class="interactive-zone">
-        KETUK ATAU SWIPE DI SINI
+    <h3 style="margin-top: 20px;">Vibration & Gesture Analyzer</h3>
+    <p style="color: #666; font-size: 14px; margin-top: 5px; text-align: center;">
+        Sentuh, seret, atau lepas jari Anda pada kotak di bawah untuk memeriksa validasi token gestur.
+    </p>
+
+    <!-- Area Deteksi Gestur -->
+    <div id="touchZone" class="touch-zone">
+        INTERAKSI JARI DI SINI
     </div>
 
-    <button id="stopBtn" class="btn-stop">HENTIKAN LOOP</button>
+    <button id="stopBtn" class="btn-stop">HENTIKAN LOOP GETAR</button>
 
-    <h3>Konsol Log Logika:</h3>
-    <div id="status-log">Menunggu inisialisasi gestur...</div>
-</div>
+    <div id="log-output">Menunggu aktivitas sentuhan...</div>
 
 <script>
-    const logBox = document.getElementById('status-log');
-    const gestureArea = document.getElementById('gestureArea');
+    const logOutput = document.getElementById('log-output');
+    const touchZone = document.getElementById('touchZone');
     const stopBtn = document.getElementById('stopBtn');
     
-    let spamInterval = null;
+    let vibrationInterval = null;
 
-    function writeLog(text) {
-        logBox.innerHTML += "\n> " + text;
-        logBox.scrollTop = logBox.scrollHeight;
+    function addLog(message) {
+        logOutput.innerHTML += "\n> " + message;
+        logOutput.scrollTop = logOutput.scrollHeight;
     }
 
-    // Fungsi untuk memicu getaran berulang sesuai logika instrumen Anda
+    // Fungsi loop getar berbasis interval
     function startVibrationSpam() {
-        writeLog("Mengeksekusi siklus pengetesan Vibration API...");
+        addLog("Memulai perulangan Vibration API...");
         
-        // Menggunakan interval intermiten yang aman (misal: tiap 1000ms) untuk stabilitas memori haptik hardware
-        spamInterval = setInterval(() => {
+        vibrationInterval = setInterval(() => {
             if (navigator.vibrate) {
-                const isAllowed = navigator.vibrate(5000); 
-                if (!isAllowed) {
-                    writeLog("⚠️ Perintah getar ditolak peramban (Aktivasi tidak valid).");
-                    clearInterval(spamInterval);
+                // Mencoba memicu getaran 5000ms
+                const status = navigator.vibrate(5000); 
+                
+                if (status) {
+                    addLog("Sinyal getar berhasil dikirim.");
+                } else {
+                    addLog("⚠️ Browser menolak perintah getar (Aktivasi tidak valid).");
+                    clearInterval(vibrationInterval);
                 }
             } else {
-                writeLog("❌ Peramban tidak mendukung atau memblokir Vibration API.");
-                clearInterval(spamInterval);
+                addLog("❌ Browser memblokir total atau tidak mendukung Vibration API.");
+                clearInterval(vibrationInterval);
             }
-        }, 1000);
+        }, 1000); // Interval 1 detik demi stabilitas pembacaan log haptik
     }
 
-    // Menggunakan event 'pointerup' (akhir dari sentuhan fisik) sebagai gerbang aktivasi resmi
-    gestureArea.addEventListener('pointerup', () => {
-        if (!spamInterval) {
-            writeLog("💥 Pointerup terdeteksi. Mencoba membuka gembok token...");
+    // Memanfaatkan event 'pointerup' (titik akhir gestur sentuhan) sebagai gerbang aktivasi sah peramban
+    touchZone.addEventListener('pointerup', () => {
+        if (!vibrationInterval) {
+            addLog("💥 Gerakan dilepaskan (Pointerup). Mencoba memicu API...");
             startVibrationSpam();
         }
     }, { once: true });
 
-    // Tombol mitigasi darurat untuk mereset komponen haptik hardware
+    // Tombol darurat untuk membersihkan antrean hardware haptik ponsel
     stopBtn.addEventListener('click', () => {
-        if (spamInterval) {
-            clearInterval(spamInterval);
-            spamInterval = null;
+        if (vibrationInterval) {
+            clearInterval(vibrationInterval);
+            vibrationInterval = null;
         }
         if (navigator.vibrate) {
-            navigator.vibrate(0); // Mengirimkan instruksi 0 untuk membersihkan antrean hardware
+            navigator.vibrate(0); // Setel ke 0 untuk mematikan paksa semua getaran aktif
         }
-        writeLog("🛑 Pengujian dihentikan secara aman. Seluruh antrean getar direset.");
+        addLog("🛑 Pengujian dihentikan. Seluruh antrean getar direset.");
     });
 </script>
 
