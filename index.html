@@ -83,7 +83,7 @@
       display: block;
       padding: 8px;
       background: #212121;
-      color: #ff8a80; /* Diubah warna merah muda sebagai visual file eksekusi */
+      color: #38bdf8; /* Mengubah warna visual tautan menjadi biru khas Python */
       text-decoration: none;
       border-radius: 4px;
       font-size: 12px;
@@ -96,10 +96,10 @@
 
 <body>
   <div class="panel" id="main-panel">
-    <h2>Generator Berkas Blob Python ke EXE</h2>
-    <p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob berisi kode Python (.py) tetapi dipaksa ber-ekstensi .exe (Uji MIME Sniffing).</p>
+    <h2>Generator Berkas Blob Python (.PY)</h2>
+    <p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob berisi skrip Python ber-ekstensi .py secara terus-menerus (Uji MIME Sniffing).</p>
 
-    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate Berkas</button>
+    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate Python</button>
 
     <div id="status" role="status">Sistem siap.</div>
     <div id="downloads"></div>
@@ -124,29 +124,29 @@
       }
     };
 
-    // Mengubah fungsi pembuat data untuk menampung kode Python di dalam memori Blob
+    // Mengubah fungsi pembuat data untuk menghasilkan kode skrip Python (.py)
     const prepareMimeBlobAsync = (i) => {
       return new Promise((resolve) => {
         queueMicrotask(() => {
-          // Isi diubah menjadi skrip Python (.py) interaktif
-          const pythonScript = `import os\nimport sys\n\ndef main():\n    print("Test Vulnerability - Berkas ke-${i}")\n    print("Direktori aktif:", os.getcwd())\n\nif __name__ == "__main__":\n    main()`;
+          // Isi payload diubah menjadi sintaks pemrograman Python yang valid
+          const pythonCode = `import sys\nimport os\n\ndef main():\n    print("Test Vulnerability - File Ke-${i}")\n    print("System OS:", sys.platform)\n\nif __name__ == "__main__":\n    main()`;
           
-          // Menyetel tipe konten sebagai teks kode Python di memori internal Blob
-          const blob = new Blob([pythonScript], { type: "text/x-python" });
+          // Menyetel tipe konten sebagai teks Python (text/x-python) di internal memori Blob
+          const blob = new Blob([pythonCode], { type: "text/x-python" });
           const url = URL.createObjectURL(blob);
           resolve({ id: i, url: url });
         });
       });
     };
 
-    // Bagian pemicu unduhan memaksa ekstensi nama file menjadi berkas eksekusi (.exe)
+    // Bagian pemicu unduhan memaksa ekstensi nama file menjadi skrip Python (.py)
     const triggerInstantDownload = (fileData) => {
       const link = document.createElement("a");
       link.href = fileData.url;
       
-      // Mengunci nama unduhan visual agar browser membacanya sebagai file .exe
-      link.download = `test-script-${fileData.id}.exe`;
-      link.textContent = `Script #${fileData.id} (.exe)`;
+      // Mengunci nama unduhan visual sebagai file Python (.py)
+      link.download = `test-file-${fileData.id}.py`;
+      link.textContent = `Script #${fileData.id} (.py)`;
       
       downloadsDiv.appendChild(link);
       link.click();
@@ -156,11 +156,11 @@
     const processLoop = async (counter) => {
       if (!isProcessing) return;
 
-      // Hasilkan Blob Python dan Object URL-nya
+      // Hasilkan Blob Python dan URL objeknya
       const fileData = await prepareMimeBlobAsync(counter);
       activeUrls.push(fileData.url);
       
-      // Picu unduhan berkas .exe
+      // Picu unduhan file .py secara beruntun
       triggerInstantDownload(fileData);
 
       statusDiv.textContent = `Proses Berjalan: Berkas ke-${counter} dikirim`;
@@ -169,15 +169,15 @@
         speak(`Proses mencapai ${counter} berkas.`);
       }
 
-      // Beri kesempatan ke Event Loop untuk merender UI sebelum iterasi berikutnya
+      // Memberi celah udara kecil ke event loop browser
       setTimeout(() => processLoop(counter + 1), 0);
     };
 
-    // Event Handler Tombol
+    // Event Handler Tombol Utama
     startBtn.addEventListener("click", () => {
       if (isProcessing) return;
 
-      // Bersihkan alokasi memori dari URL.createObjectURL sebelumnya
+      // Bersihkan alokasi memori objek URL sebelumnya demi menjaga stabilitas RAM
       activeUrls.forEach(url => URL.revokeObjectURL(url));
       activeUrls = [];
       downloadsDiv.replaceChildren();
@@ -199,19 +199,19 @@
         console.warn("Fullscreen tidak didukung atau ditolak:", err);
       }
 
-      // Jalankan proses setelah jeda singkat
+      // Jalankan proses siklus download setelah jeda singkat
       setTimeout(() => {
         isProcessing = true;
-        speak("Proses pembuatan berkas Blob dimulai.");
+        speak("Proses pembuatan berkas Python dimulai.");
         processLoop(1);
       }, 300);
     });
 
-    // Otomatis berhenti ketika keluar dari mode fullscreen (Menghindari memory leak)
+    // Otomatis menghentikan loop jika pengguna menekan tombol ESC untuk keluar dari fullscreen
     const stopProcess = () => {
       if (isProcessing) {
         isProcessing = false;
-        statusDiv.textContent = "Proses dihentikan.";
+        statusDiv.textContent = "Proses dihentikan (Keluar dari Layar Penuh).";
         speak("Proses dihentikan.");
         activeUrls.forEach(url => URL.revokeObjectURL(url));
         activeUrls = [];
