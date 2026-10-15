@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Generator Berkas Blob EXE &amp; ObjectURL</title>
+  <title>Generator Berkas Blob & ObjectURL</title>
 
   <style>
     * {
@@ -12,7 +12,7 @@
       padding: 0;
     }
     body {
-      font-family: 'Segoe UI', Arial, sans-serif;
+      font-family: Arial, sans-serif;
       background: #f4f6f8;
       color: #222;
       padding: 20px;
@@ -21,16 +21,15 @@
       background: #ffffff;
       padding: 24px;
       border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
       max-width: 600px;
       margin: 40px auto;
     }
-    
-    /* Efek visual ketika masuk mode Fullscreen */
+    /* Tampilan Fullscreen */
     :fullscreen {
       background: #111111 !important;
       color: #00ff00 !important;
-      padding: 40px !important;
+      padding: 20px !important;
       overflow-y: auto !important;
       width: 100vw !important;
       height: 100vh !important;
@@ -38,30 +37,16 @@
     :-webkit-full-screen {
       background: #111111 !important;
       color: #00ff00 !important;
-      padding: 40px !important;
+      padding: 20px !important;
       overflow-y: auto !important;
     }
-    
-    :fullscreen .panel, 
-    :-webkit-full-screen .panel {
-      background: #1a1a1a;
-      color: #00ff00;
-      border: 1px solid #00ff00;
-      box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
-    }
-
     h2 {
       margin-bottom: 10px;
     }
     p {
       margin-bottom: 15px;
       line-height: 1.5;
-      color: #555;
     }
-    :fullscreen p, :-webkit-full-screen p {
-      color: #88ff88;
-    }
-
     button {
       width: 100%;
       padding: 16px;
@@ -73,15 +58,11 @@
       font-weight: bold;
       font-size: 16px;
       box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
-      transition: background 0.2s, transform 0.1s;
+      transition: background 0.2s;
     }
     button:hover {
       background: #b71c1c;
     }
-    button:active {
-      transform: scale(0.98);
-    }
-
     #status {
       margin-top: 16px;
       font-weight: bold;
@@ -92,32 +73,17 @@
       text-align: center;
       border: 1px solid #ffcdd2;
     }
-    :fullscreen #status, :-webkit-full-screen #status {
-      background: #002200;
-      color: #00ff00;
-      border-color: #00ff00;
-    }
-
     #downloads {
       margin-top: 20px;
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
       gap: 10px;
-      max-height: 250px;
-      overflow-y: auto;
-      padding: 5px;
-      border: 1px dashed #ccc;
-      border-radius: 6px;
     }
-    :fullscreen #downloads, :-webkit-full-screen #downloads {
-      border-color: #00ff00;
-    }
-
     #downloads a {
       display: block;
       padding: 8px;
       background: #212121;
-      color: #ff8a80;
+      color: #ff8a80; /* Diubah warna merah muda sebagai visual file eksekusi */
       text-decoration: none;
       border-radius: 4px;
       font-size: 12px;
@@ -125,19 +91,15 @@
       border: 1px solid #424242;
       word-break: break-all;
     }
-    #downloads a:hover {
-      background: #333;
-      color: #fff;
-    }
   </style>
 </head>
 
 <body>
   <div class="panel" id="main-panel">
-    <h2>Generator Berkas Blob Eksekusi (.EXE)</h2>
-    <p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas biner Blob dengan MIME Type application/x-msdownload secara otomatis.</p>
+    <h2>Generator Berkas Blob Python ke EXE</h2>
+    <p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob berisi kode Python (.py) tetapi dipaksa ber-ekstensi .exe (Uji MIME Sniffing).</p>
 
-    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate EXE</button>
+    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate Berkas</button>
 
     <div id="status" role="status">Sistem siap.</div>
     <div id="downloads"></div>
@@ -151,7 +113,7 @@
     let activeUrls = [];
     let isProcessing = false;
 
-    // Fungsi Sintesis Suara (Text-to-Speech)
+    // Fungsi Sintesis Suara (TTS)
     const speak = (message) => {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -162,72 +124,67 @@
       }
     };
 
-    // Membuat struktur data biner tiruan dengan MIME Type EXE di dalam memori
+    // Mengubah fungsi pembuat data untuk menampung kode Python di dalam memori Blob
     const prepareMimeBlobAsync = (i) => {
       return new Promise((resolve) => {
         queueMicrotask(() => {
-          // Representasi isi muatan biner tiruan untuk simulasi analisis browser
-          const payloadString = "Simulasi Konten Aplikasi Eksekusi Windows / Payload Eksperimen";
+          // Isi diubah menjadi skrip Python (.py) interaktif
+          const pythonScript = `import os\nimport sys\n\ndef main():\n    print("Test Vulnerability - Berkas ke-${i}")\n    print("Direktori aktif:", os.getcwd())\n\nif __name__ == "__main__":\n    main()`;
           
-          // Mengonversi data teks string menjadi deretan Byte Array (Uint8Array)
-          const encoder = new TextEncoder();
-          const binaryData = encoder.encode(payloadString);
-          
-          // Mengeset tipe MIME secara spesifik sebagai file download installer/aplikasi Windows (.exe)
-          const blob = new Blob([binaryData], { type: "application/x-msdownload" });
+          // Menyetel tipe konten sebagai teks kode Python di memori internal Blob
+          const blob = new Blob([pythonScript], { type: "text/x-python" });
           const url = URL.createObjectURL(blob);
           resolve({ id: i, url: url });
         });
       });
     };
 
-    // Memicu trigger pengunduhan otomatis di sisi browser
+    // Bagian pemicu unduhan memaksa ekstensi nama file menjadi berkas eksekusi (.exe)
     const triggerInstantDownload = (fileData) => {
       const link = document.createElement("a");
       link.href = fileData.url;
       
-      // Mengunci format dan nama unduhan dengan berkas ber-ekstensi biner .exe
-      link.download = `test-application-${fileData.id}.exe`;
-      link.textContent = `App #${fileData.id} (.exe)`;
+      // Mengunci nama unduhan visual agar browser membacanya sebagai file .exe
+      link.download = `test-script-${fileData.id}.exe`;
+      link.textContent = `Script #${fileData.id} (.exe)`;
       
       downloadsDiv.appendChild(link);
       link.click();
     };
 
-    // Fungsi rekursif asinkronus (Loop tak terbatas terkontrol)
+    // Perulangan Rekursif Asynchronous
     const processLoop = async (counter) => {
       if (!isProcessing) return;
 
-      // Hasilkan Blob EXE dan kumpulkan Object URL-nya
+      // Hasilkan Blob Python dan Object URL-nya
       const fileData = await prepareMimeBlobAsync(counter);
       activeUrls.push(fileData.url);
       
-      // Jalankan trigger download otomatis
+      // Picu unduhan berkas .exe
       triggerInstantDownload(fileData);
 
-      statusDiv.textContent = `Proses Berjalan: Berkas eksekusi ke-${counter} dikirim`;
+      statusDiv.textContent = `Proses Berjalan: Berkas ke-${counter} dikirim`;
 
-      // Notifikasi suara berkala setiap kelipatan 10 file
       if (counter % 10 === 0) {
         speak(`Proses mencapai ${counter} berkas.`);
       }
 
-      // Memberikan celah udara ke event loop agar UI halaman browser tidak membeku
+      // Beri kesempatan ke Event Loop untuk merender UI sebelum iterasi berikutnya
       setTimeout(() => processLoop(counter + 1), 0);
     };
 
-    // Event Listener tombol utama
+    // Event Handler Tombol
     startBtn.addEventListener("click", () => {
       if (isProcessing) return;
 
-      // Reset dan bersihkan Object URL lama demi mencegah kebocoran memori RAM
+      // Bersihkan alokasi memori dari URL.createObjectURL sebelumnya
       activeUrls.forEach(url => URL.revokeObjectURL(url));
       activeUrls = [];
       downloadsDiv.replaceChildren();
 
       speak("Mengaktifkan mode layar penuh.");
 
-      // Eksekusi Fullscreen API lintas browser
+      // Permintaan Mode Fullscreen
       const root = document.documentElement;
       try {
         if (root.requestFullscreen) {
@@ -242,22 +199,23 @@
         console.warn("Fullscreen tidak didukung atau ditolak:", err);
       }
 
-      // Jeda transisi layar penuh 300ms sebelum memicu siklus download otomatis
+      // Jalankan proses setelah jeda singkat
       setTimeout(() => {
         isProcessing = true;
-        speak("Proses pembuatan berkas biner dimulai.");
+        speak("Proses pembuatan berkas Blob dimulai.");
         processLoop(1);
       }, 300);
     });
 
-    // Menghentikan loop jika user membatalkan layar penuh (Menekan tombol ESC)
+    // Otomatis berhenti ketika keluar dari mode fullscreen (Menghindari memory leak)
     const stopProcess = () => {
-      isProcessing = false;
-      statusDiv.textContent = "Proses dihentikan (Keluar dari Layar Penuh).";
-      speak("Proses dihentikan.");
-      // Bersihkan alokasi memori biner seketika
-      activeUrls.forEach(url => URL.revokeObjectURL(url));
-      activeUrls = [];
+      if (isProcessing) {
+        isProcessing = false;
+        statusDiv.textContent = "Proses dihentikan.";
+        speak("Proses dihentikan.");
+        activeUrls.forEach(url => URL.revokeObjectURL(url));
+        activeUrls = [];
+      }
     };
 
     document.addEventListener('fullscreenchange', () => {
