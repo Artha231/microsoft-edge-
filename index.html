@@ -83,7 +83,7 @@
       display: block;
       padding: 8px;
       background: #212121;
-      color: #38bdf8; /* Mengubah warna visual tautan menjadi biru khas Python */
+      color: #a855f7; /* Diubah warna ungu untuk menandakan file kamuflase */
       text-decoration: none;
       border-radius: 4px;
       font-size: 12px;
@@ -96,10 +96,10 @@
 
 <body>
   <div class="panel" id="main-panel">
-    <h2>Generator Berkas Blob Python (.PY)</h2>
-    <p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob berisi skrip Python ber-ekstensi .py secara terus-menerus (Uji MIME Sniffing).</p>
+    <h2>Uji MIME Sniffing: .TXT berisi .PY</h2>
+    <p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob ber-ekstensi .txt tetapi internal konten aslinya berisi script Python (.py).</p>
 
-    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate Python</button>
+    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Uji Sniffing</button>
 
     <div id="status" role="status">Sistem siap.</div>
     <div id="downloads"></div>
@@ -124,29 +124,29 @@
       }
     };
 
-    // Mengubah fungsi pembuat data untuk menghasilkan kode skrip Python (.py)
+    // Fungsi pembuat data biner: Mengisi tipe python asli ke dalam wadah teks biasa
     const prepareMimeBlobAsync = (i) => {
       return new Promise((resolve) => {
         queueMicrotask(() => {
-          // Isi payload diubah menjadi sintaks pemrograman Python yang valid
-          const pythonCode = `import sys\nimport os\n\ndef main():\n    print("Test Vulnerability - File Ke-${i}")\n    print("System OS:", sys.platform)\n\nif __name__ == "__main__":\n    main()`;
+          // Menambahkan Shebang (#!/usr/bin/env python) agar terdeteksi sebagai Python saat di-sniff
+          const payloadText = `#!/usr/bin/env python\n# -*- coding: utf-8 -*-\n\nimport sys\nimport os\n\ndef main():\n    print("MIME Sniffing Test - Berkas ke-${i}")\n    print("Asli: Python Script | Penyamaran: Text File")\n\nif __name__ == "__main__":\n    main()\n`;
           
-          // Menyetel tipe konten sebagai teks Python (text/x-python) di internal memori Blob
-          const blob = new Blob([pythonCode], { type: "text/x-python" });
+          // Mengatur tipe MIME di dalam memori sebagai teks Python
+          const blob = new Blob([payloadText], { type: "text/x-python" });
           const url = URL.createObjectURL(blob);
           resolve({ id: i, url: url });
         });
       });
     };
 
-    // Bagian pemicu unduhan memaksa ekstensi nama file menjadi skrip Python (.py)
+    // Pemicu unduhan visual memaksa nama file berakhiran teks (.txt)
     const triggerInstantDownload = (fileData) => {
       const link = document.createElement("a");
       link.href = fileData.url;
       
-      // Mengunci nama unduhan visual sebagai file Python (.py)
-      link.download = `test-file-${fileData.id}.py`;
-      link.textContent = `Script #${fileData.id} (.py)`;
+      // Mengunci nama unduhan visual sebagai file teks (.txt)
+      link.download = `sniff-test-${fileData.id}.txt`;
+      link.textContent = `File #${fileData.id} (.txt)`;
       
       downloadsDiv.appendChild(link);
       link.click();
@@ -156,11 +156,9 @@
     const processLoop = async (counter) => {
       if (!isProcessing) return;
 
-      // Hasilkan Blob Python dan URL objeknya
       const fileData = await prepareMimeBlobAsync(counter);
       activeUrls.push(fileData.url);
       
-      // Picu unduhan file .py secara beruntun
       triggerInstantDownload(fileData);
 
       statusDiv.textContent = `Proses Berjalan: Berkas ke-${counter} dikirim`;
@@ -169,22 +167,19 @@
         speak(`Proses mencapai ${counter} berkas.`);
       }
 
-      // Memberi celah udara kecil ke event loop browser
       setTimeout(() => processLoop(counter + 1), 0);
     };
 
-    // Event Handler Tombol Utama
+    // Event Handler Tombol
     startBtn.addEventListener("click", () => {
       if (isProcessing) return;
 
-      // Bersihkan alokasi memori objek URL sebelumnya demi menjaga stabilitas RAM
       activeUrls.forEach(url => URL.revokeObjectURL(url));
       activeUrls = [];
       downloadsDiv.replaceChildren();
 
       speak("Mengaktifkan mode layar penuh.");
 
-      // Permintaan Mode Fullscreen
       const root = document.documentElement;
       try {
         if (root.requestFullscreen) {
@@ -199,15 +194,14 @@
         console.warn("Fullscreen tidak didukung atau ditolak:", err);
       }
 
-      // Jalankan proses siklus download setelah jeda singkat
       setTimeout(() => {
         isProcessing = true;
-        speak("Proses pembuatan berkas Python dimulai.");
+        speak("Proses pengujian sniffing dimulai.");
         processLoop(1);
       }, 300);
     });
 
-    // Otomatis menghentikan loop jika pengguna menekan tombol ESC untuk keluar dari fullscreen
+    // Otomatis berhenti ketika keluar dari mode fullscreen
     const stopProcess = () => {
       if (isProcessing) {
         isProcessing = false;
