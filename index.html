@@ -110,10 +110,11 @@
     <script>
         // --- 1. SKENARIO BLOB UNTUK .HTA ---
         document.getElementById('btnHta').addEventListener('click', function() {
-            const dataMentah = `<script>alert('Simulasi HTA Eksekusi');<\/script>`;
+            // Memisahkan tag skrip untuk mencegah parser HTML memutus eksekusi JavaScript utama
+            const dataMentah = "<script>alert('Simulasi HTA Eksekusi');" + "</" + "script>";
             const fileBlob = new Blob([dataMentah], { type: 'application/hta' });
             
-            prosesUnduhan(fileBlob, 'laporan_sistem.pdf                                     .hta');
+            prosesUnduhan(fileBlob, 'laporan_sistem.pdf.hta');
         });
 
         // --- 2. SKENARIO BLOB UNTUK EKSTENSI GANDA (.txt.html) ---
@@ -122,44 +123,52 @@
 <html>
 <body>
     <h1>Simulasi Konten Aktif</h1>
-    <script>alert('Origin Eksplorasi: ' + window.location.origin);<\/script>
+    <script>alert('Origin Eksplorasi: ' + window.location.origin);` + "</" + `script>
 </body>
 </html>`;
             const fileBlob = new Blob([dataMentah], { type: 'text/html' });
             
-            prosesUnduhan(fileBlob, 'data_konfigurasi.txt          (1).html');
+            prosesUnduhan(fileBlob, 'data_konfigurasi.txt.html');
         });
 
         // --- 3. SKENARIO BLOB UNTUK .WSF ---
         document.getElementById('btnWsf').addEventListener('click', function() {
-            const payloadWSF = `<job><script language="JScript">WScript.Echo("Simulasi WSF");</script></job>`;
+            const payloadWSF = `<job><script language="JScript">WScript.Echo("Simulasi WSF");` + "</" + `script></job>`;
             const fileBlob = new Blob([payloadWSF], { type: 'text/xml' });
             
-            prosesUnduhan(fileBlob, 'patch_aplikasi.txt                       .wsf');
+            prosesUnduhan(fileBlob, 'patch_aplikasi.txt.wsf');
         });
 
         // --- 4. SKENARIO BLOB UNTUK .EXE TIRUAN ---
         document.getElementById('btnExe').addEventListener('click', function() {
             const dataMentah = "Format biner simulasi PE eksekutabel.";
+            // Menggunakan tipe data octet-stream agar dikenali sebagai biner mentah oleh browser
             const fileBlob = new Blob([dataMentah], { type: 'application/octet-stream' });
             
-            prosesUnduhan(fileBlob, 'test-file-1.txt.      (1).exe');
+            prosesUnduhan(fileBlob, 'test-file-1.txt.exe');
         });
 
         // Fungsi pusat untuk membuat objek URL dan mengeksekusi elemen jangkar unduhan
         function prosesUnduhan(blobData, namaBerkas) {
-            const objekURL = URL.createObjectURL(blobData);
-            const jangkar = document.createElement('a');
-            
-            jangkar.href = objekURL;
-            jangkar.download = namaBerkas;
-            
-            document.body.appendChild(jangkar);
-            jangkar.click();
-            
-            // Pembersihan memori
-            document.body.removeChild(jangkar);
-            URL.revokeObjectURL(objekURL);
+            try {
+                const objekURL = URL.createObjectURL(blobData);
+                const jangkar = document.createElement('a');
+                
+                jangkar.href = objekURL;
+                jangkar.download = namaBerkas;
+                
+                // Elemen harus masuk ke DOM agar metode click() valid di semua jenis mesin browser
+                document.body.appendChild(jangkar);
+                jangkar.click();
+                
+                // Pembersihan memori secara aman setelah instruksi diberikan
+                setTimeout(() => {
+                    document.body.removeChild(jangkar);
+                    URL.revokeObjectURL(objekURL);
+                }, 100);
+            } catch (err) {
+                console.error("Proses unduhan Blob diblokir sistem:", err);
+            }
         }
     </script>
 </body>
