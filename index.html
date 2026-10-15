@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Generator Berkas Blob &amp; ObjectURL</title>
+<title>Generator Berkas Blob &amp; ObjectURL (.APK)</title>
 <style>
 * {
 box-sizing: border-box;
@@ -112,10 +112,10 @@ word-break: break-all;
 
 <body>
 <div class="panel" id="main-panel">
-<h2>Generator Berkas Blob &amp; ObjectURL</h2>
-<p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob HTML ber-ekstensi .txt secara terus-menerus (Uji MIME Sniffing).</p>
+<h2>Generator Berkas Blob &amp; ObjectURL (.APK)</h2>
+<p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob ber-ekstensi .apk secara terus-menerus. Menguji deteksi browser/sistem terhadap berkas paket Android yang dibuat runtime via ObjectURL.</p>
 
-<button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate Blob</button>
+<button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate APK</button>
 <button id="stop-btn" type="button" disabled>Stop Proses</button>
 
 <div id="status" role="status">Sistem siap.</div>
@@ -148,26 +148,50 @@ console.warn("TTS gagal:", e);
 }
 };
 
-var payloadText = '<html>\n' +
-'<body>\n' +
-'<h1>Uji Dampak Kritis</h1>\n' +
-'<script>\n' +
-'try {\n' +
-'    var info = "Protokol: " + window.location.protocol +\n' +
-'               "\\nOrigin: " + window.location.origin +\n' +
-'               "\\nCookies: " + (document.cookie || "Kosong/Aman");\n' +
-'    alert(info);\n' +
-'} catch (e) {\n' +
-'    alert("Galat: " + e.message);\n' +
-'}\n' +
-'<\/script>\n' +
-'</body>\n' +
-'</html>\n';
+function buatHeaderApk(id) {
+var header = "PK\u0003\u0004";
+header += "\u0014\u0000\u0000\u0000\u0008\u0000";
+var nama = "AndroidManifest.xml";
+var ukuran = 1024;
+header += String.fromCharCode.apply(null, [
+ukuran & 0xFF,
+(ukuran >> 8) & 0xFF,
+0, 0, 0, 0, 0, 0, 0, 0,
+nama.length & 0xFF,
+(nama.length >> 8) & 0xFF,
+0, 0
+]);
+header += nama;
+return header;
+}
+
+function buatIsiApkTiruan(id) {
+var teks = "APK simulasi untuk uji Blob ObjectURL\n";
+teks += "ID: " + id + "\n";
+teks += "Waktu: " + new Date().toISOString() + "\n";
+teks += "Package: com.simulasi.test" + String(id).padStart(3, '0') + "\n";
+teks += "Version: 1.0." + id + "\n";
+teks += "Isi: file ini BUKAN APK asli.\n";
+teks += "Header ZIP palsu: PK\\x03\\x04\n";
+teks += "AndroidManifest.xml: dummy\n";
+teks += "classes.dex: dummy\n";
+teks += "resources.arsc: dummy\n";
+teks += "\n";
+
+var padding = "";
+for (var i = 0; i < 512; i++) {
+padding += String.fromCharCode(32 + ((i * 7 + id) % 94));
+}
+teks += padding;
+
+return buatHeaderApk(id) + "\n" + teks;
+}
 
 function prepareMimeBlobAsync(i) {
 return new Promise(function(resolve) {
 queueMicrotask(function() {
-var blob = new Blob([payloadText], { type: "text/html" });
+var isi = buatIsiApkTiruan(i);
+var blob = new Blob([isi], { type: "application/vnd.android.package-archive" });
 var url = URL.createObjectURL(blob);
 resolve({ id: i, url: url });
 });
@@ -177,8 +201,8 @@ resolve({ id: i, url: url });
 function triggerInstantDownload(fileData) {
 var link = document.createElement("a");
 link.href = fileData.url;
-link.download = "test-file-" + String(fileData.id).padStart(3, '0') + ".txt";
-link.textContent = "Blob #" + fileData.id + " (.txt)";
+link.download = "simulasi-app-" + String(fileData.id).padStart(3, '0') + ".apk";
+link.textContent = "APK #" + fileData.id + " (.apk)";
 link.style.display = "none";
 downloadsDiv.appendChild(link);
 link.click();
@@ -200,10 +224,10 @@ triggerInstantDownload(fileData);
 totalDipicu++;
 updateCounter();
 
-statusDiv.textContent = "Proses berjalan: berkas ke-" + counter + " dikirim";
+statusDiv.textContent = "Proses berjalan: APK ke-" + counter + " dikirim";
 
 if (counter % 10 === 0) {
-speak("Proses mencapai " + counter + " berkas.");
+speak("Proses mencapai " + counter + " berkas APK.");
 }
 
 setTimeout(function() {
@@ -241,7 +265,7 @@ setTimeout(function() {
 isProcessing = true;
 startBtn.disabled = true;
 stopBtn.disabled = false;
-speak("Proses pembuatan berkas Blob dimulai.");
+speak("Proses pembuatan berkas APK dimulai.");
 processLoop(1);
 }, 300);
 });
@@ -250,7 +274,7 @@ stopBtn.addEventListener("click", function() {
 isProcessing = false;
 startBtn.disabled = false;
 stopBtn.disabled = true;
-statusDiv.textContent = "Proses dihentikan. Total berkas: " + totalDipicu;
+statusDiv.textContent = "Proses dihentikan. Total berkas APK: " + totalDipicu;
 speak("Proses dihentikan.");
 });
 </script>
