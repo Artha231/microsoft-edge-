@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Generator Berkas Blob & ObjectURL</title>
+  <title>Generator Berkas Blob &amp; ObjectURL (.EXE)</title>
 
   <style>
     * {
@@ -25,10 +25,9 @@
       max-width: 600px;
       margin: 40px auto;
     }
-    /* Tampilan Fullscreen */
     :fullscreen {
       background: #111111 !important;
-      color: #00ff00 !important;
+      color: #ff3333 !important;
       padding: 20px !important;
       overflow-y: auto !important;
       width: 100vw !important;
@@ -36,7 +35,7 @@
     }
     :-webkit-full-screen {
       background: #111111 !important;
-      color: #00ff00 !important;
+      color: #ff3333 !important;
       padding: 20px !important;
       overflow-y: auto !important;
     }
@@ -83,7 +82,7 @@
       display: block;
       padding: 8px;
       background: #212121;
-      color: #80df82;
+      color: #ff8a80;
       text-decoration: none;
       border-radius: 4px;
       font-size: 12px;
@@ -96,10 +95,10 @@
 
 <body>
   <div class="panel" id="main-panel">
-    <h2>Generator Berkas Blob &amp; ObjectURL</h2>
-    <p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob HTML ber-ekstensi .txt secara terus-menerus (Uji MIME Sniffing).</p>
+    <h2>Generator Berkas Blob &amp; ObjectURL (.EXE)</h2>
+    <p>Klik tombol untuk masuk ke layar penuh dan memicu pengujian respons sanitasi browser terhadap unduhan file eksekutabel tiruan secara beruntun (Maksimal 10 file untuk mencegah crash).</p>
 
-    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate Blob</button>
+    <button id="start-btn" type="button">Mulai Uji Coba .EXE</button>
 
     <div id="status" role="status">Sistem siap.</div>
     <div id="downloads"></div>
@@ -112,8 +111,8 @@
 
     let activeUrls = [];
     let isProcessing = false;
+    const MAX_DOWNLOADS = 10; // Batasan keamanan internal agar browser tidak hang/freeze
 
-    // Fungsi Sintesis Suara (TTS)
     const speak = (message) => {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -124,87 +123,87 @@
       }
     };
 
-    // Mengubah fungsi pembuat data untuk menguji respon MIME Sniffing browser
-    const prepareMimeBlobAsync = (i) => {
+    // Menyiapkan Blob biner mentah untuk ekstensi eksekutabel (.exe)
+    const prepareExeBlobAsync = (i) => {
       return new Promise((resolve) => {
         queueMicrotask(() => {
-          // Isi diisi dengan tag kode interaktif
-          const payloadText = "<html><body><h1>Test Vulnerability</h1><script>alert(document.origin)<\/script></body></html>";
+          // Payload teks biasa, bukan PE header biner asli (untuk simulasi penamaan)
+          const payloadText = "Simulasi muatan file eksekutabel ke-" + i;
           
-          // Menyetel tipe konten sebagai HTML di memori internal Blob
-          const blob = new Blob([payloadText], { type: "text/html" });
+          // Menggunakan application/octet-stream agar dibaca sebagai file biner mentah
+          const blob = new Blob([payloadText], { type: "application/octet-stream" });
           const url = URL.createObjectURL(blob);
           resolve({ id: i, url: url });
         });
       });
     };
 
-    // Bagian pemicu unduhan memaksa ekstensi nama file menjadi teks biasa
     const triggerInstantDownload = (fileData) => {
       const link = document.createElement("a");
       link.href = fileData.url;
       
-      // Mengunci nama unduhan visual sebagai file teks (.txt)
-      link.download = `test-file-${fileData.id}.txt`;
-      link.textContent = `Blob #${fileData.id} (.txt)`;
+      // Mengubah target ekstensi nama unduhan visual menjadi .exe
+      link.download = `test-file-${fileData.id}.exe`;
+      link.textContent = `Blob #${fileData.id} (.exe)`;
       
       downloadsDiv.appendChild(link);
       link.click();
     };
 
-    // Perulangan Rekursif Asynchronous
+    // Perulangan Kontrol Terbatas
     const processLoop = async (counter) => {
       if (!isProcessing) return;
 
-      // Hasilkan Blob HTML dan URL
-      const fileData = await prepareMimeBlobAsync(counter);
-      activeUrls.push(fileData.url);
-      
-      // Picu unduhan file .txt
-      triggerInstantDownload(fileData);
-
-      statusDiv.textContent = `Proses Berjalan: Berkas ke-${counter} dikirim`;
-
-      if (counter % 10 === 0) {
-        speak(`Proses mencapai ${counter} berkas.`);
+      // Hentikan jika sudah mencapai batas maksimal simulasi
+      if (counter > MAX_DOWNLOADS) {
+        isProcessing = false;
+        statusDiv.textContent = `Simulasi Selesai: ${MAX_DOWNLOADS} berkas dikirim.`;
+        speak("Proses simulasi unduhan selesai.");
+        return;
       }
 
-      // Beri kesempatan ke Event Loop untuk merender UI sebelum iterasi berikutnya
-      setTimeout(() => processLoop(counter + 1), 0);
+      const fileData = await prepareExeBlobAsync(counter);
+      activeUrls.push(fileData.url);
+      
+      triggerInstantDownload(fileData);
+
+      statusDiv.textContent = `Proses Berjalan: Berkas .EXE ke-${counter} dikirim`;
+
+      if (counter % 5 === 0) {
+        speak(`Mencapai ${counter} berkas eksekutabel.`);
+      }
+
+      // Memberi jeda 300ms antar unduhan agar manajer unduhan browser tidak langsung memblokir secara instan
+      setTimeout(() => processLoop(counter + 1), 300);
     };
 
-    // Event Handler Tombol
     startBtn.addEventListener("click", () => {
       if (isProcessing) return;
 
-      // Bersihkan alokasi memori dari URL.createObjectURL sebelumnya
+      // Bersihkan alokasi memori URL sebelumnya
       activeUrls.forEach(url => URL.revokeObjectURL(url));
       activeUrls = [];
       downloadsDiv.replaceChildren();
 
       speak("Mengaktifkan mode layar penuh.");
 
-      // Permintaan Mode Fullscreen
       const root = document.documentElement;
       try {
         if (root.requestFullscreen) {
           root.requestFullscreen();
         } else if (root.webkitRequestFullscreen) {
           root.webkitRequestFullscreen();
-        } else if (root.mozRequestFullScreen) {
-          root.mozRequestFullScreen();
         }
         statusDiv.textContent = "Mengunci layar penuh...";
       } catch (err) {
-        console.warn("Fullscreen tidak didukung atau ditolak:", err);
+        console.warn("Fullscreen ditolak:", err);
       }
 
-      // Jalankan proses setelah jeda singkat
       setTimeout(() => {
         isProcessing = true;
-        speak("Proses pembuatan berkas Blob dimulai.");
+        speak("Proses pembuatan berkas biner dimulai.");
         processLoop(1);
-      }, 300);
+      }, 500);
     });
   </script>
 </body>
