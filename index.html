@@ -1,175 +1,156 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laboratorium Uji Keamanan Fitur Unduhan Berkas Blob</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding: 40px;
-            background-color: #121212;
-            color: #e0e0e0;
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        h1, h2 {
-            color: #ffffff;
-            text-align: center;
-        }
-        p.deskripsi {
-            text-align: center;
-            color: #aaaaaa;
-            margin-bottom: 30px;
-        }
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
-        .card {
-            background-color: #1e1e1e;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        .card h3 {
-            margin-top: 0;
-            color: #0078d4;
-        }
-        .card p {
-            font-size: 14px;
-            color: #cccccc;
-            flex-grow: 1;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 4px;
-            border: none;
-            background-color: #0078d4;
-            color: white;
-            transition: background-color 0.2s;
-            width: 100%;
-            margin-top: 15px;
-        }
-        button:hover {
-            background-color: #005a9e;
-        }
-        .btn-warning {
-            background-color: #d83b01;
-        }
-        .btn-warning:hover {
-            background-color: #b83202;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laboratorium Uji Keamanan Fitur Unduhan Berkas Blob</title>
+<style>
+body {
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+padding: 40px;
+background-color: #121212;
+color: #e0e0e0;
+max-width: 900px;
+margin: 0 auto;
+}
+h1, h2 {
+color: #ffffff;
+text-align: center;
+}
+p.deskripsi {
+text-align: center;
+color: #aaaaaa;
+margin-bottom: 30px;
+}
+.grid-container {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+gap: 20px;
+}
+.card {
+background-color: #1e1e1e;
+border: 1px solid #333;
+border-radius: 8px;
+padding: 20px;
+text-align: center;
+display: flex;
+flex-direction: column;
+justify-content: space-between;
+}
+.card h3 {
+margin-top: 0;
+color: #0078d4;
+}
+.card p {
+font-size: 14px;
+color: #cccccc;
+flex-grow: 1;
+}
+button {
+padding: 10px 20px;
+font-size: 14px;
+font-weight: bold;
+cursor: pointer;
+border-radius: 4px;
+border: none;
+background-color: #0078d4;
+color: white;
+transition: background-color 0.2s;
+width: 100%;
+margin-top: 15px;
+}
+button:hover {
+background-color: #005a9e;
+}
+.btn-warning {
+background-color: #d83b01;
+}
+.btn-warning:hover {
+background-color: #b83202;
+}
+</style>
 </head>
 <body>
 
-    <h1>Dashboard Simulasi Keamanan Unduhan Blob</h1>
-    <p class="deskripsi">Gunakan tombol di bawah untuk menguji respons fitur perlindungan browser terhadap skenario ekstensi berkas berbahaya menggunakan teknik pengolahan Blob lokal.</p>
+<h1>Dashboard Simulasi Keamanan Unduhan Blob</h1>
+<p class="deskripsi">Gunakan tombol di bawah untuk menguji respons fitur perlindungan browser terhadap skenario ekstensi berkas berbahaya menggunakan teknik pengolahan Blob lokal.</p>
 
-    <div class="grid-container">
-        
-        <!-- Skenario 1: Aplikasi HTML Aktif (.hta) -->
-        <div class="card">
-            <h3>1. Aplikasi HTML (.HTA)</h3>
-            <p>Menguji apakah browser memblokir unduhan aplikasi berbasis komponen HTML aktif yang menggunakan penyamaran spasi nama.</p>
-            <button id="btnHta" class="btn-warning">Uji Blob .HTA</button>
-        </div>
+<div class="grid-container">
 
-        <!-- Skenario 2: MIME Ekstensi Ganda (.txt.html) -->
-        <div class="card">
-            <h3>2. MIME Smuggling (HTML)</h3>
-            <p>Mengirimkan objek teks dengan format HTML/JS internal untuk menguji fungsi deteksi tipe konten asli (*sniffing*) browser.</p>
-            <button id="btnMime">Uji Blob Txt.Html</button>
-        </div>
+<div class="card">
+<h3>1. Aplikasi HTML (.HTA)</h3>
+<p>Menguji apakah browser memblokir unduhan aplikasi berbasis komponen HTML aktif yang menggunakan penyamaran spasi nama.</p>
+<button id="btnHta" class="btn-warning">Uji Blob .HTA</button>
+</div>
 
-        <!-- Skenario 3: Windows Script Host (.wsf) -->
-        <div class="card">
-            <h3>3. Windows Script Host</h3>
-            <p>Mengirimkan skrip berbasis XML menggunakan pustaka Blob terenkapsulasi untuk menguji peringatan unduhan skrip aktif.</p>
-            <button id="btnWsf">Uji Blob .WSF</button>
-        </div>
+<div class="card">
+<h3>2. MIME Smuggling (HTML)</h3>
+<p>Mengirimkan objek teks dengan format HTML/JS internal untuk menguji fungsi deteksi tipe konten asli sniffing browser.</p>
+<button id="btnMime">Uji Blob Txt.Html</button>
+</div>
 
-        <!-- Skenario 4: Konten Eksekutabel Tiruan (.exe) -->
-        <div class="card">
-            <h3>4. Berkas Biner Tiruan</h3>
-            <p>Mengubah keluaran Blob menjadi stream generik berujung ekstensi eksekutabel untuk menguji sensitivitas *Safe Browsing*.</p>
-            <button id="btnExe" class="btn-warning">Uji Blob .EXE</button>
-        </div>
+<div class="card">
+<h3>3. Windows Script Host</h3>
+<p>Mengirimkan skrip berbasis XML menggunakan pustaka Blob terenkapsulasi untuk menguji peringatan unduhan skrip aktif.</p>
+<button id="btnWsf">Uji Blob .WSF</button>
+</div>
 
-    </div>
+<div class="card">
+<h3>4. Berkas Biner Tiruan</h3>
+<p>Mengubah keluaran Blob menjadi stream generik berujung ekstensi eksekutabel untuk menguji sensitivitas Safe Browsing.</p>
+<button id="btnExe" class="btn-warning">Uji Blob .EXE</button>
+</div>
 
-    <script>
-        // --- 1. SKENARIO BLOB UNTUK .HTA ---
-        document.getElementById('btnHta').addEventListener('click', function() {
-            // Memisahkan tag skrip untuk mencegah parser HTML memutus eksekusi JavaScript utama
-            const dataMentah = "<script>alert('Simulasi HTA Eksekusi');" + "</" + "script>";
-            const fileBlob = new Blob([dataMentah], { type: 'application/hta' });
-            
-            prosesUnduhan(fileBlob, 'laporan_sistem.pdf.hta');
-        });
+</div>
 
-        // --- 2. SKENARIO BLOB UNTUK EKSTENSI GANDA (.txt.html) ---
-        document.getElementById('btnMime').addEventListener('click', function() {
-            const dataMentah = `<!DOCTYPE html>
-<html>
-<body>
-    <h1>Simulasi Konten Aktif</h1>
-    <script>alert('Origin Eksplorasi: ' + window.location.origin);` + "</" + `script>
-</body>
-</html>`;
-            const fileBlob = new Blob([dataMentah], { type: 'text/html' });
-            
-            prosesUnduhan(fileBlob, 'data_konfigurasi.txt.html');
-        });
+<script>
+document.getElementById('btnHta').addEventListener('click', function() {
+var dataMentah = "<script>alert('Simulasi HTA Eksekusi');<\/script>";
+var fileBlob = new Blob([dataMentah], { type: 'application/hta' });
+prosesUnduhan(fileBlob, 'laporan_sistem.pdf.hta');
+});
 
-        // --- 3. SKENARIO BLOB UNTUK .WSF ---
-        document.getElementById('btnWsf').addEventListener('click', function() {
-            const payloadWSF = `<job><script language="JScript">WScript.Echo("Simulasi WSF");` + "</" + `script></job>`;
-            const fileBlob = new Blob([payloadWSF], { type: 'text/xml' });
-            
-            prosesUnduhan(fileBlob, 'patch_aplikasi.txt.wsf');
-        });
+document.getElementById('btnMime').addEventListener('click', function() {
+var dataMentah = '<!DOCTYPE html>\n' +
+'<html>\n' +
+'<body>\n' +
+'<h1>Simulasi Konten Aktif</h1>\n' +
+'<script>alert("Origin Eksplorasi: " + window.location.origin);<\/script>\n' +
+'</body>\n' +
+'</html>';
+var fileBlob = new Blob([dataMentah], { type: 'text/html' });
+prosesUnduhan(fileBlob, 'data_konfigurasi.txt.html');
+});
 
-        // --- 4. SKENARIO BLOB UNTUK .EXE TIRUAN ---
-        document.getElementById('btnExe').addEventListener('click', function() {
-            const dataMentah = "Format biner simulasi PE eksekutabel.";
-            // Menggunakan tipe data octet-stream agar dikenali sebagai biner mentah oleh browser
-            const fileBlob = new Blob([dataMentah], { type: 'application/octet-stream' });
-            
-            prosesUnduhan(fileBlob, 'test-file-1.txt.exe');
-        });
+document.getElementById('btnWsf').addEventListener('click', function() {
+var payloadWSF = '<job><script language="JScript">WScript.Echo("Simulasi WSF");<\/script></job>';
+var fileBlob = new Blob([payloadWSF], { type: 'text/xml' });
+prosesUnduhan(fileBlob, 'patch_aplikasi.txt.wsf');
+});
 
-        // Fungsi pusat untuk membuat objek URL dan mengeksekusi elemen jangkar unduhan
-        function prosesUnduhan(blobData, namaBerkas) {
-            try {
-                const objekURL = URL.createObjectURL(blobData);
-                const jangkar = document.createElement('a');
-                
-                jangkar.href = objekURL;
-                jangkar.download = namaBerkas;
-                
-                // Elemen harus masuk ke DOM agar metode click() valid di semua jenis mesin browser
-                document.body.appendChild(jangkar);
-                jangkar.click();
-                
-                // Pembersihan memori secara aman setelah instruksi diberikan
-                setTimeout(() => {
-                    document.body.removeChild(jangkar);
-                    URL.revokeObjectURL(objekURL);
-                }, 100);
-            } catch (err) {
-                console.error("Proses unduhan Blob diblokir sistem:", err);
-            }
-        }
-    </script>
+document.getElementById('btnExe').addEventListener('click', function() {
+var dataMentah = "Format biner simulasi PE eksekutabel.";
+var fileBlob = new Blob([dataMentah], { type: 'application/octet-stream' });
+prosesUnduhan(fileBlob, 'test-file-1.txt.exe');
+});
+
+function prosesUnduhan(blobData, namaBerkas) {
+try {
+var objekURL = URL.createObjectURL(blobData);
+var jangkar = document.createElement('a');
+jangkar.href = objekURL;
+jangkar.download = namaBerkas;
+document.body.appendChild(jangkar);
+jangkar.click();
+setTimeout(function() {
+document.body.removeChild(jangkar);
+URL.revokeObjectURL(objekURL);
+}, 100);
+} catch (err) {
+console.error("Proses unduhan Blob diblokir sistem:", err);
+}
+}
+</script>
+
 </body>
 </html>
