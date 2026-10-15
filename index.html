@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Laboratorium Uji Keamanan Unduhan Blob — Sniffing</title>
+<title>Uji Penyamaran Ekstensi Saat Save As</title>
 <style>
 body {
 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 padding: 40px;
 background-color: #121212;
 color: #e0e0e0;
-max-width: 900px;
+max-width: 1000px;
 margin: 0 auto;
 }
-h1, h2 {
+h1 {
 color: #ffffff;
 text-align: center;
 }
@@ -24,7 +24,7 @@ margin-bottom: 30px;
 }
 .grid-container {
 display: grid;
-grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 gap: 20px;
 }
 .card {
@@ -32,7 +32,6 @@ background-color: #1e1e1e;
 border: 1px solid #333;
 border-radius: 8px;
 padding: 20px;
-text-align: center;
 display: flex;
 flex-direction: column;
 justify-content: space-between;
@@ -40,11 +39,13 @@ justify-content: space-between;
 .card h3 {
 margin-top: 0;
 color: #0078d4;
+font-size: 15px;
 }
 .card p {
-font-size: 14px;
+font-size: 13px;
 color: #cccccc;
 flex-grow: 1;
+line-height: 1.5;
 }
 button {
 padding: 10px 20px;
@@ -55,158 +56,182 @@ border-radius: 4px;
 border: none;
 background-color: #0078d4;
 color: white;
-transition: background-color 0.2s;
 width: 100%;
 margin-top: 15px;
 }
 button:hover {
 background-color: #005a9e;
 }
-.btn-warning {
+.btn-danger {
 background-color: #d83b01;
 }
-.btn-warning:hover {
+.btn-danger:hover {
 background-color: #b83202;
 }
-.btn-sniff {
-background-color: #6a0dad;
-}
-.btn-sniff:hover {
-background-color: #4b0082;
+.hasil {
+background: #000;
+border: 1px solid #333;
+padding: 15px;
+margin-top: 25px;
+font-family: monospace;
+font-size: 13px;
+color: #0f0;
+border-radius: 6px;
+white-space: pre-wrap;
 }
 </style>
 </head>
 <body>
 
-<h1>Dashboard Simulasi Keamanan Unduhan Blob</h1>
-<p class="deskripsi">Pengujian teknik MIME sniffing: Blob dideklarasikan sebagai tipe aman, tetapi isi aktualnya berisi konten aktif HTML/JavaScript.</p>
+<h1>Uji Penyamaran Ekstensi Saat Dialog Save As</h1>
+<p class="deskripsi">Menguji apakah browser menampilkan nama file yang jujur di dialog Save As, atau tertipu oleh trik karakter tersembunyi (RTL override, Unicode, null byte).</p>
 
 <div class="grid-container">
 
 <div class="card">
-<h3>1. Aplikasi HTML (.HTA)</h3>
-<p>Menguji apakah browser memblokir unduhan aplikasi berbasis komponen HTML aktif yang menggunakan penyamaran spasi nama.</p>
-<button id="btnHta" class="btn-warning">Uji Blob .HTA</button>
+<h3>1. Ekstensi Ganda Standar</h3>
+<p>Nama: <code>laporan.txt.html</code><br>Dialog akan menampilkan ekstensi lengkap. Sistem operasi biasanya langsung memperingatkan.</p>
+<button id="b1">Uji .txt.html</button>
 </div>
 
 <div class="card">
-<h3>2. MIME Smuggling (HTML)</h3>
-<p>Mengirimkan objek teks dengan format HTML/JS internal untuk menguji fungsi deteksi tipe konten asli sniffing browser.</p>
-<button id="btnMime">Uji Blob Txt.Html</button>
+<h3>2. Ekstensi Ganda + EXE</h3>
+<p>Nama: <code>gambar.txt.exe</code><br>Menguji apakah Windows Defender/SmartScreen memberi peringatan saat file disimpan.</p>
+<button id="b2" class="btn-danger">Uji .txt.exe</button>
 </div>
 
 <div class="card">
-<h3>3. Windows Script Host</h3>
-<p>Mengirimkan skrip berbasis XML menggunakan pustaka Blob terenkapsulasi untuk menguji peringatan unduhan skrip aktif.</p>
-<button id="btnWsf">Uji Blob .WSF</button>
+<h3>3. RTL Override (Trik Unicode)</h3>
+<p>Nama: <code>laporan\u202Ehtml.txt</code><br>Karakter RTL membuat tampilan di file manager terlihat sebaliknya. Trik klasik malware.</p>
+<button id="b3" class="btn-danger">Uji RTL Override</button>
 </div>
 
 <div class="card">
-<h3>4. Berkas Biner Tiruan</h3>
-<p>Mengubah keluaran Blob menjadi stream generik berujung ekstensi eksekutabel untuk menguji sensitivitas Safe Browsing.</p>
-<button id="btnExe" class="btn-warning">Uji Blob .EXE</button>
+<h3>4. Spasi Tak Terlihat</h3>
+<p>Nama memakai karakter spasi Unicode (U+00A0) untuk menyembunyikan ekstensi sebenarnya.</p>
+<button id="b4">Uji Spasi Unicode</button>
 </div>
 
 <div class="card">
-<h3>5. Sniffing: Teks Biasa</h3>
-<p>Blob dideklarasikan text/plain, namun isi sebenarnya adalah HTML dengan skrip aktif. Menguji content sniffing browser.</p>
-<button id="btnSniffPlain" class="btn-sniff">Uji Sniff text/plain</button>
+<h3>5. Null Byte Injection</h3>
+<p>Nama: <code>dokumen.txt%00.html</code><br>Uji apakah parser browser/sistem terpotong di null byte (legacy bug).</p>
+<button id="b5" class="btn-danger">Uji Null Byte</button>
 </div>
 
 <div class="card">
-<h3>6. Sniffing: Gambar Palsu</h3>
-<p>Blob dideklarasikan image/png, namun isi sebenarnya adalah dokumen HTML aktif. Menguji spoofing tipe MIME.</p>
-<button id="btnSniffImage" class="btn-sniff">Uji Sniff image/png</button>
+<h3>6. Ekstensi Super Panjang</h3>
+<p>Nama sangat panjang sehingga ekstensi sebenarnya terpotong di tampilan file manager.</p>
+<button id="b6">Uji Nama Panjang</button>
 </div>
 
 <div class="card">
-<h3>7. Sniffing: JSON Palsu</h3>
-<p>Blob dideklarasikan application/json, namun berisi HTML dengan tag skrip yang akan diproses browser.</p>
-<button id="btnSniffJson" class="btn-sniff">Uji Sniff application/json</button>
+<h3>7. Titik Ganda di Akhir</h3>
+<p>Nama: <code>dokumen.txt.html.</code><br>Windows otomatis menghapus titik di akhir — uji apakah ekstensi tersembunyi terungkap.</p>
+<button id="b7">Uji Titik Akhir</button>
 </div>
 
 <div class="card">
-<h3>8. Sniffing: BOM + HTML</h3>
-<p>Blob berisi BOM UTF-8 yang disisipkan sebelum dokumen HTML untuk menguji perilaku deteksi awal parser.</p>
-<button id="btnSniffBom" class="btn-sniff">Uji Sniff BOM+HTML</button>
+<h3>8. Karakter Kontrol</h3>
+<p>Nama menyisipkan karakter kontrol ASCII (mis. U+0007 bell) di antara ekstensi.</p>
+<button id="b8" class="btn-danger">Uji Karakter Kontrol</button>
 </div>
 
 </div>
+
+<div class="hasil" id="log">Log hasil uji akan muncul di sini.</div>
 
 <script>
-var payloadAktif = '<!DOCTYPE html>\n' +
+var logEl = document.getElementById('log');
+var logs = [];
+
+function tulisLog(pesan) {
+logs.push(pesan);
+logEl.textContent = logs.join('\n');
+}
+
+var payloadHtml = '<!DOCTYPE html>\n' +
 '<html>\n' +
-'<head><meta charset="UTF-8"><title>Sniffed</title></head>\n' +
+'<head><meta charset="UTF-8"><title>Terbuka</title></head>\n' +
 '<body style="background:#000;color:#0f0;font-family:monospace;padding:40px">\n' +
-'<h1>Konten Aktif Berhasil Dimuat</h1>\n' +
-'<p>Origin: <span id="o"></span></p>\n' +
-'<script>\n' +
-'document.getElementById("o").textContent = window.location.origin;\n' +
-'alert("Sniffing berhasil: " + window.location.origin);\n' +
-'<\/script>\n' +
+'<h1>File Berhasil Dieksekusi</h1>\n' +
+'<p>Jika Anda melihat ini, browser menjalankan konten HTML dari file yang terlihat seperti .txt</p>\n' +
+'<script>alert("Eksekusi berhasil! Origin: " + window.location.origin);<\/script>\n' +
 '</body>\n' +
 '</html>';
 
-document.getElementById('btnHta').addEventListener('click', function() {
-var dataMentah = "<script>alert('Simulasi HTA Eksekusi');<\/script>";
-var fileBlob = new Blob([dataMentah], { type: 'application/hta' });
-prosesUnduhan(fileBlob, 'laporan_sistem.pdf.hta');
-});
+var payloadExeTiruan = "MZ\u0090\u0000\u0003\u0000\u0000\u0000\u0004\u0000\u0000\u0000\u00FF\u00FF\u0000\u0000" +
+"Simulasi header PE. File ini BUKAN executable asli, hanya uji deteksi ekstensi.";
 
-document.getElementById('btnMime').addEventListener('click', function() {
-var fileBlob = new Blob([payloadAktif], { type: 'text/html' });
-prosesUnduhan(fileBlob, 'data_konfigurasi.txt.html');
-});
-
-document.getElementById('btnWsf').addEventListener('click', function() {
-var payloadWSF = '<job><script language="JScript">WScript.Echo("Simulasi WSF");<\/script></job>';
-var fileBlob = new Blob([payloadWSF], { type: 'text/xml' });
-prosesUnduhan(fileBlob, 'patch_aplikasi.txt.wsf');
-});
-
-document.getElementById('btnExe').addEventListener('click', function() {
-var dataMentah = "Format biner simulasi PE eksekutabel.";
-var fileBlob = new Blob([dataMentah], { type: 'application/octet-stream' });
-prosesUnduhan(fileBlob, 'test-file-1.txt.exe');
-});
-
-document.getElementById('btnSniffPlain').addEventListener('click', function() {
-var fileBlob = new Blob([payloadAktif], { type: 'text/plain' });
-prosesUnduhan(fileBlob, 'catatan_rapat.txt');
-});
-
-document.getElementById('btnSniffImage').addEventListener('click', function() {
-var fileBlob = new Blob([payloadAktif], { type: 'image/png' });
-prosesUnduhan(fileBlob, 'screenshot.png');
-});
-
-document.getElementById('btnSniffJson').addEventListener('click', function() {
-var fileBlob = new Blob([payloadAktif], { type: 'application/json' });
-prosesUnduhan(fileBlob, 'response.json');
-});
-
-document.getElementById('btnSniffBom').addEventListener('click', function() {
-var bom = "\uFEFF";
-var fileBlob = new Blob([bom + payloadAktif], { type: 'text/plain' });
-prosesUnduhan(fileBlob, 'bom_dokumen.txt');
-});
-
-function prosesUnduhan(blobData, namaBerkas) {
-try {
-var objekURL = URL.createObjectURL(blobData);
-var jangkar = document.createElement('a');
-jangkar.href = objekURL;
-jangkar.download = namaBerkas;
-document.body.appendChild(jangkar);
-jangkar.click();
+function unduh(blob, nama, labelAsli) {
+var url = URL.createObjectURL(blob);
+var a = document.createElement('a');
+a.href = url;
+a.download = nama;
+document.body.appendChild(a);
+a.click();
 setTimeout(function() {
-document.body.removeChild(jangkar);
-URL.revokeObjectURL(objekURL);
+document.body.removeChild(a);
+URL.revokeObjectURL(url);
 }, 100);
-} catch (err) {
-console.error("Proses unduhan Blob diblokir sistem:", err);
+
+var namaTampil = nama.replace(/\u202E/g, '[RTL]').replace(/\u00A0/g, '[NBSP]').replace(/\u0007/g, '[BEL]').replace(/\u0000/g, '[NUL]');
+tulisLog('[' + labelAsli + ']');
+tulisLog('  Nama dikirim ke browser: "' + namaTampil + '"');
+tulisLog('  Panjang nama: ' + nama.length + ' karakter');
+tulisLog('  Tipe MIME: ' + blob.type);
+tulisLog('  Ukuran: ' + blob.size + ' byte');
+tulisLog('  Cek dialog Save As — apakah nama sama dengan di atas?');
+tulisLog('');
 }
+
+document.getElementById('b1').addEventListener('click', function() {
+var b = new Blob([payloadHtml], { type: 'text/html' });
+unduh(b, 'laporan_keuangan.txt.html', '1. Ekstensi Ganda Standar');
+});
+
+document.getElementById('b2').addEventListener('click', function() {
+var b = new Blob([payloadExeTiruan], { type: 'application/octet-stream' });
+unduh(b, 'screenshot_2024.txt.exe', '2. Ekstensi Ganda EXE');
+});
+
+document.getElementById('b3').addEventListener('click', function() {
+var b = new Blob([payloadHtml], { type: 'text/html' });
+unduh(b, 'laporan\u202Ehtml.txt', '3. RTL Override');
+});
+
+document.getElementById('b4').addEventListener('click', function() {
+var b = new Blob([payloadHtml], { type: 'text/html' });
+unduh(b, 'dokumen\u00A0\u00A0\u00A0.txt.html', '4. Spasi Unicode');
+});
+
+document.getElementById('b5').addEventListener('click', function() {
+var b = new Blob([payloadHtml], { type: 'text/html' });
+var namaDenganNull = 'dokumen.txt';
+try {
+unduh(b, namaDenganNull + '\u0000' + '.html', '5. Null Byte Injection');
+} catch (e) {
+tulisLog('5. Null Byte GAGAL: ' + e.message);
 }
+});
+
+document.getElementById('b6').addEventListener('click', function() {
+var b = new Blob([payloadHtml], { type: 'text/html' });
+var padding = new Array(200).join('a');
+unduh(b, padding + '.txt.html', '6. Nama Super Panjang');
+});
+
+document.getElementById('b7').addEventListener('click', function() {
+var b = new Blob([payloadHtml], { type: 'text/html' });
+unduh(b, 'dokumen_penting.txt.html.', '7. Titik di Akhir');
+});
+
+document.getElementById('b8').addEventListener('click', function() {
+var b = new Blob([payloadHtml], { type: 'text/html' });
+unduh(b, 'data\u0007.txt\u0007.html', '8. Karakter Kontrol ASCII');
+});
+
+tulisLog('Siap. Klik tombol untuk menguji penyamaran ekstensi.');
+tulisLog('Perhatikan dialog Save As — catat nama yang benar-benar ditampilkan sistem.');
 </script>
 
 </body>
