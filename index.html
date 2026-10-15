@@ -121,14 +121,19 @@ var counterDiv = document.getElementById("counter");
 
 var activeUrls = [];
 var isProcessing = false;
+var totalTarget = 5;
 
 var speak = function(message) {
 if ('speechSynthesis' in window) {
+try {
 window.speechSynthesis.cancel();
 var utterance = new SpeechSynthesisUtterance(message);
 utterance.lang = 'id-ID';
 utterance.rate = 1.0;
 window.speechSynthesis.speak(utterance);
+} catch (e) {
+console.warn("TTS gagal:", e);
+}
 }
 };
 
@@ -148,12 +153,29 @@ var a = document.createElement("a");
 a.href = url;
 a.download = "race-file-" + String(id).padStart(3, '0') + ".txt";
 a.textContent = label;
+a.style.display = "none";
 downloadsDiv.appendChild(a);
 a.click();
 }
 
 function updateCounter(n) {
 counterDiv.textContent = "Unduhan dipicu: " + n;
+}
+
+function masukFullscreen() {
+var root = document.documentElement;
+try {
+if (root.requestFullscreen) {
+var p = root.requestFullscreen();
+if (p && p.catch) p.catch(function() {});
+} else if (root.webkitRequestFullscreen) {
+root.webkitRequestFullscreen();
+} else if (root.mozRequestFullScreen) {
+root.mozRequestFullScreen();
+}
+} catch (err) {
+console.warn("Fullscreen gagal:", err);
+}
 }
 
 function jalankanRaceCondition() {
@@ -167,38 +189,31 @@ updateCounter(0);
 
 statusDiv.textContent = "Memicu race condition...";
 
-var root = document.documentElement;
-try {
-if (root.requestFullscreen) {
-root.requestFullscreen();
-} else if (root.webkitRequestFullscreen) {
-root.webkitRequestFullscreen();
-} else if (root.mozRequestFullScreen) {
-root.mozRequestFullScreen();
-}
-} catch (err) {
-console.warn("Fullscreen gagal:", err);
-}
+masukFullscreen();
 
 var dipicu = 0;
 
 function picuSatu() {
-if (dipicu >= 5) {
+if (dipicu >= totalTarget) {
 statusDiv.textContent = "Selesai. " + dipicu + " unduhan dipicu dari 1 klik.";
 isProcessing = false;
 startBtn.disabled = false;
+speak("Race condition selesai. " + dipicu + " unduhan dipicu.");
 return;
 }
 dipicu++;
 var url = buatBlobUrl(dipicu);
 triggerDownload(url, dipicu, "Race #" + dipicu);
 updateCounter(dipicu);
+statusDiv.textContent = "Memproses ke-" + dipicu + " dari " + totalTarget;
 queueMicrotask(picuSatu);
 }
 
 queueMicrotask(function() {
 queueMicrotask(function() {
+queueMicrotask(function() {
 picuSatu();
+});
 });
 });
 }
@@ -210,11 +225,7 @@ speak("Memulai race condition download.");
 jalankanRaceCondition();
 });
 
-setTimeout(function() {
-if (typeof startBtn !== 'undefined') {
-startBtn.disabled = false;
-}
-}, 500);
+updateCounter(0);
 </script>
 
 </body>
