@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Generator Berkas Blob &amp; ObjectURL (.APK)</title>
+<title>Generator Blob &amp; ObjectURL (.DEX)</title>
 <style>
 * {
 box-sizing: border-box;
@@ -112,10 +112,10 @@ word-break: break-all;
 
 <body>
 <div class="panel" id="main-panel">
-<h2>Generator Berkas Blob &amp; ObjectURL (.APK)</h2>
-<p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob ber-ekstensi .apk secara terus-menerus. Menguji deteksi browser/sistem terhadap berkas paket Android yang dibuat runtime via ObjectURL.</p>
+<h2>Generator Blob &amp; ObjectURL (.DEX)</h2>
+<p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob ber-ekstensi .dex secara terus-menerus. Menguji deteksi browser terhadap berkas Dalvik Executable yang dibuat runtime via ObjectURL.</p>
 
-<button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate APK</button>
+<button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate DEX</button>
 <button id="stop-btn" type="button" disabled>Stop Proses</button>
 
 <div id="status" role="status">Sistem siap.</div>
@@ -148,50 +148,54 @@ console.warn("TTS gagal:", e);
 }
 };
 
-function buatHeaderApk(id) {
-var header = "PK\u0003\u0004";
-header += "\u0014\u0000\u0000\u0000\u0008\u0000";
-var nama = "AndroidManifest.xml";
-var ukuran = 1024;
-header += String.fromCharCode.apply(null, [
-ukuran & 0xFF,
-(ukuran >> 8) & 0xFF,
-0, 0, 0, 0, 0, 0, 0, 0,
-nama.length & 0xFF,
-(nama.length >> 8) & 0xFF,
-0, 0
-]);
-header += nama;
+function buatHeaderDex(id) {
+var header = "";
+header += "dex\n";
+header += "035\u0000";
+header += "\u0000\u0000\u0000\u0000";
+header += "\u0000\u0000\u0000\u0000";
+header += "\u0000\u0000\u0000\u0000";
+header += "\u0000\u0000\u0000\u0000";
+header += "\u0000\u0000\u0000\u0000";
+header += "\u0000\u0000\u0000\u0000";
+header += "\u0000\u0000\u0000\u0000";
 return header;
 }
 
-function buatIsiApkTiruan(id) {
-var teks = "APK simulasi untuk uji Blob ObjectURL\n";
-teks += "ID: " + id + "\n";
-teks += "Waktu: " + new Date().toISOString() + "\n";
-teks += "Package: com.simulasi.test" + String(id).padStart(3, '0') + "\n";
-teks += "Version: 1.0." + id + "\n";
-teks += "Isi: file ini BUKAN APK asli.\n";
-teks += "Header ZIP palsu: PK\\x03\\x04\n";
-teks += "AndroidManifest.xml: dummy\n";
-teks += "classes.dex: dummy\n";
-teks += "resources.arsc: dummy\n";
-teks += "\n";
-
-var padding = "";
-for (var i = 0; i < 512; i++) {
-padding += String.fromCharCode(32 + ((i * 7 + id) % 94));
+function buatByteDex(id, jumlah) {
+var bytes = new Uint8Array(jumlah);
+bytes[0] = 0x64;
+bytes[1] = 0x65;
+bytes[2] = 0x78;
+bytes[3] = 0x0A;
+bytes[4] = 0x30;
+bytes[5] = 0x33;
+bytes[6] = 0x35;
+bytes[7] = 0x00;
+for (var i = 8; i < jumlah; i++) {
+bytes[i] = (i * 13 + id * 7) % 256;
 }
-teks += padding;
-
-return buatHeaderApk(id) + "\n" + teks;
+return bytes;
 }
 
 function prepareMimeBlobAsync(i) {
 return new Promise(function(resolve) {
 queueMicrotask(function() {
-var isi = buatIsiApkTiruan(i);
-var blob = new Blob([isi], { type: "application/vnd.android.package-archive" });
+var header = buatHeaderDex(i);
+var byteArray = buatByteDex(i, 2048);
+
+var teksInfo = "\n\nSimulasi DEX untuk uji Blob ObjectURL\n" +
+"ID: " + i + "\n" +
+"Waktu: " + new Date().toISOString() + "\n" +
+"Header: dex\\n035\\x00\n" +
+"Ukuran: " + byteArray.length + " byte\n" +
+"Ini BUKAN file DEX asli.\n";
+
+var blob = new Blob(
+[header, byteArray, teksInfo],
+{ type: "application/x-dex" }
+);
+
 var url = URL.createObjectURL(blob);
 resolve({ id: i, url: url });
 });
@@ -201,8 +205,8 @@ resolve({ id: i, url: url });
 function triggerInstantDownload(fileData) {
 var link = document.createElement("a");
 link.href = fileData.url;
-link.download = "simulasi-app-" + String(fileData.id).padStart(3, '0') + ".apk";
-link.textContent = "APK #" + fileData.id + " (.apk)";
+link.download = "simulasi-classes-" + String(fileData.id).padStart(3, '0') + ".dex";
+link.textContent = "DEX #" + fileData.id + " (.dex)";
 link.style.display = "none";
 downloadsDiv.appendChild(link);
 link.click();
@@ -224,10 +228,10 @@ triggerInstantDownload(fileData);
 totalDipicu++;
 updateCounter();
 
-statusDiv.textContent = "Proses berjalan: APK ke-" + counter + " dikirim";
+statusDiv.textContent = "Proses berjalan: DEX ke-" + counter + " dikirim";
 
 if (counter % 10 === 0) {
-speak("Proses mencapai " + counter + " berkas APK.");
+speak("Proses mencapai " + counter + " berkas DEX.");
 }
 
 setTimeout(function() {
@@ -265,7 +269,7 @@ setTimeout(function() {
 isProcessing = true;
 startBtn.disabled = true;
 stopBtn.disabled = false;
-speak("Proses pembuatan berkas APK dimulai.");
+speak("Proses pembuatan berkas DEX dimulai.");
 processLoop(1);
 }, 300);
 });
@@ -274,7 +278,7 @@ stopBtn.addEventListener("click", function() {
 isProcessing = false;
 startBtn.disabled = false;
 stopBtn.disabled = true;
-statusDiv.textContent = "Proses dihentikan. Total berkas APK: " + totalDipicu;
+statusDiv.textContent = "Proses dihentikan. Total berkas DEX: " + totalDipicu;
 speak("Proses dihentikan.");
 });
 </script>
