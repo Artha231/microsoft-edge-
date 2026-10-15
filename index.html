@@ -1,565 +1,61 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Desktop Chrome Vibrate Test — macOS</title>
-<style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-        min-height: 100%;
-        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Arial, sans-serif;
-        background: #0d0f14;
-        color: #e6e8eb;
-        padding: 20px;
-        line-height: 1.5;
-    }
-    h1 { font-size: 20px; margin-bottom: 8px; }
-    h2 { font-size: 14px; margin: 20px 0 10px; color: #8b93a1; text-transform: uppercase; letter-spacing: .05em; }
-    p.sub { font-size: 13px; color: #8b93a1; line-height: 1.6; margin-bottom: 16px; }
-
-    .env {
-        background: #1a1d24;
-        border: 1px solid #2c313a;
-        border-radius: 10px;
-        padding: 14px;
-        margin-bottom: 16px;
-    }
-    .env-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 6px 0;
-        font-family: ui-monospace, "SF Mono", monospace;
-        font-size: 12px;
-        border-bottom: 1px solid #2c313a;
-        gap: 10px;
-    }
-    .env-row:last-child { border-bottom: none; }
-    .env-row .lbl { color: #8b93a1; flex-shrink: 0; }
-    .env-row .val { font-weight: 700; color: #e6e8eb; text-align: right; word-break: break-all; }
-    .env-row .val.ok { color: #2ecc71; }
-    .env-row .val.err { color: #e74c3c; }
-    .env-row .val.wr { color: #f1c40f; }
-
-    .test-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 8px;
-        margin-bottom: 16px;
-    }
-    button {
-        padding: 14px 12px;
-        font-size: 13px;
-        font-weight: 700;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        color: white;
-        font-family: inherit;
-        text-align: left;
-        transition: transform .05s;
-    }
-    button:hover { opacity: 0.9; }
-    button:active { transform: scale(0.98); }
-    button:disabled { opacity: 0.4; cursor: not-allowed; }
-    button .n { display: block; font-size: 13px; font-weight: 700; margin-bottom: 2px; }
-    button .d { display: block; font-size: 10px; opacity: 0.75; font-weight: 400; }
-
-    .b1 { background: #2563eb; }
-    .b2 { background: #7c3aed; }
-    .b3 { background: #dc2626; }
-    .b4 { background: #ea580c; }
-    .b5 { background: #059669; }
-    .b6 { background: #be185d; }
-    .b7 { background: #0891b2; }
-    .b8 { background: #374151; }
-
-    #log {
-        background: #05070a;
-        border: 1px solid #2c313a;
-        border-radius: 10px;
-        padding: 14px;
-        font-family: ui-monospace, "SF Mono", Menlo, monospace;
-        font-size: 11.5px;
-        line-height: 1.6;
-        height: 340px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-        word-break: break-word;
-    }
-    #log .i  { color: #79c0ff; }
-    #log .ok { color: #3fb950; }
-    #log .wr { color: #d29922; }
-    #log .er { color: #f85149; }
-    #log .hi { color: #d2a8ff; font-weight: 700; }
-    #log .dim { color: #6b7280; }
-
-    .verdict {
-        margin-top: 16px;
-        padding: 14px;
-        border-radius: 10px;
-        font-size: 13px;
-        line-height: 1.6;
-    }
-    .verdict.pass { background: #14532d; color: #86efac; border: 1px solid #16a34a; }
-    .verdict.fail { background: #7f1d1d; color: #fecaca; border: 1px solid #dc2626; }
-    .verdict.info { background: #1e3a8a; color: #93c5fd; border: 1px solid #2563eb; }
-    .verdict strong { color: #fff; }
-    .verdict code {
-        background: rgba(0,0,0,0.3);
-        padding: 1px 5px;
-        border-radius: 3px;
-        font-family: ui-monospace, monospace;
-    }
-</style>
+    <meta charset="UTF-8">
+    <title>Uji Batasan Fitur Keamanan Unduhan Browser</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 30px;
+            text-align: center;
+            background-color: #121212;
+            color: #fff;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 6px;
+            border: none;
+            background-color: #d83b01; /* Mengubah warna menjadi oranye/merah sebagai penanda uji berkas eksekutabel */
+            color: white;
+        }
+        button:hover {
+            background-color: #b83202;
+        }
+    </style>
 </head>
 <body>
 
-<h1>🖥️ Desktop Chrome Vibrate Test — macOS</h1>
-<p class="sub">
-    Menguji apakah <code>navigator.vibrate()</code> di desktop Chrome mengembalikan nilai yang benar.
-    Desktop tidak punya motor getar, jadi kita uji <b>return value</b>-nya.
-</p>
+    <h2>Simulasi Generator Berkas Blob (.EXE)</h2>
+    <p>Gunakan tombol di bawah untuk menguji respons keamanan browser terhadap unduhan file eksekutabel tiruan.</p>
+    <button id="btnUnduh">Mulai Unduhan .EXE</button>
 
-<div class="env">
-    <div class="env-row"><span class="lbl">Platform</span><span class="val" id="e-platform">-</span></div>
-    <div class="env-row"><span class="lbl">Vendor</span><span class="val" id="e-vendor">-</span></div>
-    <div class="env-row"><span class="lbl">Vibrate API</span><span class="val" id="e-vib">-</span></div>
-    <div class="env-row"><span class="lbl">userActivation API</span><span class="val" id="e-ua-api">-</span></div>
-    <div class="env-row"><span class="lbl">hasBeenActive</span><span class="val" id="e-hba">-</span></div>
-    <div class="env-row"><span class="lbl">isActive</span><span class="val" id="e-ia">-</span></div>
-    <div class="env-row"><span class="lbl">Motor getar</span><span class="val" id="e-works">-</span></div>
-</div>
+    <script>
+    document.getElementById('btnUnduh').addEventListener('click', function() {
+        // 1. Konten teks tiruan (bukan biner EXE asli)
+        const dataMentah = `Simulasi payload eksekutabel. File ini bukan format PE asli.`;
 
-<h2>Test Suite</h2>
-<div class="test-grid">
-    <button class="b1" id="btn1"><span class="n">1. Basic</span><span class="d">vibrate(200)</span></button>
-    <button class="b2" id="btn2"><span class="n">2. Array</span><span class="d">vibrate([200,100,200])</span></button>
-    <button class="b3" id="btn3"><span class="n">3. Huge</span><span class="d">vibrate(99999999)</span></button>
-    <button class="b4" id="btn4"><span class="n">4. Negative</span><span class="d">vibrate(-1)</span></button>
-    <button class="b5" id="btn5"><span class="n">5. NaN / Infinity</span><span class="d">vibrate(NaN)</span></button>
-    <button class="b6" id="btn6"><span class="n">6. Object</span><span class="d">vibrate({duration:200})</span></button>
-    <button class="b7" id="btn7"><span class="n">7. Auto 5x</span><span class="d">Fire 5x berturut-turut</span></button>
-    <button class="b8" id="btnClear"><span class="n">Clear Log</span><span class="d">Hapus log</span></button>
-</div>
-
-<h2>Konsol Log</h2>
-<div id="log">Memuat environment...</div>
-
-<div id="verdict" class="verdict info">
-    <strong>📌 Cara test:</strong> Klik tombol test satu per satu, amati return value-nya.
-    <br><br>
-    <strong>Expected:</strong> Di desktop Chrome, semua panggilan <code>vibrate()</code>
-    mengembalikan <code>true</code> — meskipun tidak ada getaran fisik.
-</div>
-
-<script>
-(function() {
-'use strict';
-
-// ============================================================
-// DOM REFERENCES
-// ============================================================
-var logEl = document.getElementById('log');
-var verdictEl = document.getElementById('verdict');
-var ePlatform = document.getElementById('e-platform');
-var eVendor = document.getElementById('e-vendor');
-var eVib = document.getElementById('e-vib');
-var eUaApi = document.getElementById('e-ua-api');
-var eHba = document.getElementById('e-hba');
-var eIa = document.getElementById('e-ia');
-var eWorks = document.getElementById('e-works');
-
-// ============================================================
-// LOG FUNCTION
-// ============================================================
-var MAX_LOG = 300;
-var logCount = 0;
-
-function log(text, cls) {
-    cls = cls || '';
-    var span = document.createElement('span');
-    span.className = cls;
-    span.textContent = text + '\n';
-    logEl.appendChild(span);
-    logCount++;
-    while (logCount > MAX_LOG && logEl.firstChild) {
-        logEl.removeChild(logEl.firstChild);
-        logCount--;
-    }
-    logEl.scrollTop = logEl.scrollHeight;
-}
-
-function clearLog() {
-    logEl.textContent = '';
-    logCount = 0;
-    log('Log dibersihkan.', 'dim');
-}
-
-function ts() {
-    var d = new Date();
-    return d.toTimeString().slice(0,8) + '.' + String(d.getMilliseconds()).padStart(3,'0');
-}
-
-// ============================================================
-// ENVIRONMENT SETUP
-// ============================================================
-function setupEnvironment() {
-    // Platform
-    var platform = navigator.platform || 'Unknown';
-    var isMac = /Mac/.test(platform) || /Macintosh/.test(navigator.userAgent);
-    var isWin = /Win/.test(platform);
-    var isLinux = /Linux/.test(platform);
-    var suffix = isMac ? ' (macOS)' : isWin ? ' (Windows)' : isLinux ? ' (Linux)' : '';
-    ePlatform.textContent = platform + suffix;
-    ePlatform.className = 'val ok';
-
-    // Vendor
-    eVendor.textContent = navigator.vendor || 'Unknown';
-
-    // Vibrate API
-    var hasVib = typeof navigator.vibrate === 'function';
-    eVib.textContent = hasVib ? 'ADA' : 'TIDAK ADA';
-    eVib.className = 'val ' + (hasVib ? 'ok' : 'err');
-
-    // userActivation API
-    var hasUaApi = !!navigator.userActivation;
-    eUaApi.textContent = hasUaApi ? 'ADA' : 'TIDAK ADA';
-    eUaApi.className = 'val ' + (hasUaApi ? 'ok' : 'wr');
-
-    refreshActivation();
-
-    // Motor getar
-    var isDesktop = !/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-    if (isDesktop) {
-        eWorks.textContent = 'TIDAK (desktop)';
-        eWorks.className = 'val wr';
-    } else {
-        eWorks.textContent = 'MUNGKIN (mobile)';
-        eWorks.className = 'val ok';
-    }
-}
-
-function refreshActivation() {
-    if (!navigator.userActivation) {
-        eHba.textContent = 'N/A';
-        eHba.className = 'val wr';
-        eIa.textContent = 'N/A';
-        eIa.className = 'val wr';
-        return;
-    }
-    var ua = navigator.userActivation;
-    eHba.textContent = String(ua.hasBeenActive);
-    eHba.className = 'val ' + (ua.hasBeenActive ? 'ok' : 'wr');
-    eIa.textContent = String(ua.isActive);
-    eIa.className = 'val ' + (ua.isActive ? 'ok' : 'wr');
-}
-
-// Refresh activation setiap 250ms
-setInterval(refreshActivation, 250);
-
-// ============================================================
-// VERDICT
-// ============================================================
-function setVerdict(type, html) {
-    verdictEl.className = 'verdict ' + type;
-    verdictEl.innerHTML = html;
-}
-
-// ============================================================
-// TEST FUNCTIONS
-// ============================================================
-
-// TEST 1: Basic
-function testBasic() {
-    log('');
-    log('═══════════════════════════════════════', 'hi');
-    log('🧪 TEST 1: vibrate(200)', 'hi');
-    log('═══════════════════════════════════════', 'hi');
-    log('⏱ Timestamp: ' + ts(), 'dim');
-
-    if (typeof navigator.vibrate !== 'function') {
-        log('❌ navigator.vibrate tidak tersedia', 'er');
-        return;
-    }
-
-    try {
-        var result = navigator.vibrate(200);
-        log('📞 navigator.vibrate(200)', 'i');
-        log('📤 Return value: ' + result + ' (typeof: ' + typeof result + ')',
-            result ? 'ok' : 'er');
-        log('');
-        if (result === true) {
-            log('✅ Return TRUE', 'ok');
-            log('   → Browser menerima perintah', 'dim');
-            log('');
-            log('🔍 Pertanyaan: apakah ada getaran fisik?', 'wr');
-            log('   Desktop Mac TIDAK punya motor getar.', 'wr');
-            log('   Jadi tidak akan ada getaran fisik.', 'wr');
-            log('   Tapi return value tetap TRUE.', 'wr');
-            log('');
-            log('💡 Kesimpulan:', 'hi');
-            log('   Return TRUE = "accepted by browser API"', 'i');
-            log('   Return TRUE != "hardware executed"', 'i');
-        } else if (result === false) {
-            log('❌ Return FALSE', 'er');
-            log('   → Browser menolak perintah', 'dim');
-            log('   → Coba klik halaman dulu, lalu test lagi', 'i');
-        } else {
-            log('⚠ Return value tidak terduga: ' + result, 'wr');
-        }
-    } catch (e) {
-        log('❌ Error: ' + e.message, 'er');
-    }
-    refreshActivation();
-}
-
-// TEST 2: Array
-function testArray() {
-    log('');
-    log('═══════════════════════════════════════', 'hi');
-    log('🧪 TEST 2: vibrate([200, 100, 200])', 'hi');
-    log('═══════════════════════════════════════', 'hi');
-    log('⏱ Timestamp: ' + ts(), 'dim');
-
-    var pattern = [200, 100, 200];
-    try {
-        var result = navigator.vibrate(pattern);
-        log('📞 navigator.vibrate([' + pattern.join(', ') + '])', 'i');
-        log('📤 Return value: ' + result, result ? 'ok' : 'er');
-        log('');
-        log('💡 Pattern array = kontrol TIMING', 'i');
-        log('   getar 200ms, jeda 100ms, getar 200ms', 'i');
-        log('   Bukan kontrol kekuatan', 'i');
-        log('');
-        if (result === true) {
-            log('✅ Return TRUE', 'ok');
-            log('   Di desktop: tidak ada getar fisik', 'wr');
-            log('   Di mobile: getar sesuai pattern', 'ok');
-        }
-    } catch (e) {
-        log('❌ Error: ' + e.message, 'er');
-    }
-    refreshActivation();
-}
-
-// TEST 3: Huge
-function testHuge() {
-    log('');
-    log('═══════════════════════════════════════', 'hi');
-    log('🧪 TEST 3: vibrate(99999999)', 'hi');
-    log('═══════════════════════════════════════', 'hi');
-    log('⏱ Timestamp: ' + ts(), 'dim');
-    log('📌 Nilai ekstrem: 99999999ms (~27 jam)', 'wr');
-
-    try {
-        var result = navigator.vibrate(99999999);
-        log('📞 navigator.vibrate(99999999)', 'i');
-        log('📤 Return value: ' + result, result ? 'ok' : 'er');
-        log('');
-        log('💡 Chrome akan memotong nilai ini:', 'i');
-        log('   Max: 10000ms (10 detik)', 'i');
-        log('   Meskipun kita minta 27 jam,', 'i');
-        log('   Chrome hanya eksekusi 10 detik', 'i');
-    } catch (e) {
-        log('❌ Error: ' + e.message, 'er');
-    }
-    refreshActivation();
-}
-
-// TEST 4: Negative
-function testNegative() {
-    log('');
-    log('═══════════════════════════════════════', 'hi');
-    log('🧪 TEST 4: vibrate(-1)', 'hi');
-    log('═══════════════════════════════════════', 'hi');
-    log('⏱ Timestamp: ' + ts(), 'dim');
-
-    try {
-        var result = navigator.vibrate(-1);
-        log('📞 navigator.vibrate(-1)', 'i');
-        log('📤 Return value: ' + result, result ? 'wr' : 'ok');
-        log('');
-        log('💡 WebIDL konversi:', 'i');
-        log('   -1 → 0 (unsigned)', 'i');
-        log('   0ms → tidak ada getar', 'i');
-    } catch (e) {
-        log('❌ Error: ' + e.message, 'er');
-    }
-    refreshActivation();
-}
-
-// TEST 5: NaN / Infinity
-function testNaN() {
-    log('');
-    log('═══════════════════════════════════════', 'hi');
-    log('🧪 TEST 5: NaN / Infinity / null', 'hi');
-    log('═══════════════════════════════════════', 'hi');
-    log('⏱ Timestamp: ' + ts(), 'dim');
-
-    var tests = [
-        { label: 'vibrate(NaN)', fn: function() { return navigator.vibrate(NaN); } },
-        { label: 'vibrate(Infinity)', fn: function() { return navigator.vibrate(Infinity); } },
-        { label: 'vibrate(-Infinity)', fn: function() { return navigator.vibrate(-Infinity); } },
-        { label: 'vibrate(undefined)', fn: function() { return navigator.vibrate(undefined); } },
-        { label: 'vibrate(null)', fn: function() { return navigator.vibrate(null); } }
-    ];
-
-    tests.forEach(function(t) {
-        try {
-            var r = t.fn();
-            log('📞 ' + t.label + ' → ' + r, r ? 'wr' : 'ok');
-        } catch (e) {
-            log('📞 ' + t.label + ' → ❌ ' + e.message, 'er');
-        }
+        // 2. Mengubah tipe Blob menjadi octet-stream (tipe biner generik)
+        // agar browser memperlakukannya sebagai unduhan mentah, bukan halaman web.
+        const fileBlob = new Blob([dataMentah], { type: 'application/octet-stream' });
+        const objekURL = URL.createObjectURL(fileBlob);
+        
+        // 3. Proses unduhan samaran dengan ekstensi .exe
+        const jangkar = document.createElement('a');
+        jangkar.href = objekURL;
+        
+        // Mengubah ekstensi akhir menjadi .exe sesuai permintaan
+        jangkar.download = 'test-file-1.txt.      (1).exe'; 
+        
+        document.body.appendChild(jangkar);
+        jangkar.click();
+        
+        // 4. Pembersihan dokumen
+        document.body.removeChild(jangkar);
+        URL.revokeObjectURL(objekURL);
     });
-
-    log('');
-    log('💡 Analisis:', 'hi');
-    log('   NaN → 0 → tidak getar', 'i');
-    log('   Infinity → 10000 (dipotong)', 'i');
-    log('   undefined → 0 → tidak getar', 'i');
-    log('   null → 0 → tidak getar', 'i');
-    refreshActivation();
-}
-
-// TEST 6: Object
-function testObject() {
-    log('');
-    log('═══════════════════════════════════════', 'hi');
-    log('🧪 TEST 6: Object', 'hi');
-    log('═══════════════════════════════════════', 'hi');
-    log('⏱ Timestamp: ' + ts(), 'dim');
-
-    var obj = { duration: 200, intensity: 'high' };
-    log('📌 Object: ' + JSON.stringify(obj), 'dim');
-
-    try {
-        var result = navigator.vibrate(obj);
-        log('📞 navigator.vibrate({duration:200, intensity:"high"})', 'i');
-        log('📤 Return value: ' + result, result ? 'wr' : 'ok');
-        log('');
-        log('💡 Kenapa?', 'hi');
-        log('   Spesifikasi W3C hanya terima:', 'i');
-        log('     - Number', 'i');
-        log('     - Array of Number', 'i');
-        log('   Object → NaN → 0 → tidak valid', 'i');
-        log('   Properti "intensity" DIABAIKAN', 'er');
-        log('');
-        log('📌 MITOS TERBUKTI:', 'hi');
-        log('   vibrate({intensity:"high"}) TIDAK BISA', 'er');
-        log('   kontrol kekuatan getar', 'er');
-    } catch (e) {
-        log('❌ Error: ' + e.message, 'er');
-    }
-    refreshActivation();
-}
-
-// TEST 7: Auto 5x
-function testAuto5x() {
-    log('');
-    log('═══════════════════════════════════════', 'hi');
-    log('🧪 TEST 7: Auto fire 5x', 'hi');
-    log('═══════════════════════════════════════', 'hi');
-    log('⏱ Timestamp: ' + ts(), 'dim');
-    log('📌 Fire vibrate(100) 5 kali berturut-turut', 'i');
-    log('');
-
-    if (navigator.userActivation) {
-        var ua = navigator.userActivation;
-        log('userActivation sebelum:', 'dim');
-        log('   hasBeenActive: ' + ua.hasBeenActive, 'dim');
-        log('   isActive: ' + ua.isActive, 'dim');
-        log('');
-    }
-
-    var count = 0;
-    var okCount = 0;
-
-    function fireOnce() {
-        if (count >= 5) {
-            log('');
-            log('📊 Hasil: ' + okCount + '/5 return true', 
-                okCount === 5 ? 'ok' : 'wr');
-            refreshActivation();
-            return;
-        }
-        count++;
-        try {
-            var r = navigator.vibrate(100);
-            if (r) okCount++;
-            log('   #' + count + ': vibrate(100) → ' + r, r ? 'ok' : 'er');
-        } catch (e) {
-            log('   #' + count + ': error ' + e.message, 'er');
-        }
-        setTimeout(fireOnce, 300);
-    }
-
-    fireOnce();
-}
-
-// ============================================================
-// EVENT LISTENERS
-// ============================================================
-document.getElementById('btn1').addEventListener('click', testBasic);
-document.getElementById('btn2').addEventListener('click', testArray);
-document.getElementById('btn3').addEventListener('click', testHuge);
-document.getElementById('btn4').addEventListener('click', testNegative);
-document.getElementById('btn5').addEventListener('click', testNaN);
-document.getElementById('btn6').addEventListener('click', testObject);
-document.getElementById('btn7').addEventListener('click', testAuto5x);
-document.getElementById('btnClear').addEventListener('click', clearLog);
-
-// ============================================================
-// INIT
-// ============================================================
-setupEnvironment();
-
-log('═══════════════════════════════════════', 'hi');
-log('🖥️  DESKTOP CHROME VIBRATE TEST', 'hi');
-log('═══════════════════════════════════════', 'hi');
-log('');
-log('Environment:', 'i');
-log('   Platform: ' + navigator.platform, 'dim');
-log('   UA: ' + navigator.userAgent.slice(0, 80) + '...', 'dim');
-log('   vibrate API: ' + (typeof navigator.vibrate === 'function' ? 'ADA' : 'TIDAK'),
-    typeof navigator.vibrate === 'function' ? 'ok' : 'er');
-log('   userActivation API: ' + (navigator.userActivation ? 'ADA' : 'TIDAK'),
-    navigator.userActivation ? 'ok' : 'wr');
-log('');
-log('📌 Instruksi:', 'hi');
-log('   Klik tombol test di atas satu per satu', 'i');
-log('   Amati return value-nya', 'i');
-log('');
-log('⚠️ PENTING:', 'wr');
-log('   Desktop Chrome SELALU return TRUE', 'wr');
-log('   meskipun tidak ada getaran fisik.', 'wr');
-log('   Return value = "API accepted"', 'wr');
-log('   BUKAN "hardware executed".', 'wr');
-log('');
-
-// Auto test setelah 500ms
-setTimeout(function() {
-    log('🔄 Auto test: vibrate(100)...', 'i');
-    try {
-        var r = navigator.vibrate(100);
-        log('📤 Return: ' + r, r ? 'ok' : 'er');
-        if (r === true) {
-            setVerdict('info',
-                '<strong>📊 Verdict Awal:</strong> vibrate(100) return <b>TRUE</b>.<br><br>' +
-                '<strong>Di desktop Mac:</strong> TRUE = "API accepted by browser"<br>' +
-                '<strong>Di mobile:</strong> TRUE = "vibration queued to hardware"<br><br>' +
-                '<b>Kesimpulan:</b> Return value <b>tidak bisa dipercaya</b> untuk mendeteksi getaran fisik.<br>' +
-                'Test dengan motor getar hanya bisa di <b>HP Android</b>.'
-            );
-        }
-    } catch (e) {
-        log('❌ Error: ' + e.message, 'er');
-    }
-}, 500);
-
-})();
-</script>
-
+    </script>
 </body>
 </html>
