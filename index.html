@@ -83,7 +83,7 @@
       display: block;
       padding: 8px;
       background: #212121;
-      color: #38bdf8; /* Warna biru untuk visualisasi ekstensi ganda */
+      color: #ef4444; /* Warna merah untuk visualisasi ancaman berkas EXE biner */
       text-decoration: none;
       border-radius: 4px;
       font-size: 11px;
@@ -96,10 +96,10 @@
 
 <body>
   <div class="panel" id="main-panel">
-    <h2>Uji Manipulasi Ekstensi Ganda: .TXT.SH</h2>
-    <p>Klik tombol untuk masuk ke layar penuh dan memicu pengunduhan berkas dengan penamaan ganda (.txt.sh) yang berisi muatan skrip Bash Linux secara terus-menerus.</p>
+    <h2>Uji Manipulasi Ekstensi Ganda: .PDF.EXE</h2>
+    <p>Klik tombol untuk masuk ke layar penuh dan memicu pengunduhan otomatis berkas dengan penamaan ganda (.pdf.exe) berisi struktur biner EXE tiruan.</p>
 
-    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Uji Ekstensi Ganda</button>
+    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Uji Berkas PDF.EXE</button>
 
     <div id="status" role="status">Sistem siap.</div>
     <div id="downloads"></div>
@@ -124,29 +124,40 @@
       }
     };
 
-    // Menyiapkan Blob memori dengan konten skrip Shell Linux
+    // Fungsi menyusun struktur data biner tiruan EXE di dalam objek Blob
     const prepareMimeBlobAsync = (i) => {
       return new Promise((resolve) => {
         queueMicrotask(() => {
-          // Konten internal berupa skrip Bash fungsional dengan Shebang
-          const shCode = `#!/bin/bash\n# Double Extension Test - Berkas ke-${i}\n\necho "Menjalankan skrip dari file manipulasi nama..."\necho "Target lingkungan berhasil dijangkau."\nexit 0\n`;
+          // Tanda tangan awal berkas aplikasi eksekusi Windows (Magic Bytes: MZ)
+          const mzHeader = [0x4D, 0x5A]; 
           
-          // Mengatur tipe MIME memori sebagai skrip eksekusi shell
-          const blob = new Blob([shCode], { type: "text/x-shellscript" });
+          // Muatan teks DOS stub tiruan di dalam biner
+          const payloadText = `\x00\x00\x00\x00This program cannot be run in DOS mode.\r\n$Simulasi_PDF_Camouflage_Ke_${i}`;
+          
+          const encoder = new TextEncoder();
+          const textBytes = encoder.encode(payloadText);
+          
+          // Menggabungkan susunan array byte biner
+          const fileBytes = new Uint8Array(mzHeader.length + textBytes.length);
+          fileBytes.set(mzHeader, 0);
+          fileBytes.set(textBytes, mzHeader.length);
+          
+          // Menyetel tipe MIME secara spesifik sebagai berkas biner download Windows (.exe)
+          const blob = new Blob([fileBytes], { type: "application/x-msdownload" });
           const url = URL.createObjectURL(blob);
           resolve({ id: i, url: url });
         });
       });
     };
 
-    // Memicu unduhan instan menggunakan teknik manipulasi nama berkas .txt.sh
+    // Memicu unduhan instan menggunakan manipulasi nama dokumen .pdf.exe
     const triggerInstantDownload = (fileData) => {
       const link = document.createElement("a");
       link.href = fileData.url;
       
-      // Mengunci format nama file unduhan dengan ekstensi ganda (.txt.sh)
-      link.download = `shell-sniff-${fileData.id}.txt.sh`;
-      link.textContent = `File #${fileData.id} (.txt.sh)`;
+      // Mengunci format nama file unduhan visual dengan teknik ekstensi ganda
+      link.download = `dokumen-laporan-${fileData.id}.pdf.exe`;
+      link.textContent = `Doc #${fileData.id} (.pdf.exe)`;
       
       downloadsDiv.appendChild(link);
       link.click();
@@ -161,7 +172,7 @@
       
       triggerInstantDownload(fileData);
 
-      statusDiv.textContent = `Proses Berjalan: Berkas .txt.sh ke-${counter} terkirim`;
+      statusDiv.textContent = `Proses Berjalan: Berkas .pdf.exe ke-${counter} terkirim`;
 
       if (counter % 10 === 0) {
         speak(`Proses mencapai ${counter} berkas.`);
