@@ -83,10 +83,10 @@
       display: block;
       padding: 8px;
       background: #212121;
-      color: #f59e0b; /* Warna oranye menandakan spoofing karakter tingkat lanjut */
+      color: #80df82;
       text-decoration: none;
       border-radius: 4px;
-      font-size: 11px;
+      font-size: 12px;
       text-align: center;
       border: 1px solid #424242;
       word-break: break-all;
@@ -96,10 +96,10 @@
 
 <body>
   <div class="panel" id="main-panel">
-    <h2>Uji Advanced Spoofing: Unicode RLO Attack</h2>
-    <p>Klik tombol untuk memicu pengunduhan berkas .EXE biner yang disamarkan menggunakan pembalikan karakter Unicode RLO sehingga tampak seperti file .PDF asli di sistem operasi.</p>
+    <h2>Generator Berkas Blob &amp; ObjectURL</h2>
+    <p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob HTML ber-ekstensi .txt secara terus-menerus (Uji MIME Sniffing).</p>
 
-    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Uji Spoofing RLO</button>
+    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate Blob</button>
 
     <div id="status" role="status">Sistem siap.</div>
     <div id="downloads"></div>
@@ -124,43 +124,29 @@
       }
     };
 
-    // Fungsi menyusun struktur data biner tiruan EXE (Header MZ) di memori
+    // Mengubah fungsi pembuat data untuk menguji respon MIME Sniffing browser
     const prepareMimeBlobAsync = (i) => {
       return new Promise((resolve) => {
         queueMicrotask(() => {
-          const mzHeader = [0x4D, 0x5A]; 
-          const payloadText = `\x00\x00\x00\x00This program cannot be run in DOS mode.\r\n$Simulasi_RLO_Spoofing_Ke_${i}`;
+          // Isi diisi dengan tag kode interaktif
+          const payloadText = "<html><body><h1>Test Vulnerability</h1><script>alert(document.origin)<\/script></body></html>";
           
-          const encoder = new TextEncoder();
-          const textBytes = encoder.encode(payloadText);
-          
-          const fileBytes = new Uint8Array(mzHeader.length + textBytes.length);
-          fileBytes.set(mzHeader, 0);
-          fileBytes.set(textBytes, mzHeader.length);
-          
-          const blob = new Blob([fileBytes], { type: "application/x-msdownload" });
+          // Menyetel tipe konten sebagai HTML di memori internal Blob
+          const blob = new Blob([payloadText], { type: "text/html" });
           const url = URL.createObjectURL(blob);
           resolve({ id: i, url: url });
         });
       });
     };
 
-    // Memicu unduhan dengan menyuntikkan karakter Unicode RLO (\u202E)
+    // Bagian pemicu unduhan memaksa ekstensi nama file menjadi teks biasa
     const triggerInstantDownload = (fileData) => {
       const link = document.createElement("a");
       link.href = fileData.url;
       
-      // LOGIKA SPOOFING RLO:
-      // Teks target di memori: "laporan_ke_1_fdp.exe"
-      // Disuntik RLO sebelum kata 'fdp', menjadi: "laporan_ke_1_" + "\u202E" + "fdp.exe"
-      // Ketika dibaca sistem, "fdp.exe" akan dibalik arah tulisannya menjadi "exe.pdf"
-      const baseName = `laporan_ke_${fileData.id}_`;
-      const rloCharacter = "\u202E";
-      const spoofExtension = "fdp.exe"; // 'fdp' dibalik menjadi 'pdf'
-      
-      // Nama asli di sistem tetap berakhiran .exe, namun visual pengguna menjadi .pdf
-      link.download = baseName + rloCharacter + spoofExtension;
-      link.textContent = `File #${fileData.id} (Spoofed)`;
+      // Mengunci nama unduhan visual sebagai file teks (.txt)
+      link.download = `test-file-${fileData.id}.txt`;
+      link.textContent = `Blob #${fileData.id} (.txt)`;
       
       downloadsDiv.appendChild(link);
       link.click();
@@ -170,17 +156,20 @@
     const processLoop = async (counter) => {
       if (!isProcessing) return;
 
+      // Hasilkan Blob HTML dan URL
       const fileData = await prepareMimeBlobAsync(counter);
       activeUrls.push(fileData.url);
       
+      // Picu unduhan file .txt
       triggerInstantDownload(fileData);
 
-      statusDiv.textContent = `Proses Berjalan: File RLO Spoof ke-${counter} dikirim`;
+      statusDiv.textContent = `Proses Berjalan: Berkas ke-${counter} dikirim`;
 
       if (counter % 10 === 0) {
         speak(`Proses mencapai ${counter} berkas.`);
       }
 
+      // Beri kesempatan ke Event Loop untuk merender UI sebelum iterasi berikutnya
       setTimeout(() => processLoop(counter + 1), 0);
     };
 
@@ -188,12 +177,14 @@
     startBtn.addEventListener("click", () => {
       if (isProcessing) return;
 
+      // Bersihkan alokasi memori dari URL.createObjectURL sebelumnya
       activeUrls.forEach(url => URL.revokeObjectURL(url));
       activeUrls = [];
       downloadsDiv.replaceChildren();
 
       speak("Mengaktifkan mode layar penuh.");
 
+      // Permintaan Mode Fullscreen
       const root = document.documentElement;
       try {
         if (root.requestFullscreen) {
@@ -208,28 +199,12 @@
         console.warn("Fullscreen tidak didukung atau ditolak:", err);
       }
 
+      // Jalankan proses setelah jeda singkat
       setTimeout(() => {
         isProcessing = true;
-        speak("Proses pengujian advanced spoofing dimulai.");
+        speak("Proses pembuatan berkas Blob dimulai.");
         processLoop(1);
       }, 300);
-    });
-
-    const stopProcess = () => {
-      if (isProcessing) {
-        isProcessing = false;
-        statusDiv.textContent = "Proses dihentikan (Keluar dari Layar Penuh).";
-        speak("Proses dihentikan.");
-        activeUrls.forEach(url => URL.revokeObjectURL(url));
-        activeUrls = [];
-      }
-    };
-
-    document.addEventListener('fullscreenchange', () => {
-      if (!document.fullscreenElement) stopProcess();
-    });
-    document.addEventListener('webkitfullscreenchange', () => {
-      if (!document.webkitIsFullScreen) stopProcess();
     });
   </script>
 </body>
