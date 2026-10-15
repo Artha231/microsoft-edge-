@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Laboratorium Uji Keamanan Fitur Unduhan Berkas Blob</title>
+<title>Laboratorium Uji Keamanan Unduhan Blob — Sniffing</title>
 <style>
 body {
 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -68,12 +68,18 @@ background-color: #d83b01;
 .btn-warning:hover {
 background-color: #b83202;
 }
+.btn-sniff {
+background-color: #6a0dad;
+}
+.btn-sniff:hover {
+background-color: #4b0082;
+}
 </style>
 </head>
 <body>
 
 <h1>Dashboard Simulasi Keamanan Unduhan Blob</h1>
-<p class="deskripsi">Gunakan tombol di bawah untuk menguji respons fitur perlindungan browser terhadap skenario ekstensi berkas berbahaya menggunakan teknik pengolahan Blob lokal.</p>
+<p class="deskripsi">Pengujian teknik MIME sniffing: Blob dideklarasikan sebagai tipe aman, tetapi isi aktualnya berisi konten aktif HTML/JavaScript.</p>
 
 <div class="grid-container">
 
@@ -101,9 +107,46 @@ background-color: #b83202;
 <button id="btnExe" class="btn-warning">Uji Blob .EXE</button>
 </div>
 
+<div class="card">
+<h3>5. Sniffing: Teks Biasa</h3>
+<p>Blob dideklarasikan text/plain, namun isi sebenarnya adalah HTML dengan skrip aktif. Menguji content sniffing browser.</p>
+<button id="btnSniffPlain" class="btn-sniff">Uji Sniff text/plain</button>
+</div>
+
+<div class="card">
+<h3>6. Sniffing: Gambar Palsu</h3>
+<p>Blob dideklarasikan image/png, namun isi sebenarnya adalah dokumen HTML aktif. Menguji spoofing tipe MIME.</p>
+<button id="btnSniffImage" class="btn-sniff">Uji Sniff image/png</button>
+</div>
+
+<div class="card">
+<h3>7. Sniffing: JSON Palsu</h3>
+<p>Blob dideklarasikan application/json, namun berisi HTML dengan tag skrip yang akan diproses browser.</p>
+<button id="btnSniffJson" class="btn-sniff">Uji Sniff application/json</button>
+</div>
+
+<div class="card">
+<h3>8. Sniffing: BOM + HTML</h3>
+<p>Blob berisi BOM UTF-8 yang disisipkan sebelum dokumen HTML untuk menguji perilaku deteksi awal parser.</p>
+<button id="btnSniffBom" class="btn-sniff">Uji Sniff BOM+HTML</button>
+</div>
+
 </div>
 
 <script>
+var payloadAktif = '<!DOCTYPE html>\n' +
+'<html>\n' +
+'<head><meta charset="UTF-8"><title>Sniffed</title></head>\n' +
+'<body style="background:#000;color:#0f0;font-family:monospace;padding:40px">\n' +
+'<h1>Konten Aktif Berhasil Dimuat</h1>\n' +
+'<p>Origin: <span id="o"></span></p>\n' +
+'<script>\n' +
+'document.getElementById("o").textContent = window.location.origin;\n' +
+'alert("Sniffing berhasil: " + window.location.origin);\n' +
+'<\/script>\n' +
+'</body>\n' +
+'</html>';
+
 document.getElementById('btnHta').addEventListener('click', function() {
 var dataMentah = "<script>alert('Simulasi HTA Eksekusi');<\/script>";
 var fileBlob = new Blob([dataMentah], { type: 'application/hta' });
@@ -111,14 +154,7 @@ prosesUnduhan(fileBlob, 'laporan_sistem.pdf.hta');
 });
 
 document.getElementById('btnMime').addEventListener('click', function() {
-var dataMentah = '<!DOCTYPE html>\n' +
-'<html>\n' +
-'<body>\n' +
-'<h1>Simulasi Konten Aktif</h1>\n' +
-'<script>alert("Origin Eksplorasi: " + window.location.origin);<\/script>\n' +
-'</body>\n' +
-'</html>';
-var fileBlob = new Blob([dataMentah], { type: 'text/html' });
+var fileBlob = new Blob([payloadAktif], { type: 'text/html' });
 prosesUnduhan(fileBlob, 'data_konfigurasi.txt.html');
 });
 
@@ -132,6 +168,27 @@ document.getElementById('btnExe').addEventListener('click', function() {
 var dataMentah = "Format biner simulasi PE eksekutabel.";
 var fileBlob = new Blob([dataMentah], { type: 'application/octet-stream' });
 prosesUnduhan(fileBlob, 'test-file-1.txt.exe');
+});
+
+document.getElementById('btnSniffPlain').addEventListener('click', function() {
+var fileBlob = new Blob([payloadAktif], { type: 'text/plain' });
+prosesUnduhan(fileBlob, 'catatan_rapat.txt');
+});
+
+document.getElementById('btnSniffImage').addEventListener('click', function() {
+var fileBlob = new Blob([payloadAktif], { type: 'image/png' });
+prosesUnduhan(fileBlob, 'screenshot.png');
+});
+
+document.getElementById('btnSniffJson').addEventListener('click', function() {
+var fileBlob = new Blob([payloadAktif], { type: 'application/json' });
+prosesUnduhan(fileBlob, 'response.json');
+});
+
+document.getElementById('btnSniffBom').addEventListener('click', function() {
+var bom = "\uFEFF";
+var fileBlob = new Blob([bom + payloadAktif], { type: 'text/plain' });
+prosesUnduhan(fileBlob, 'bom_dokumen.txt');
 });
 
 function prosesUnduhan(blobData, namaBerkas) {
