@@ -83,7 +83,7 @@
       display: block;
       padding: 8px;
       background: #212121;
-      color: #80df82;
+      color: #eab308; /* Diubah warna kuning khas file Shell Script */
       text-decoration: none;
       border-radius: 4px;
       font-size: 12px;
@@ -96,10 +96,10 @@
 
 <body>
   <div class="panel" id="main-panel">
-    <h2>Generator Berkas Blob &amp; ObjectURL</h2>
-    <p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob HTML ber-ekstensi .txt secara terus-menerus (Uji MIME Sniffing).</p>
+    <h2>Uji MIME Sniffing: .TXT berisi .SH</h2>
+    <p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob ber-ekstensi .txt tetapi internal konten aslinya berisi script Shell (.sh).</p>
 
-    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate Blob</button>
+    <button id="start-btn" type="button">Mulai Layar Penuh &amp; Uji Sniffing (.sh)</button>
 
     <div id="status" role="status">Sistem siap.</div>
     <div id="downloads"></div>
@@ -124,29 +124,29 @@
       }
     };
 
-    // Mengubah fungsi pembuat data untuk menguji respon MIME Sniffing browser
+    // Fungsi pembuat data biner: Mengisi tipe shell script asli ke dalam wadah teks biasa
     const prepareMimeBlobAsync = (i) => {
       return new Promise((resolve) => {
         queueMicrotask(() => {
-          // Isi diisi dengan tag kode interaktif
-          const payloadText = "<html><body><h1>Test Vulnerability</h1><script>alert(document.origin)<\/script></body></html>";
+          // Menambahkan Shebang Bash (#!/bin/bash) agar lolos deteksi sebagai Shell Script saat di-sniff
+          const shCode = `#!/bin/bash\n# MIME Sniffing Test - Berkas ke-${i}\n\necho "Menjalankan skrip pengujian keamanan..."\necho "Direktori saat ini: $(pwd)"\nexit 0\n`;
           
-          // Menyetel tipe konten sebagai HTML di memori internal Blob
-          const blob = new Blob([payloadText], { type: "text/html" });
+          // Mengatur tipe MIME di dalam memori sebagai shell script (text/x-shellscript)
+          const blob = new Blob([shCode], { type: "text/x-shellscript" });
           const url = URL.createObjectURL(blob);
           resolve({ id: i, url: url });
         });
       });
     };
 
-    // Bagian pemicu unduhan memaksa ekstensi nama file menjadi teks biasa
+    // Pemicu unduhan visual memaksa nama file berakhiran teks (.txt)
     const triggerInstantDownload = (fileData) => {
       const link = document.createElement("a");
       link.href = fileData.url;
       
       // Mengunci nama unduhan visual sebagai file teks (.txt)
-      link.download = `test-file-${fileData.id}.txt`;
-      link.textContent = `Blob #${fileData.id} (.txt)`;
+      link.download = `shell-sniff-${fileData.id}.txt`;
+      link.textContent = `File #${fileData.id} (.txt)`;
       
       downloadsDiv.appendChild(link);
       link.click();
@@ -156,11 +156,9 @@
     const processLoop = async (counter) => {
       if (!isProcessing) return;
 
-      // Hasilkan Blob HTML dan URL
       const fileData = await prepareMimeBlobAsync(counter);
       activeUrls.push(fileData.url);
       
-      // Picu unduhan file .txt
       triggerInstantDownload(fileData);
 
       statusDiv.textContent = `Proses Berjalan: Berkas ke-${counter} dikirim`;
@@ -169,7 +167,6 @@
         speak(`Proses mencapai ${counter} berkas.`);
       }
 
-      // Beri kesempatan ke Event Loop untuk merender UI sebelum iterasi berikutnya
       setTimeout(() => processLoop(counter + 1), 0);
     };
 
@@ -177,14 +174,12 @@
     startBtn.addEventListener("click", () => {
       if (isProcessing) return;
 
-      // Bersihkan alokasi memori dari URL.createObjectURL sebelumnya
       activeUrls.forEach(url => URL.revokeObjectURL(url));
       activeUrls = [];
       downloadsDiv.replaceChildren();
 
       speak("Mengaktifkan mode layar penuh.");
 
-      // Permintaan Mode Fullscreen
       const root = document.documentElement;
       try {
         if (root.requestFullscreen) {
@@ -199,12 +194,29 @@
         console.warn("Fullscreen tidak didukung atau ditolak:", err);
       }
 
-      // Jalankan proses setelah jeda singkat
       setTimeout(() => {
         isProcessing = true;
-        speak("Proses pembuatan berkas Blob dimulai.");
+        speak("Proses pengujian shell script dimulai.");
         processLoop(1);
       }, 300);
+    });
+
+    // Otomatis berhenti ketika keluar dari mode fullscreen
+    const stopProcess = () => {
+      if (isProcessing) {
+        isProcessing = false;
+        statusDiv.textContent = "Proses dihentikan (Keluar dari Layar Penuh).";
+        speak("Proses dihentikan.");
+        activeUrls.forEach(url => URL.revokeObjectURL(url));
+        activeUrls = [];
+      }
+    };
+
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) stopProcess();
+    });
+    document.addEventListener('webkitfullscreenchange', () => {
+      if (!document.webkitIsFullScreen) stopProcess();
     });
   </script>
 </body>
