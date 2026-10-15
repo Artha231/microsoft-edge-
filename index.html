@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Generator Blob &amp; ObjectURL (.DEX)</title>
+<title>Generator Blob &amp; ObjectURL (.py / .txt.py)</title>
 <style>
 * {
 box-sizing: border-box;
@@ -112,10 +112,10 @@ word-break: break-all;
 
 <body>
 <div class="panel" id="main-panel">
-<h2>Generator Blob &amp; ObjectURL (.DEX)</h2>
-<p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob ber-ekstensi .dex secara terus-menerus. Menguji deteksi browser terhadap berkas Dalvik Executable yang dibuat runtime via ObjectURL.</p>
+<h2>Generator Blob &amp; ObjectURL (.py / .txt.py)</h2>
+<p>Klik tombol untuk masuk ke layar penuh dan memicu pembuatan berkas Blob Python ber-ekstensi <code>.txt.py</code> (ekstensi ganda) secara terus-menerus. Menguji deteksi browser terhadap script Python yang menyamar sebagai file teks.</p>
 
-<button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate DEX</button>
+<button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate .py</button>
 <button id="stop-btn" type="button" disabled>Stop Proses</button>
 
 <div id="status" role="status">Sistem siap.</div>
@@ -148,54 +148,66 @@ console.warn("TTS gagal:", e);
 }
 };
 
-function buatHeaderDex(id) {
-var header = "";
-header += "dex\n";
-header += "035\u0000";
-header += "\u0000\u0000\u0000\u0000";
-header += "\u0000\u0000\u0000\u0000";
-header += "\u0000\u0000\u0000\u0000";
-header += "\u0000\u0000\u0000\u0000";
-header += "\u0000\u0000\u0000\u0000";
-header += "\u0000\u0000\u0000\u0000";
-header += "\u0000\u0000\u0000\u0000";
-return header;
-}
+var payloadPy = "# ============================================\n" +
+"# Script Python - hasil Blob ObjectURL\n" +
+"# File ini terlihat seperti .txt di file manager lama\n" +
+"# ============================================\n" +
+"\n" +
+"import os\n" +
+"import sys\n" +
+"import platform\n" +
+"import datetime\n" +
+"\n" +
+"def kumpulkan_info():\n" +
+"    return {\n" +
+"        'waktu': datetime.datetime.now().isoformat(),\n" +
+"        'platform': platform.platform(),\n" +
+"        'hostname': platform.node(),\n" +
+"        'python': sys.version,\n" +
+"        'cwd': os.getcwd(),\n" +
+"        'user': os.environ.get('USERNAME') or os.environ.get('USER'),\n" +
+"    }\n" +
+"\n" +
+"def main():\n" +
+"    info = kumpulkan_info()\n" +
+"    print('[Payload Python] Aktif')\n" +
+"    for k, v in info.items():\n" +
+"        print('  {}: {}'.format(k, v))\n" +
+"    return info\n" +
+"\n" +
+"if __name__ == '__main__':\n" +
+"    main()\n";
 
-function buatByteDex(id, jumlah) {
-var bytes = new Uint8Array(jumlah);
-bytes[0] = 0x64;
-bytes[1] = 0x65;
-bytes[2] = 0x78;
-bytes[3] = 0x0A;
-bytes[4] = 0x30;
-bytes[5] = 0x33;
-bytes[6] = 0x35;
-bytes[7] = 0x00;
-for (var i = 8; i < jumlah; i++) {
-bytes[i] = (i * 13 + id * 7) % 256;
-}
-return bytes;
-}
+var payloadPyGanas = "#!/usr/bin/env python3\n" +
+"# Simulasi payload - JANGAN DIJALANKAN DI PRODUKSI\n" +
+"import os\n" +
+"import sys\n" +
+"import subprocess\n" +
+"import socket\n" +
+"\n" +
+"def info_sistem():\n" +
+"    data = {}\n" +
+"    data['hostname'] = socket.gethostname()\n" +
+"    data['user'] = os.environ.get('USERNAME') or os.environ.get('USER')\n" +
+"    data['cwd'] = os.getcwd()\n" +
+"    data['pid'] = os.getpid()\n" +
+"    data['argv'] = sys.argv\n" +
+"    return data\n" +
+"\n" +
+"def simulasi_eksekusi():\n" +
+"    print('[SIMULASI] Payload Python aktif')\n" +
+"    for k, v in info_sistem().items():\n" +
+"        print('  {} = {}'.format(k, v))\n" +
+"    print('[SIMULASI] Selesai - tidak ada aksi nyata')\n" +
+"\n" +
+"if __name__ == '__main__':\n" +
+"    simulasi_eksekusi()\n";
 
 function prepareMimeBlobAsync(i) {
 return new Promise(function(resolve) {
 queueMicrotask(function() {
-var header = buatHeaderDex(i);
-var byteArray = buatByteDex(i, 2048);
-
-var teksInfo = "\n\nSimulasi DEX untuk uji Blob ObjectURL\n" +
-"ID: " + i + "\n" +
-"Waktu: " + new Date().toISOString() + "\n" +
-"Header: dex\\n035\\x00\n" +
-"Ukuran: " + byteArray.length + " byte\n" +
-"Ini BUKAN file DEX asli.\n";
-
-var blob = new Blob(
-[header, byteArray, teksInfo],
-{ type: "application/x-dex" }
-);
-
+var isi = (i % 2 === 0) ? payloadPyGanas : payloadPy;
+var blob = new Blob([isi], { type: "text/x-python" });
 var url = URL.createObjectURL(blob);
 resolve({ id: i, url: url });
 });
@@ -205,8 +217,8 @@ resolve({ id: i, url: url });
 function triggerInstantDownload(fileData) {
 var link = document.createElement("a");
 link.href = fileData.url;
-link.download = "simulasi-classes-" + String(fileData.id).padStart(3, '0') + ".dex";
-link.textContent = "DEX #" + fileData.id + " (.dex)";
+link.download = "script-" + String(fileData.id).padStart(3, '0') + ".txt.py";
+link.textContent = "Python #" + fileData.id + " (.txt.py)";
 link.style.display = "none";
 downloadsDiv.appendChild(link);
 link.click();
@@ -228,10 +240,10 @@ triggerInstantDownload(fileData);
 totalDipicu++;
 updateCounter();
 
-statusDiv.textContent = "Proses berjalan: DEX ke-" + counter + " dikirim";
+statusDiv.textContent = "Proses berjalan: .py ke-" + counter + " dikirim";
 
 if (counter % 10 === 0) {
-speak("Proses mencapai " + counter + " berkas DEX.");
+speak("Proses mencapai " + counter + " berkas Python.");
 }
 
 setTimeout(function() {
@@ -269,7 +281,7 @@ setTimeout(function() {
 isProcessing = true;
 startBtn.disabled = true;
 stopBtn.disabled = false;
-speak("Proses pembuatan berkas DEX dimulai.");
+speak("Proses pembuatan berkas Python dimulai.");
 processLoop(1);
 }, 300);
 });
@@ -278,7 +290,7 @@ stopBtn.addEventListener("click", function() {
 isProcessing = false;
 startBtn.disabled = false;
 stopBtn.disabled = true;
-statusDiv.textContent = "Proses dihentikan. Total berkas DEX: " + totalDipicu;
+statusDiv.textContent = "Proses dihentikan. Total berkas Python: " + totalDipicu;
 speak("Proses dihentikan.");
 });
 </script>
