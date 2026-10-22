@@ -1,104 +1,61 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Child Iframe - Advanced Escape</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Sandbox Escape Test (Upgraded)</title>
     <style>
-        body { background: #222; color: #fff; font-family: monospace; padding: 20px; text-align: center; }
-        #status { font-weight: bold; margin-top: 20px; padding: 10px; border-radius: 6px; background: #333; color: #ff9800; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; background: #f4f6f8; text-align: center; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        iframe { width: 100%; height: 300px; border: 2px dashed #d32f2f; border-radius: 8px; margin-top: 20px; background: #fafafa; }
+        .log-box { background: #1e1e1e; color: #0f0; padding: 15px; border-radius: 6px; font-family: monospace; text-align: left; margin-top: 20px; max-height: 250px; overflow-y: auto; font-size: 13px; }
+        .warning { background: #fff3cd; color: #856404; padding: 15px; border-radius: 6px; margin-bottom: 20px; text-align: left; font-size: 14px; border: 1px solid #ffeeba; }
     </style>
 </head>
 <body>
-    <h2>Child Iframe (Sandboxed)</h2>
-    <p>Menunggu sinyal dari Parent...</p>
-    <div id="status">Menunggu TRIGGER_EXPLOIT...</div>
+    <div class="container">
+        <h2>Advanced Sandbox Escape Test (Upgraded)</h2>
+        
+        <div class="warning">
+            <strong>Uji Coba Sandbox Escape:</strong> Iframe di bawah ini memiliki sandbox <code>allow-scripts</code> saja (tanpa <code>allow-same-origin</code>, <code>allow-popups</code>, <code>allow-top-navigation</code>, atau <code>allow-downloads</code>). Browser modern <strong>harus</strong> memblokir semua upaya eksploitasi di bawah ini.
+        </div>
+
+        <!-- IFRAME DENGAN SANDBOX KETAT -->
+        <!-- Ganti URL di bawah ini dengan URL child.html Anda -->
+        <iframe id="testFrame" src="https://artha231.github.io/bug-microsoft-new-test/" sandbox="allow-scripts"></iframe>
+
+        <!-- LOG UNTUK MEMANTAU EKSEKUSI -->
+        <div class="log-box" id="log">Menunggu eksekusi dari dalam iframe...</div>
+    </div>
 
     <script>
-        const statusEl = document.getElementById('status');
-
-        function logToParent(msg, color) {
-            statusEl.innerText = msg;
-            statusEl.style.color = color;
-            try {
-                window.parent.postMessage("[CHILD] " + msg, "*");
-            } catch(e) {}
+        function logPesan(msg) {
+            const logBox = document.getElementById('log');
+            logBox.innerHTML += "<br>> " + msg;
+            console.log(msg);
         }
 
+        // Listener untuk menerima pesan dari iframe
         window.addEventListener('message', function(event) {
-            if (event.data === 'TRIGGER_EXPLOIT') {
-                logToParent("Menerima sinyal! Memulai eksploitasi agresif...", "#ff9800");
-                jalankanEksploitasi();
+            // Hanya menerima pesan dari iframe kita (opsional, untuk keamanan)
+            if (event.source === document.getElementById('testFrame').contentWindow) {
+                logPesan("Menerima postMessage dari iframe: " + event.data);
             }
         });
 
-        function jalankanEksploitasi() {
-            // 1. Uji Top Navigation (Mengubah halaman utama)
-            try {
-                window.top.location.href = "https://artha231.github.io/bug-microsoft-new-test/";
-                logToParent("Top Navigation: Berhasil?", "#0f0");
-            } catch(e) {
-                logToParent("Top Navigation: Diblokir oleh Sandbox", "#f00");
-            }
+        logPesan("Iframe dimuat dengan sandbox: allow-scripts");
+        logPesan("Mengirim sinyal 'TRIGGER_EXPLOIT' dalam 2 detik...");
 
-            // 2. Uji Pop-up (Membuka tab baru)
+        setTimeout(() => {
             try {
-                const newWin = window.open("https://google.com", "_blank");
-                if (newWin) {
-                    logToParent("Pop-up: Berhasil dibuka!", "#0f0");
-                } else {
-                    logToParent("Pop-up: Diblokir (Null returned)", "#f00");
-                }
+                const frame = document.getElementById('testFrame');
+                // Sinyal untuk memulai eksploitasi
+                frame.contentWindow.postMessage('TRIGGER_EXPLOIT', '*');
+                logPesan("Sinyal 'TRIGGER_EXPLOIT' terkirim.");
             } catch(e) {
-                logToParent("Pop-up: Diblokir oleh Sandbox", "#f00");
+                logPesan("Gagal mengirim sinyal: " + e.message);
             }
-
-            // 3. Uji Auto Download (Blob)
-            try {
-                const blob = new Blob(["HACKED"], { type: "text/plain" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "sandbox_escape_test.txt";
-                document.body.appendChild(a);
-                a.click();
-                logToParent("Download: Berhasil dipicu", "#0f0");
-            } catch(e) {
-                logToParent("Download: Diblokir oleh Sandbox", "#f00");
-            }
-
-            // 4. Uji Akses ke Parent DOM (Harusnya gagal karena Cross-Origin)
-            try {
-                window.parent.document.body.style.background = "red";
-                logToParent("Akses Parent DOM: Berhasil! (Bahaya)", "#0f0");
-            } catch(e) {
-                logToParent("Akses Parent DOM: Diblokir (Cross-Origin)", "#f00");
-            }
-
-            // 5. TRIK BARU: Memanipulasi URL Parent via History API
-            try {
-                window.parent.history.replaceState({}, '', '/hacked');
-                logToParent("History API Parent: Berhasil diubah!", "#0f0");
-            } catch(e) {
-                logToParent("History API Parent: Diblokir", "#f00");
-            }
-
-            // 6. TRIK BARU: Mencoba memicu Fullscreen pada Parent
-            try {
-                window.parent.document.documentElement.requestFullscreen();
-                logToParent("Fullscreen Parent: Berhasil dipicu!", "#0f0");
-            } catch(e) {
-                logToParent("Fullscreen Parent: Diblokir", "#f00");
-            }
-
-            // 7. TRIK BARU: Mengirim Data Sensitif via postMessage (Simulasi Pencurian)
-            try {
-                const stolenData = { cookie: document.cookie, localStorage: JSON.stringify(localStorage) };
-                window.parent.postMessage(stolenData, "*");
-                logToParent("Data Exfiltration: Berhasil dikirim!", "#0f0");
-            } catch(e) {
-                logToParent("Data Exfiltration: Gagal", "#f00");
-            }
-        }
+        }, 2000);
     </script>
 </body>
 </html>
