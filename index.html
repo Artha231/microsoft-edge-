@@ -3,16 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Zero-Click Instagram Intent via Iframe</title>
+<title>Zero-Click Intent (Direct)</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #fff; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; text-align: center; }
 .panel { background: #1e1e1e; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 600px; width: 100%; border: 1px solid #333; }
 h1 { font-size: 28px; color: #ff4444; margin-bottom: 15px; text-shadow: 0 0 10px #ff4444; }
 p { font-size: 15px; color: #aaa; margin-bottom: 25px; line-height: 1.6; }
-button { width: 100%; padding: 16px; cursor: pointer; border: none; border-radius: 6px; background: #0078d4; color: #fff; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3); transition: background 0.2s; margin-bottom: 10px; }
-button:hover { background: #005a9e; }
-button:disabled { background: #555; }
 #status { margin-top: 20px; font-weight: bold; color: #ff9800; font-size: 14px; font-family: monospace; background: #111; padding: 10px; border-radius: 6px; }
 .log { background: #000; color: #0f0; padding: 10px; border-radius: 6px; font-family: monospace; text-align: left; margin-top: 15px; height: 150px; overflow-y: auto; font-size: 12px; }
 </style>
@@ -20,14 +17,10 @@ button:disabled { background: #555; }
 
 <body>
 <div class="panel" id="main-panel">
-    <h1>Zero-Click Intent via Iframe</h1>
-    <p>Membuka profil Instagram Anda secara otomatis (Zero-Click) menggunakan Iframe saat halaman dimuat.</p>
+    <h1>Zero-Click Intent (Direct)</h1>
+    <p>Mengarahkan Anda ke profil Instagram secara otomatis saat halaman dimuat.</p>
     
-    <button id="btn-auto-download" type="button">1. Auto Download via Iframe</button>
-    <button id="btn-intent-redirect" type="button">2. Intent Redirect via Iframe</button>
-    <button id="btn-window-open" type="button">3. Window Open Blob Download</button>
-    
-    <div id="status" role="status">Sistem siap.</div>
+    <div id="status" role="status">Memuat halaman...</div>
     <div class="log" id="log">Log akan muncul di sini...</div>
 </div>
 
@@ -40,97 +33,26 @@ button:disabled { background: #555; }
         console.log(msg);
     }
 
-    // 1. Auto Download via Iframe Tersembunyi (Bypass User Gesture)
-    document.getElementById("btn-auto-download").addEventListener("click", () => {
-        statusDiv.textContent = "Memicu Auto Download via Iframe...";
-        log("Membuat Iframe tersembunyi...");
-
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        
-        const iframeDoc = iframe.contentWindow.document;
-        iframeDoc.open();
-        iframeDoc.write(`
-            <!DOCTYPE html>
-            <html>
-            <body>
-                <script>
-                    const blob = new Blob(['Hacked by Iframe'], {type: 'text/plain'});
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'iframe-auto-download.txt';
-                    document.body.appendChild(a);
-                    a.click();
-                <\/script>
-            </body>
-            </html>
-        `);
-        iframeDoc.close();
-        
-        document.body.appendChild(iframe);
-        
-        statusDiv.textContent = "Iframe Auto Download dipicu.";
-        statusDiv.style.color = "#4CAF50";
-        log("Iframe dimuat dan memicu unduhan.");
-    });
-
-    // 2. Intent Redirect via Iframe (Android) - DIUBAH MENJADI ZERO CLICK
-    // Fungsi ini dipanggil otomatis saat halaman dimuat
-    function triggerZeroClickIntent() {
-        statusDiv.textContent = "Zero-Click Intent berjalan di latar belakang...";
-        log("Membuat Iframe Intent tersembunyi...");
-
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        
-        const iframeDoc = iframe.contentWindow.document;
-        iframeDoc.open();
-        iframeDoc.write(`
-            <!DOCTYPE html>
-            <html>
-            <body>
-                <script>
-                    // Intent ke profil Instagram (Ganti theonly_w4gur1 dengan username Anda)
-                    window.location.href = 'intent://instagram.com/_u/theonly_w4gur1/#Intent;scheme=https;package=com.instagram.android;category=android.intent.category.BROWSABLE;end';
-                <\/script>
-            </body>
-            </html>
-        `);
-        iframeDoc.close();
-        
-        document.body.appendChild(iframe);
-        
-        log("Iframe Intent dikirim ke sistem Android.");
-    }
-
-    // Panggil fungsi Zero-Click saat DOM siap
+    // FUNGSI ZERO-CLICK: Langsung eksekusi saat DOM siap
     window.addEventListener("DOMContentLoaded", () => {
-        // Jeda sedikit agar halaman utama sempat dirender
-        setTimeout(triggerZeroClickIntent, 500);
-    });
-
-    // Tombol manual (opsional, jika Zero-Click diblokir)
-    document.getElementById("btn-intent-redirect").addEventListener("click", triggerZeroClickIntent);
-
-    // 3. Window Open Blob Download (Bypass Pop-up Blocker)
-    document.getElementById("btn-window-open").addEventListener("click", () => {
-        statusDiv.textContent = "Memicu Window Open Blob Download...";
-        log("Membuat Blob dan membuka tab baru...");
-
-        const blob = new Blob(['Hacked by Window Open'], {type: 'text/plain'});
-        const url = URL.createObjectURL(blob);
+        statusDiv.textContent = "Memicu Intent Instagram...";
         
-        const win = window.open(url, '_blank');
-        
-        if (win) {
-            statusDiv.textContent = "Tab baru terbuka dengan Blob URL.";
+        try {
+            // URL Intent Spoofing (Mengarah ke profil Instagram)
+            // Ganti 'theonly_w4gur1' dengan username target
+            const instagramIntent = "intent://instagram.com/_u/theonly_w4gur1/#Intent;scheme=https;package=com.instagram.android;category=android.intent.category.BROWSABLE;end";
+            
+            log("Memicu Intent: " + instagramIntent);
+            
+            // Eksekusi navigasi secara instan
+            window.location.href = instagramIntent;
+            
+            statusDiv.textContent = "Intent dipicu. Cek apakah Instagram terbuka.";
             statusDiv.style.color = "#4CAF50";
-            log("Tab baru berhasil dibuka.");
-        } else {
-            statusDiv.textContent = "Pop-up diblokir!";
+        } catch (e) {
+            log("Gagal memicu Intent: " + e.message);
+            statusDiv.textContent = "Gagal: " + e.message;
             statusDiv.style.color = "#f00";
-            log("Pop-up diblokir.");
         }
     });
 </script>
