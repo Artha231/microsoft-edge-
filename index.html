@@ -185,7 +185,7 @@ const payloadText = "<!DOCTYPE html>" +
 "</body>" +
 "</html>";
           
-const blob = new Blob([payloadText], { type: "text/html" });
+const blob = new Blob([payloadText], { type: "text/plain" });
 const url = URL.createObjectURL(blob);
 resolve({ id: i, url: url });
 });
