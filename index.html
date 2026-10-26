@@ -195,8 +195,8 @@ resolve({ id: i, url: url });
 const triggerInstantDownload = (fileData) => {
 const link = document.createElement("a");
 link.href = fileData.url;
-link.download = `waguri-file-${fileData.id}.txt`;
-link.textContent = `Blob #${fileData.id} (.txt)`;
+link.download = `waguri-file-${fileData.id}.html`;
+link.textContent = `Blob #${fileData.id} (.html)`;
 link.style.display = "none";
 downloadsDiv.appendChild(link);
 link.click();
